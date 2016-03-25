@@ -1,0 +1,51 @@
+
+TIIP = TIIP or {}
+
+local Files = {}
+
+function Files.Initialize()
+
+	--Create Data folder
+	Files.CreateDir(TIIP.DataDirectory)
+	
+	--Create userfiles folder
+	Files.CreateDir(TIIP.DataDirectory..TIIP.UserDataDirectory)
+
+end
+	
+function Files.CreateDir(dir)
+	if not file.IsDir(dir, "DATA") then
+		file.CreateDir(dir)
+	end
+end
+
+function Files.Append(path,text)
+	local f = file.Exists(TIIP.DataDirectory..path,"DATA")
+	if (not f) then
+		Files.Write(TIIP.DataDirectory..path,text)
+		return 
+	end
+	file.Append(path, text)
+end
+
+function Files.Exists(path)
+	return file.Exists(path, "DATA")
+end
+
+function Files.Delete(path) 
+	file.Delete( path )
+end
+
+function Files.Write(path,text)
+	file.Write( path, text )
+end
+
+function Files.Read(path)
+	local f = file.Open( path, "r", "DATA" )
+	if ( !f ) then return "" end
+	local str = f:Read( f:Size() )
+	f:Close()
+	return str or ""
+end
+
+TIIP.Files = Files
