@@ -4,7 +4,7 @@ if not SERVER then return end
 TIIP = TIIP or {}
 
 --Definitions
-TIIP.VERSION = "1.1 Alpha"
+TIIP.VERSION = "1.3 Alpha"
 TIIP.AUTHOR = "Erik 'Weol' Rahka"
  
 --Paths
