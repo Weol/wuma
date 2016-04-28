@@ -33,17 +33,17 @@ function Files.Exists(path)
 end
 
 function Files.Delete(path) 
-	file.Delete( path )
+	file.Delete(path)
 end
 
 function Files.Write(path,text)
-	file.Write( path, text )
+	file.Write(path, text)
 end
 
 function Files.Read(path)
-	local f = file.Open( path, "r", "DATA" )
-	if ( !f ) then return "" end
-	local str = f:Read( f:Size() )
+	local f = file.Open(path, "r", "DATA")
+	if (!f) then return "" end
+	local str = f:Read(f:Size())
 	f:Close()
 	return str or ""
 end

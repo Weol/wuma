@@ -65,6 +65,7 @@ function WUMA.Update_Global()
 	tick_global = tick_global + 1
 	
 	local restrictions, limits, loadouts = false
+	local update = {}
 	
 	if (tick_global == WUMA.DataUpdateCooldown) then 
 		WUMADebug("Saved data.\n")
@@ -72,10 +73,13 @@ function WUMA.Update_Global()
 		for _, tbl in pairs(WUMA.DATA.GlobalSchedule) do
 			if (tbl.enum == Restriction) then
 				restrictions = tbl.func(restrictions or WUMA.GetSavedRestrictions())
+				update.restrictions = tbl.func(update.restrictions or {})
 			elseif (tbl.enum == Limit)then
 				limits = tbl.func(limits or WUMA.GetSavedLimits())
+				update.limits = tbl.func(update.restrictions or {})
 			elseif (tbl.enum == Loadout)then
 				loadouts = tbl.func(loadouts or WUMA.GetSavedLoadouts())
+				update.loadouts = tbl.func(update.restrictions or {})
 			end
 		end
 		
@@ -83,10 +87,13 @@ function WUMA.Update_Global()
 		
 		WUMA.SaveData(restrictions,limits,loadouts) 
 		
+		WUMA.UpdateClients(update)
+		
+		update = {}
 		restrictions, limits, loadouts = false
 	end
 end
-timer.Create( "WUMAUpdateGlobalTables", 1, 0, WUMA.Update_Global )   
+timer.Create("WUMAUpdateGlobalTables", 1, 0, WUMA.Update_Global)   
  
 --User files
 WUMA.DATA.UserSchedule = {}
@@ -97,6 +104,7 @@ function WUMA.ScheduleUserFileUpdate(user,enum,func,finally)
 	table.insert(WUMA.DATA.UserSchedule,{user=user:SteamID(),enum=enum,func=func})
 	
 	WUMA.CacheUserData(user,enum,func,finally)
+	WUMA.
 	
 	tick_user = 0
 end
@@ -120,21 +128,21 @@ function WUMA.SaveUserData(user,restrictions,limits,loadouts)
 		local str = util.TableToJSON(restrictions)
 		WUMA.Files.Write(WUMA.GetUserFile(user,Restriction),str)
 	elseif (restrictions == false) then
-		WUMA.Files.Delete(WUMA.GetUserFile(user,Restriction))
+		WUMA.DeleteUserFile(user,Restriction)
 	end
 	
 	if (limits) then
 		local str = util.TableToJSON(limits)
 		WUMA.Files.Write(WUMA.GetUserFile(user,Limit),str)
 	elseif (limits == false) then
-		WUMA.Files.Delete(WUMA.GetUserFile(user,Limit))
+		WUMA.DeleteUserFile(user,Limit)
 	end
 
 	if (loadouts) then
 		local str = util.TableToJSON(loadouts)
 		WUMA.Files.Write(WUMA.GetUserFile(user,Loadout),str)
 	elseif (loadouts == false) then
-		WUMA.Files.Delete(WUMA.GetUserFile(user,Loadout))
+		WUMA.DeleteUserFile(user,Loadout)
 	end
 	
 end
@@ -168,7 +176,7 @@ function WUMA.Update_User()
 		
 	end
 end
-timer.Create( "WUMAUpdateUserTables", 1, 0, WUMA.Update_User )
+timer.Create("WUMAUpdateUserTables", 1, 0, WUMA.Update_User)
 
 function WUMA.GetUserFolder(user)
 	if (string.lower(type(user)) == "string") then
@@ -182,11 +190,11 @@ function WUMA.GetUserFile(user,enum)
 	local folder = WUMA.GetUserFolder(user)
 
 	if (enum == Restriction) then
-		return WUMA.DataDirectory.."users/"..folder.."/restrictions.txt"
+		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."/restrictions.txt"
 	elseif (enum == Limit)then
-		return WUMA.DataDirectory.."users/"..folder.."/limits.txt"
+		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."/limits.txt"
 	elseif (enum == Loadout)then
-		return WUMA.DataDirectory.."users/"..folder.."/loadout.txt"
+		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."/loadout.txt"
 	end
 end
 
@@ -196,6 +204,14 @@ end
 
 function WUMA.DeleteUserFile(user,enum)
 	WUMA.Files.Delete(WUMA.GetUserFile(user,enum))
+	if not WUMA.CheckUserFileExists(user,Restriction) and not WUMA.CheckUserFileExists(user,Limit) and not WUMA.CheckUserFileExists(user,Loadout) then
+		WUMA.DeleteUserFolder(user)
+	end
+end
+
+function WUMA.DeleteUserFolder(user)
+	WUMA.Files.Delete(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user))
+	
 end
  
 local function onShutdown()
@@ -204,4 +220,4 @@ local function onShutdown()
     WUMA.Update_User()
 	WUMA.Update_Global()
 end
-hook.Add( "ShutDown", "WUMADatahandlerShutdown", onShutdown )
+hook.Add("ShutDown", "WUMADatahandlerShutdown", onShutdown)

@@ -66,7 +66,7 @@ end
 function methods:LogSelf(...)
 	local varargs, player = WUMA.ExtractValue({...})
 	if WUMA.IsUlx then
-		ulx.fancyLogAdmin( player, self.format, ... )
+		ulx.fancyLogAdmin(player, self.format, ...)
 	else
 		WUMAChatPrint(self.format,...)
 	end

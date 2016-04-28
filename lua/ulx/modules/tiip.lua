@@ -1,7 +1,5 @@
 
-if not SERVER then return end
-
-include("WUMA/init.lua")
+if not (SERVER) then return end
 
 
 

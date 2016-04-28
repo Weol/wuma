@@ -21,12 +21,7 @@ function WUMA.GetSavedLimits(user)
 	local tbl = {}
 	
 	if (user) then
-		saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
-		
-		for key,obj in pairs(saved) do
-			obj.parent = user
-			tbl[key] = Limit:new(obj)
-		end 
+		tbl = WUMA.ReadUserLimits(user)
 	else
 		saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {} 
 
@@ -34,6 +29,19 @@ function WUMA.GetSavedLimits(user)
 			tbl[key] = Limit:new(obj)
 		end
 	end
+	
+	return tbl
+end
+
+function WUMA.ReadUserLimits(user)
+	local tbl = {}
+	
+	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
+		
+	for key,obj in pairs(saved) do
+		obj.parent = user
+		tbl[key] = Limit:new(obj)
+	end 
 	
 	return tbl
 end
@@ -56,7 +64,7 @@ function WUMA.AddLimit(usergroup,item,limit)
 	
 	WUMA.UpdateUsergroup(usergroup,function(user)
 		user:AddLimit(limit:Clone())
-	end )
+	end)
 	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
 		tbl[limit:GetID()] = limit
@@ -74,7 +82,7 @@ function WUMA.RemoveLimit(usergroup,item)
 
 	WUMA.UpdateUsergroup(usergroup,function(user)
 		user:RemoveLimit(Limit:GenerateID(item))
-	end )
+	end)
 	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
 		tbl[Limit:GenerateID(item)] = nil
@@ -120,5 +128,15 @@ function WUMA.AssignLimits(user)
 	for _,object in pairs(WUMA.Limits[user:GetUserGroup()]) do
 		user:AddLimit(object:Clone())
 	end
+end
+
+function WUMA.RefreshGroupLimits(user)
+	for k,v in pairs(user:GetLimits()) do
+		if not v:IsPersonal() then
+			user:RemoveLimit(v:GetID())
+	 	end
+	end
+	
+	WUMA.AssignLimits(user)
 end
 

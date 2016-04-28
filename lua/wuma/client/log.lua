@@ -9,11 +9,7 @@ function WUMA.Log.ServerLog(msg,...)
 	end
 	WUMA.Files.Append("log.txt",msg)
 	msg = "[WUMA] " .. msg 
-	if game.IsDedicated() then
-		Msg(msg.."\n")
-	else
-		ServerLog(msg)
-	end
+	Msg(msg.."\n")
 end
 WUMALog = WUMA.Log.ServerLog --To save my fingers
 
@@ -22,9 +18,7 @@ function WUMA.Log.ChatPrint(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	for k,v in pairs(WUMA.ALL()) do
-		v:ChatPrint(msg)
-	end
+	LocalPlayer():ChatPrint(msg)
 end
 WUMAChatPrint = WUMA.Log.ChatPrint --To save my fingers
 
@@ -33,36 +27,16 @@ function WUMA.Log.DebugLog(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	if WUMA.Debug then
-		WUMA.Files.Append("log.txt",msg)
-		if game.IsDedicated() then
-			Msg(msg.."\n")
-		else
-			ServerLog(msg)
-		end
-	end
+	Msg(msg.."\n")
 end
 WUMADebug = WUMA.Log.DebugLog
 
 function WUMA.Log.Error(msg)
 	WUMALog("WUMA ERROR!\n")
-	if game.IsDedicated() then
-		Msg(msg.."\n")
-	else
-		ServerLog(msg)
-	end
+	Msg(msg.."\n")
 	debug.Trace()
 end
 WUMAError = WUMA.Log.Error --To save my fingers
-
-function WUMA.Log.Alert(ply,msg,...)
-	local args = { ... }
-	if args then
-		msg = WUMA.SafeFormat(msg,args)
-	end
-	ULib.tsayError(ply, msg, true) 
-end	
-WUMAAlert = WUMA.Log.Alert --To save my fingers
 
 function WUMA.ExtractValue(args)
 	local value = args[1]

@@ -92,7 +92,7 @@ function object:Hit()
 	self.parent:SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted%s!",NOTIFY_ERROR,3)
 		]],self:GetType(),str,scope))
-	self.parent:SendLua( [[surface.PlaySound( "buttons/button10.wav" )]] )
+	self.parent:SendLua([[surface.PlaySound)"buttons/button10.wav")]])
 end
 
 function object:IsPersonal()

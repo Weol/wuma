@@ -5,8 +5,8 @@ local self = ENT
 ENT.Restrictions = ENT.Restrictions or {}
 ENT.Limits = ENT.Limits or {}
 ENT.Loadout = ENT.Loadout or nil
-
-function ENT:CheckLimit( str, WUMA ) 
+ 
+function ENT:CheckLimit(str, WUMA) 
 	
 	WUMADebug("Checklimit(%s,%s)",str or "_",WUMA or "_")
 	
@@ -18,10 +18,10 @@ function ENT:CheckLimit( str, WUMA )
 			return self:GetLimit(WUMA):Check()
 		end
 
-		local c = cvars.Number( "sbox_max"..str, 0 )
+		local c = cvars.Number("sbox_max"..str, 0)
 	
-		if ( c < 0 ) then return true end
-		if ( self:GetCount( str ) > c-1 ) then self:LimitHit( str ) return false end
+		if (c < 0) then return true end
+		if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
 		return true
 	end
 	
@@ -29,7 +29,7 @@ function ENT:CheckLimit( str, WUMA )
 
 end
 
-function ENT:AddCount( str, ent, WUMA )
+function ENT:AddCount(str, ent, WUMA)
  
 	WUMADebug("AddCount(%s,%s,%s)",str or "_",tostring(ent) or "_",WUMA or "_")
 
@@ -39,7 +39,7 @@ function ENT:AddCount( str, ent, WUMA )
 		self:GetLimit(WUMA):Add(ent)
 	else
 
-		if ( SERVER ) then
+		if (SERVER) then
 
 			local key = self:UniqueID()
 			g_SBoxObjects[ key ] = g_SBoxObjects[ key ] or {}
@@ -47,12 +47,12 @@ function ENT:AddCount( str, ent, WUMA )
 			
 			local tab = g_SBoxObjects[ key ][ str ]
 			
-			table.insert( tab, ent )
+			table.insert(tab, ent)
 			
 			-- Update count (for client)
-			self:GetCount( str )
+			self:GetCount(str)
 			
-			ent:CallOnRemove( "GetCountUpdate", function( ent, ply, str ) ply:GetCount(str, 1) end, self, str )
+			ent:CallOnRemove("GetCountUpdate", function (ent, ply, str) ply:GetCount(str, 1) end, self, str)
 		
 		end
 	
@@ -61,7 +61,7 @@ function ENT:AddCount( str, ent, WUMA )
 	
 end
 
-function ENT:GetCount( str, minus, WUMA )
+function ENT:GetCount(str, minus, WUMA)
 
 	WUMADebug("GetCount(%s,%s,%s)",str or "_",tostring(minus) or "_",WUMA or "_")
 
@@ -73,29 +73,29 @@ function ENT:GetCount( str, minus, WUMA )
 		return l
 	else
 		
-		if ( CLIENT ) then
-			return self:GetNetworkedInt( "Count."..str, 0 )
+		if (CLIENT) then
+			return self:GetNetworkedInt("Count."..str, 0)
 		end
 		
 		minus = minus or 0
 		
-		if ( !self:IsValid() ) then return end
+		if (!self:IsValid()) then return end
 
 		local key = self:UniqueID()
 		local tab = g_SBoxObjects[ key ]
 		
-		if ( !tab || !tab[ str ] ) then 
+		if (!tab || !tab[ str ]) then 
 		
-			self:SetNetworkedInt( "Count."..str, 0 )
+			self:SetNetworkedInt("Count."..str, 0)
 			return 0 
 			
 		end
 		
 		local c = 0
 
-		for k, v in pairs ( tab[ str ] ) do
+		for k, v in pairs(tab[ str ]) do
 		
-			if ( v:IsValid() ) then 
+			if (v:IsValid()) then 
 				c = c + 1
 			else
 				tab[ str ][ k ] = nil
@@ -103,7 +103,7 @@ function ENT:GetCount( str, minus, WUMA )
 		
 		end
 		
-		self:SetNetworkedInt( "Count."..str, c - minus )
+		self:SetNetworkedInt("Count."..str, c - minus)
 
 		return c
 			
@@ -111,7 +111,7 @@ function ENT:GetCount( str, minus, WUMA )
 	
 end
 
-function ENT:LimitHit( str )
+function ENT:LimitHit(str)
 
 	WUMADebug("LimitHit(%s)",str or "_")
 
@@ -122,6 +122,18 @@ function ENT:LimitHit( str )
 	end
 
 end
+
+function ENT:GetWUMAData()
+	return {
+		restrictions = self:GetRestrictions() or false,
+		limits = self:GetLimits() or false,
+		loadout = self:GetLoadout() or false
+	}
+end   
+
+function ENT:HasWUMAData()
+	if (self:GetRestrictions() or self:GetLimits() or self:GetLoadout()) then return true else return false end
+end   
  
 function ENT:CheckRestriction(type,str)
 	WUMADebug("CheckRestriction(%s,%s)",type,str)
@@ -180,22 +192,27 @@ function ENT:GetRestriction(type,str)
 	end 
 end
 
-function ENT:RefreshGroupRestrictions()
-	for k,v in pairs(self:GetRestrictions()) do
-		if v:GetUsergroup() then
-			self:RemoveRestriction(v:GetID())
-	 	end
-	end
-	
-	WUMA.AssignRestrictions(self)
-end
-
 function ENT:AddLimit(limit)
 	limit:SetParent(self)
-	self.Limits[limit:GetID()] = limit
+
+	if not self.Limits[limit:GetID()] or not limit:IsPersonal() then
+		self.Limits[limit:GetID()] = limit
+	else
+		self.Limits[limit:GetID()]:SetOverride(limit)
+	end
 end
 
-function ENT:RemoveLimit(id)
+function ENT:RemoveLimit(id,personal)
+
+	if personal then
+		if not self.Limits[id]:IsPersonal() and self.Limits[id]:GetOverride() then
+			if (self.Limits[id]:GetOverride():GetID() == id) then
+				self.Limits[id]:RemoveOverride()
+				return
+			end
+		end
+	end
+
 	self.Limits[id] = nil
 end
 
@@ -210,16 +227,6 @@ end
 function ENT:HasLimit(str)
 	if self.Limits[str] then return true end
 	return false
-end
-
-function ENT:RefreshGroupLimits()
-	for k,v in pairs(self:GetLimits()) do
-		if v:GetUsergroup() then
-			self:RemoveLimit(v:GetID())
-	 	end
-	end
-	
-	WUMA.AssignLimits(self)
 end
 
 function ENT:GiveLoadout()

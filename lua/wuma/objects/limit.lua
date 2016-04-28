@@ -38,7 +38,7 @@ function static:GenerateHit(str,ply)
 	ply:SendLua(string.format([[
 			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
 		]],str))
-	ply:SendLua( [[surface.PlaySound( "buttons/button10.wav" )]] )
+	ply:SendLua([[surface.PlaySound)"buttons/button10.wav")]])
 end
 
 --																								Object functions
@@ -81,6 +81,10 @@ function object:Clone()
 	return Limit:new(self)
 end
 
+function object:IsPersonal()
+	if self.usergroup then return false else return true end
+end
+	
 function object:Get()
 	if self.m.limit then return self.m.limit end
 	return self.limit 
@@ -149,29 +153,30 @@ function object:Check(int)
 			return false
 		end
 	end
+	return true
 end
 
 function object:Hit()
+	if self:GetOverride() then self:GetOverride():Hit(); return end
 	local str = self.print or self.string
 	
 	self.parent:SendLua(string.format([[
 			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
 		]],str))
-	self.parent:SendLua( [[surface.PlaySound( "buttons/button10.wav" )]] )
+	self.parent:SendLua([[surface.PlaySound)"buttons/button10.wav")]])
 end
 
 function object:Subtract(c)
 	c = tonumber(c) or 1
 	self:SetCount(self:GetCount() - c)
-	if self:GetOverride() then self:GetOverride():Subtract(c) end
 end 
 
 function object:Add(entity)
 	self:SetCount(self:GetCount() + 1)
+	if self:GetOverride() then self:GetOverride():SetCount(self:GetOverride():GetCount() + 1) end
+	
 	entity:AddWUMAParent(self) 
 	if self:GetOverride() then entity:AddWUMAParent(self:GetOverride()) end
-	entity:CallOnRemove( "WUMACountUpdate", function( ent )  
-	for _,limit in pairs(ent:GetWUMAParents()) do limit:Subtract(ent) end end ) 
 end
 
 object.__index = object

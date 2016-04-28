@@ -18,9 +18,7 @@ function WUMA.GetSavedLoadouts(user)
 	local tbl = {}
 	
 	if (user) then
-		saved = WUMA.GetCachedUserData(user,Loadout) or util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or Loadout:new()
-		
-		tbl = Loadout:new(saved)
+		tbl = WUMA.ReadUserLoadout(user)
 	else
 		saved = WUMA.GetCachedData(Loadout) or util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")) or {}
 
@@ -30,6 +28,12 @@ function WUMA.GetSavedLoadouts(user)
 	end
 	
 	return tbl
+end
+
+function WUMA.ReadUserLoadout(user)
+	saved = WUMA.GetCachedUserData(user,Loadout) or util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or Loadout:new()
+		
+	return Loadout:new(saved)
 end
 
 function WUMA.GetSavedLoadout(user)
@@ -66,7 +70,7 @@ function WUMA.SetLoadoutPrimaryWeapon(usergroup,item)
 		if user:HasLoadout() and not user:GetLoadout():IsPersonal() then
 			user:GetLoadout():SetPrimary(item)
 		end
-	end )
+	end)
 end
 
 function WUMA.AddLoadoutWeapon(usergroup,item,primary,secondary)
@@ -84,7 +88,7 @@ function WUMA.AddLoadoutWeapon(usergroup,item,primary,secondary)
 	end, function() 
 		WUMA.UpdateUsergroup(usergroup,function(user)
 			WUMA.RefreshLoadout(user)
-		end )
+		end)
 	end)
 	
 end
@@ -104,7 +108,7 @@ function WUMA.RemoveLoadoutWeapon(usergroup,item)
 		end, function() 
 			WUMA.UpdateUsergroup(usergroup,function(user)
 				WUMA.RefreshLoadout(user)
-			end )
+			end)
 		end)
 	end
 	
@@ -122,7 +126,7 @@ function WUMA.ClearLoadout(usergroup)
 	end, function()
 		WUMA.UpdateUsergroup(usergroup,function(user)
 			WUMA.RefreshLoadout(user)
-		end )
+		end)
 	end)
 	
 end
@@ -203,7 +207,7 @@ function WUMA.ClearUserLoadout(users)
 end
 
 function WUMA.GiveDefaultLoadout(user)
-	hook.Call( "PlayerLoadout", GAMEMODE, user )
+	hook.Call("PlayerLoadout", GAMEMODE, user)
 end
 
 function WUMA.GiveLoadout(user)
