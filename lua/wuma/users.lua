@@ -14,7 +14,7 @@ function WUMA.InitializeUser(user)
 	end
 	
 	if WUMA.HasAccess(user) then 
-		WUMA.NET.USERS(user)
+		WUMA.SendInformation(user,WUMA.NET.USERS)
 	end
 end
 
@@ -74,8 +74,9 @@ function WUMA.GetUserData(user)
 		if not restrictions and not limits and not loadout then return false end
 			
 		return {
-			restrictions = restrictions
-			limits = limits
+			steamid = user,
+			restrictions = restrictions,
+			limits = limits,
 			loadout = loadout
 		}
 	else
@@ -134,7 +135,7 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.PlayerDisconnected(user)
-	WUMA.RemoveUser(user)
+
 end
 hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.PlayerDisconnected, -2)
 

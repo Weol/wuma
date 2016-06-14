@@ -125,6 +125,9 @@ end
 
 function ENT:GetWUMAData()
 	return {
+		user = self,
+		steamid = self:SteamID(),
+		nick = self:Nick(),
 		restrictions = self:GetRestrictions() or false,
 		limits = self:GetLimits() or false,
 		loadout = self:GetLoadout() or false
