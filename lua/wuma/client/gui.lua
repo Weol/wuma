@@ -19,28 +19,19 @@ function WUMA.GUI.Initialize(panel)
 	WGUI.Base = WUMA.CreatePropertySheet{x=-5,y=7,w=WGUI.Tab:GetWide(),h=WGUI.Tab:GetTall()-7,parent=WGUI.Tab}
 	
 	--Request panels
-	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.Base) --Restriction
-	WGUI.Tabs.Limitss = vgui.Create("WUMA_Limits", WGUI.Base) --Limit
-	WGUI.Tabs.Loadoutss = vgui.Create("WUMA_Loadouts", WGUI.Base) --Loadout
-	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.Base) --Player
+	WGUI.Tabs.Restriction = vgui.Create("WUMA_Restriction", WGUI.Base) --Restriction
+	WGUI.Tabs.Limit = vgui.Create("WUMA_Restriction", WGUI.Base) --Limit
+	WGUI.Tabs.Loadout = vgui.Create("WUMA_Restriction", WGUI.Base) --Loadout
+	WGUI.Tabs.Player = vgui.Create("WUMA_Restriction", WGUI.Base) --Player
 
 	--Adding panels to base
-	WGUI.Base:AddSheet(WGUI.Tabs.Restrictions:GetTabName(), WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions:GetTabIcon()) --Restriction
-	WGUI.Base:AddSheet(WGUI.Tabs.Limits:GetTabName(), WGUI.Tabs.Limits, WGUI.Tabs.Limits:GetTabIcon()) --Limit
-	WGUI.Base:AddSheet(WGUI.Tabs.Loadouts:GetTabName(), WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts:GetTabIcon()) --Loadout
-	WGUI.Base:AddSheet(WGUI.Tabs.Users:GetTabName(), WGUI.Tabs.Users, WGUI.Tabs.Users:GetTabIcon()) --Player
+	WGUI.Base:AddSheet(WGUI.Tabs.Restriction:GetTabName(), WGUI.Tabs.Restriction, WGUI.Tabs.Restriction:GetTabIcon()) --Restriction
+	WGUI.Base:AddSheet(WGUI.Tabs.Limit:GetTabName(), WGUI.Tabs.Limit, WGUI.Tabs.Limit:GetTabIcon()) --Limit
+	WGUI.Base:AddSheet(WGUI.Tabs.Loadout:GetTabName(), WGUI.Tabs.Loadout, WGUI.Tabs.Loadout:GetTabIcon()) --Loadout
+	WGUI.Base:AddSheet(WGUI.Tabs.Player:GetTabName(), WGUI.Tabs.Player, WGUI.Tabs.Player:GetTabIcon()) --Player
 	
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
-	text - Button text
-	icon - Button icon
-	onclick - DoClick function
---]]
 function WUMA.CreateButton(tbl) 
 	
 	local gui = vgui.Create("DButton", tbl.parent)
@@ -49,7 +40,6 @@ function WUMA.CreateButton(tbl)
 	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
 	gui:SetText(tbl.text or "")
 	
-	if tbl.icon then gui:SetImage(tbl.icon) end
 	if tbl.fill then gui:Dock(FILL) end
 	
 	if gui.onclick then
@@ -60,16 +50,6 @@ function WUMA.CreateButton(tbl)
 	
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
-	text - Header text
-	multiselect - Enable multiselect?
-	header_height - Header height
-	onrowselected = OnRowSelected function
---]]
 function WUMA.CreateList(tbl) 
 
 	local gui = vgui.Create("DListView", tbl.parent)
@@ -82,18 +62,10 @@ function WUMA.CreateList(tbl)
 	
 	if tbl.fill then gui:Dock(FILL) end
 	
-	if tbl.onrowselected then gui.OnRowSelected = tbl.onrowselected end
-	
 	return gui
 	
 end
  
- --[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
---]]
 function WUMA.CreatePropertySheet(tbl) 
 
 	local gui = vgui.Create("DPropertySheet", tbl.parent)
@@ -107,14 +79,6 @@ function WUMA.CreatePropertySheet(tbl)
 	
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
-	text - Label text
-	text_color - Text color
---]]
 function WUMA.CreateLabel(tbl) 
 
 	local gui = vgui.Create("DLabel", tbl.parent)
@@ -123,19 +87,12 @@ function WUMA.CreateLabel(tbl)
 	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
 	gui:SetText(tbl.text)
 	
-	if tbl.text_color then gui:SetTextColor(tbl.text_color) end
 	if tbl.fill then gui:Dock(FILL) end
 	
 	return gui
 
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
---]]
 function WUMA.CreateSlider(tbl) 
 
 	local gui = vgui.Create("DSlider", tbl.parent)
@@ -149,31 +106,6 @@ function WUMA.CreateSlider(tbl)
 
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	text - Checkbox text
-	checked - 1/0
-	checkedFunc - Function, return 1/0
---]]
-function WUMA.CreateCheckbox(tbl) 
-
-	local gui = vgui.Create("DSlider", tbl.parent)
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetText(tbl.text or "")
-
-	if tbl.checked then gui:SetValue(tbl.checked) end
-	if tbl.checkedFunc then gui:SetValue(tbl.checkedFunc()) end
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
---]]
 function WUMA.CreatePanel(tbl) 
 
 	local gui = vgui.Create("DPanel", tbl.parent)
@@ -187,20 +119,12 @@ function WUMA.CreatePanel(tbl)
 
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
-	title - Frame title
---]]
 function WUMA.CreateFrame(tbl) 
 
 	local gui = vgui.Create("DFrame", tbl.parent)
 	gui:SetSize(tbl.w or 60, tbl.h or 20)
 	gui:SetPos(tbl.x, tbl.y)
 	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	gui:SetTitle(tbl.title or "")
 	
 	if tbl.fill then gui:Dock(FILL) end
 	
@@ -208,15 +132,6 @@ function WUMA.CreateFrame(tbl)
 
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	minimum_width, minimum_height - Minimum size
-	fill - Should fill?
-	text_color - Text color
-	text_changed - OnTextChanged function
-	default - Default text
---]]
 function WUMA.CreateTextbox(tbl) 
 
 	local gui = vgui.Create("DTextEntry", tbl.parent)

@@ -85,7 +85,7 @@ function WUMA.RemoveLimit(usergroup,item)
 	end)
 	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
-		tbl[Limit:GenerateID(item)] = WUMA.EMPTY
+		tbl[Limit:GenerateID(item)] = nil
 		
 		return tbl
 	end)
@@ -115,7 +115,7 @@ function WUMA.RemoveUserLimit(users,item)
 		user:RemoveLimit(id)
 		
 		WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
-			tbl[id] = WUMA.EMPTY
+			tbl[id] = nil
 			
 			return tbl
 		end)

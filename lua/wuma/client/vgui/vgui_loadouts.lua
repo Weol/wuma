@@ -1,9 +1,27 @@
 
 local PANEL = {}
 
-PANEL.TabName = "Loadouts"
-PANEL.TabIcon = "gui/silkicons/user"
+PANEL.DataTable = {}
 
+function PANEL:SetDataTable(tbl)
+	self.DataTable = tbl
+end
 
+function PANEL:UpdateDataTable(tbl,tbl2)
+	local datatable = tbl2 or self.DataTable
+	for k,v in pairs(tbl) do
+		if not self.DataTable[k] then
+			self.DataTable[k] = v
+		end
+	end
+end
 
-vgui.Register("WUMA_Restriction", PANEL, 'WUMA_Base');
+function PANEL:GetTabName()
+	return "Loadouts"
+end
+
+function PANEL:GetTabIcon()
+	return "gui/silkicons/user"
+end
+
+vgui.Register("WUMA_Restriction", PANEL, 'DPanel');
