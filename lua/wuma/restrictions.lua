@@ -90,7 +90,7 @@ function WUMA.RemoveRestriction(usergroup,type,item)
 	end)
 	
 	WUMA.ScheduleDataFileUpdate(Restriction, function(tbl)
-		tbl[Restriction:GenerateID(type,item)] = nil
+		tbl[Restriction:GenerateID(type,item)] = WUMA.EMPTY
 		
 		return tbl
 	end)
@@ -120,7 +120,7 @@ function WUMA.RemoveUserRestriction(users,type,item)
 		user:RemoveRestriction(id,true)
 		
 		WUMA.ScheduleUserFileUpdate(user,Restriction, function(tbl)
-			tbl[id] = nil
+			tbl[id] = WUMA.EMPTY
 			
 			return tbl
 		end)

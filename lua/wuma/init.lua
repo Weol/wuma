@@ -4,13 +4,13 @@ if not SERVER then return end
 WUMA = WUMA or {}
 
 --Definitions
-WUMA.VERSION = "1.4 Alpha"
+WUMA.VERSION = "1.4.1 Alpha"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
 WUMA.DELETE = "WUMA_delete"
-WUMA.EMPTY = "WUMA_empty"
- 
+WUMA.EMPTY = "WUMA_empty" 
+
 --Paths
 WUMA.DataDirectory = "WUMA/"
 WUMA.SharedDirectroy = "WUMA/shared/"

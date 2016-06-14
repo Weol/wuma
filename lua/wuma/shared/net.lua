@@ -7,7 +7,7 @@ WUMA.NET.INTSIZE = 6
 if SERVER then
 
 	function WUMA.UpdateClients(update)
-		local users = WUMA.GetUsers(WUMA.NET.ACCESS)
+		local users = WUMA.GetAuthorizedUsers()
 		for _,user in pairs(users) do 
 			WUMA.SendDataUpdate(user,update)
 		end
@@ -26,13 +26,13 @@ if SERVER then
 	
 		local cmd, tbl = WUMA.ExtractValue(net.ReadTable())
 	end
-	net.Receive("WUMACommandStream", WUMA.onRecieveTable)
+	net.Receive("WUMACommandStream", WUMA.RecieveCommand)
 	
 	util.AddNetworkString("WUMAInformationStream")
-	function WUMA.SendInformation(user,tbl,enum)
+	function WUMA.SendInformation(user,enum,...)
 		net.Start("WUMAInformationStream")
-			net.WriteInt(enum,WUMA.NET.INTSIZE)
-			if tbl then net.WriteTable(tbl) end
+			net.WriteInt(enum:GetID(),WUMA.NET.INTSIZE)
+			if tbl then net.WriteTable(enum(...)) end
 		net.Send(user)	
 	end
 	
@@ -64,7 +64,7 @@ else
 		local enum = net.ReadInt(WUMA.NET.INTSIZE)
 		local data = net.ReadTable()
 		
-		WUMA.NET.ENUMS[enum](data)
+		WUMA.ProcessInformationUpdate(enum,data)
 	end
 	net.Receive("WUMAInformationStream", WUMA.RecieveInformation)
 	
