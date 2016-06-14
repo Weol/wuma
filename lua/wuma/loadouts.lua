@@ -120,7 +120,7 @@ function WUMA.ClearLoadout(usergroup)
 	WUMA.Loadouts[usergroup] = nil
 	
 	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
-		tbl[usergroup] = WUMA.EMPTY
+		tbl[usergroup] = nil
 		
 		return tbl
 	end, function()

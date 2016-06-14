@@ -20,7 +20,6 @@ function WUMA_NET_STREAM:new(tbl)
 	obj.send = tbl.send or false
 	obj.server = tbl.server or false
 	obj.client = tbl.client or false
-	obj.auth = tbl.auth or false
 	
 	obj.id = WUMA_NET_STREAM:GenerateID()
 	
@@ -55,25 +54,12 @@ function object:__eq(that)
 	return false
 end
 
-function object:IsAuthorized(user)
-	if not self.auth then 
-		WUMAError("WARNING! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION! THIS CAN CAUSE FATAL SECURITY ISSUES!")
-		return false 
-	else
-		return self.auth(user)
-	end
-end
-
 function object:SetServerFunction(func)
 	self.sever = func
 end
 
 function object:SetClientFunction(func)
 	self.client = func
-end
-
-function object:SetAuthenticationFunction(func)
-	self.auth = func
 end
 
 function object:AddInto(tbl)

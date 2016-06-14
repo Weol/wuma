@@ -6,10 +6,6 @@ WUMA.HomePath = "wuma/client/"
 
 WUMA.Debug = true
 
---Enums
-WUMA.DELETE = "WUMA_delete"
-WUMA.EMPTY = "WUMA_empty"
-
 function WUMA.Initialize()
 	
 	include("log.lua")
