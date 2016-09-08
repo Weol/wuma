@@ -13,7 +13,56 @@ function WUMA.GetSavedTable(enum,user)
 end
 
 local function isTableEmpty(tbl) 
+	if not istable(tbl) then return tbl end
 	if (table.Count(tbl) < 1) then return true else return false end
+end
+
+--Update Clients
+WUMA.DATA.ClientUpdateSchedule = {}
+
+WUMA.DATA.CreateTimer = true
+function WUMA.ScheduleClientUpdate(enum,func) 
+	table.insert(WUMA.DATA.ClientUpdateSchedule,{enum=enum,func=func})
+	
+	if WUMA.DATA.CreateTimer then
+		WUMA.DATA.CreateTimer = false
+		timer.Simple(0.2, WUMA.UpdateClients)
+	end
+end
+
+function WUMA.UpdateClients()
+	WUMA.DATA.CreateTimer = true
+
+	local tbl = {}
+	for _, update in pairs(WUMA.DATA.ClientUpdateSchedule) do
+		local key = update.enum:GetID()
+		tbl[key] = tbl[key] or {}
+		table.Merge(tbl[key],update.func({}))
+	end
+	WUMA.DATA.ClientUpdateSchedule = {}
+
+	for _, user in pairs(WUMA.GetAuthorizedUsers()) do
+		for enum, update in pairs(tbl) do
+			WUMA.SendCompressedData(user,util.Compress(util.TableToJSON(update)),enum)
+		end
+	end
+
+end
+
+function WUMA.SendData(user)
+ 
+	if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
+		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")),Restriction:GetID())
+	end
+	
+	if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
+		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")),Limit:GetID())
+	end
+
+	if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
+		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")),Loadout:GetID())
+	end
+	
 end
 
 --Global files
@@ -29,9 +78,8 @@ function WUMA.ScheduleDataFileUpdate(enum,func,finally)
 	tick_global = 0 
 end
 
-
 function WUMA.CacheData(enum,func,finally)
-	WUMA.DATA.GlobalCache[enum] = func(WUMA.DATA.GlobalCache[enum] or WUMA.GetSavedTable(enum))
+	WUMA.DATA.GlobalCache[enum] = func(WUMA.DATA.GlobalCache[enum] or WUMA.GetSavedTable(enum) or {})
 	if finally then finally() end
 end
 
@@ -43,21 +91,21 @@ end
 function WUMA.SaveData(restrictions,limits,loadouts) 
 
 	if (restrictions) then
-		local str = util.TableToJSON(restrictions)
+		local str = util.TableToJSON(restrictions,true)
 		WUMA.Files.Write(WUMA.DataDirectory.."restrictions.txt",str)	
 	elseif (restrictions == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."restrictions.txt")
 	end
 	
 	if (limits) then
-		local str = util.TableToJSON(limits)
+		local str = util.TableToJSON(limits,true)
 		WUMA.Files.Write(WUMA.DataDirectory.."limits.txt",str)
 	elseif (limits == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."limits.txt")
 	end
 	
 	if (loadouts) then
-		local str = util.TableToJSON(loadouts)
+		local str = util.TableToJSON(loadouts,true)
 		WUMA.Files.Write(WUMA.DataDirectory.."loadouts.txt",str)
 	elseif (loadouts == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."loadouts.txt")
@@ -69,21 +117,17 @@ function WUMA.Update_Global()
 	tick_global = tick_global + 1
 	
 	local restrictions, limits, loadouts = false
-	local update = {}
-	
+
 	if (tick_global == WUMA.DataUpdateCooldown) then 
 		WUMADebug("Saved data.\n")
 	
 		for _, tbl in pairs(WUMA.DATA.GlobalSchedule) do
 			if (tbl.enum == Restriction) then
 				restrictions = tbl.func(restrictions or WUMA.GetSavedRestrictions())
-				update.restrictions = tbl.func(update.restrictions or {})
 			elseif (tbl.enum == Limit)then
 				limits = tbl.func(limits or WUMA.GetSavedLimits())
-				update.limits = tbl.func(update.limits or {})
 			elseif (tbl.enum == Loadout)then
 				loadouts = tbl.func(loadouts or WUMA.GetSavedLoadouts())
-				update.loadouts = tbl.func(update.loadouts or {})
 			end
 		end
 			
@@ -94,9 +138,7 @@ function WUMA.Update_Global()
 		WUMA.DATA.GlobalSchedule = {}
 
 		WUMA.SaveData(restrictions,limits,loadouts) 
-		WUMA.UpdateClients(update)
 		
-		update = false
 		restrictions, limits, loadouts = false
 	end
 end
@@ -117,7 +159,7 @@ end
 
 function WUMA.CacheUserData(user,enum,func,finally)
 	WUMA.DATA.UserCache[user] = WUMA.DATA.UserCache[user] or {}
-	WUMA.DATA.UserCache[user][enum] = func(WUMA.DATA.UserCache[user][enum] or WUMA.GetSavedTable(enum,user))
+	WUMA.DATA.UserCache[user][enum] = func(WUMA.DATA.UserCache[user][enum] or WUMA.GetSavedTable(enum,user) or {})
 	if finally then finally() end
 end
 
@@ -160,8 +202,6 @@ function WUMA.Update_User()
 	local limits = {}
 	local loadouts = {}
 	
-	local update = {}
-	
 	if (tick_user == WUMA.DataUpdateCooldown) then 
 		local users = {}
 		for _, tbl in pairs(WUMA.DATA.UserSchedule) do
@@ -186,7 +226,7 @@ function WUMA.Update_User()
 			WUMA.SaveUserData(user,restrictions[user], limits[user], loadouts[user]) 
 		end 
 		
-		Msg("Saved user data.\n")
+		WUMADebug("Saved user data")
 		
 	end
 end

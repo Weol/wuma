@@ -1,38 +1,49 @@
 
 WUMA = WUMA or {}
 
-WUMA.NET = {}
-WUMA.NET.INTSIZE = 6
+WUMA.NET = WUMA.NET or {}
+WUMA.NET.INTSIZE = 5
 
 if SERVER then
 
-	function WUMA.UpdateClients(update)
-		local users = WUMA.GetAuthorizedUsers()
-		for _,user in pairs(users) do 
-			WUMA.SendDataUpdate(user,update)
-		end
+	util.AddNetworkString("WUMACompressedDataStream")
+	function WUMA.SendCompressedData(user,data,id)	
+		if not data then return end
+	
+		net.Start("WUMACompressedDataStream")
+			net.WriteUInt(data:len(),32)
+			net.WriteString(id)
+			net.WriteBool(await or false)
+			net.WriteData(data,data:len())
+		net.Send(user)
 	end
 	
-	util.AddNetworkString("WUMADataStream")
-	function WUMA.SendDataUpdate(user,tbl)
-		net.Start("WUMADataStream")
-			net.WriteTable(tbl)
-		net.Send(user)	
-	end
+	util.AddNetworkString("WUMAAccessStream")
+	function WUMA.RecieveCommand(lenght,user)
+		WUMADebug("Command recieved!(SIZE: %s kb)",tostring(lenght/1024))
 	
-	util.AddNetworkString("WUMACommandStream")
-	function WUMA.RecieveCommand(user)
-		WUMADebug("Command recieved!(SIZE: %s bytes)",tostring(lenght))
-	
-		local cmd, tbl = WUMA.ExtractValue(net.ReadTable())
+		local tbl = net.ReadTable()
+		local cmd = tbl[1]
+
+		local data = {user}
+		table.Add(data,tbl[2])
+
+		WUMA.ProcessAccess(cmd,data)
 	end
-	net.Receive("WUMACommandStream", WUMA.RecieveCommand)
+	net.Receive("WUMAAccessStream", WUMA.RecieveCommand)
 	
 	util.AddNetworkString("WUMAInformationStream")
-	function WUMA.SendInformation(user,enum,...)
+	function WUMA.SendInformation(user,enum,data)
+		if not enum then 
+			WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
+			return			
+		end
+
+		if not data then return end
+		
 		net.Start("WUMAInformationStream")
 			net.WriteInt(enum:GetID(),WUMA.NET.INTSIZE)
-			if tbl then net.WriteTable(enum(...)) end
+			net.WriteTable(data)
 		net.Send(user)	
 	end
 	
@@ -41,46 +52,60 @@ if SERVER then
 		local enum = net.ReadInt(WUMA.NET.INTSIZE)
 		local data = net.ReadTable()
 		
-		WUMADebug("Request recieved! (ENUM: %s) (SIZE: %s bytes)",tostring(enum),tostring(lenght))
+		WUMADebug("Request recieved! (ENUM: %s) (SIZE: %s kb)",tostring(enum),tostring(lenght))
+		
+		if WUMA.NET.ENUMS[enum]:IsAuthorized(user) then
+			WUMA.NET.ENUMS[enum]:Send(user,data)
+		else
+			WUMALog("An unauthorized user(%s) tried to request! (ENUM: %s)",user:SteamID(),tostring(enum))
+		end
 
-		WUMA.NET.ENUMS[enum](user,data)
 	end
 	net.Receive("WUMARequestStream", WUMA.RecieveClientRequest)
 		
 else
 	
-	//RECIVE DATA
-	function WUMA.RecieveDataUpdate(lenght)
-		WUMA.ProcessDataUpdate(net.ReadTable())
-		
-		WUMADebug("Data recieved! (SIZE: %s bytes)",tostring(lenght))
-	end
-	net.Receive("WUMADataStream", WUMA.RecieveDataUpdate)
-	
 	//RECIVE INFORMATION
-	function WUMA.RecieveInformation(lenght)
-		WUMADebug("Information recieved! (ENUM: %s) (SIZE: %s bytes)",tostring(net.ReadInt(WUMA.NET.INTSIZE)),tostring(lenght))
-	
+	function WUMA.RecieveInformation(lenght,pl)
 		local enum = net.ReadInt(WUMA.NET.INTSIZE)
 		local data = net.ReadTable()
+		
+		WUMADebug("Information recieved! (ENUM: %s) (SIZE: %s kb)",tostring(enum),tostring(lenght/1024))
 		
 		WUMA.ProcessInformationUpdate(enum,data)
 	end
 	net.Receive("WUMAInformationStream", WUMA.RecieveInformation)
 	
+	//RECIVE COMPRESSED DATA
+	function WUMA.RecieveCompressedData(lenght)
+		local len = net.ReadUInt(32)
+		local id = net.ReadString()
+		local await = net.ReadBool()
+		local data = net.ReadData(len)
+		
+		WUMADebug("Compressed data recieved! (SIZE: %s bytes)",tostring(lenght))
+		
+		WUMA.ProcessCompressedData(id,data)
+	end
+	net.Receive("WUMACompressedDataStream", WUMA.RecieveCompressedData)
+	
 	//SEND COMMAND
-	function WUMA.SendCommand(cmd,data)
+	function WUMA.SendCommand(cmd,data,quiet)
 		local tbl = {cmd, data}
-		net.Start("WUMACommandStream")
+		net.Start("WUMAAccessStream")
 			net.WriteTable(tbl)
+			net.WriteBool(quiet or false)
 		net.SendToServer()
 	end
 	
 	//SEND REQUEST
 	function WUMA.RequestFromServer(enum,data)
+		WUMADebug("Sending request! (ENUM: %s)",tostring(enum))
+	
+		if not istable(data) then data = {data} end
 		net.Start("WUMARequestStream")
 			net.WriteInt(enum,WUMA.NET.INTSIZE)
-			net.WriteTable(data)
+			net.WriteTable(data or {})
 		net.SendToServer()
 	end
 	

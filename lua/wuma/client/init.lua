@@ -9,6 +9,7 @@ WUMA.Debug = true
 --Enums
 WUMA.DELETE = "WUMA_delete"
 WUMA.EMPTY = "WUMA_empty"
+WUMA.ERROR = "WUMA_error"
 
 function WUMA.Initialize()
 	
@@ -41,6 +42,13 @@ function WUMA.IncludeFolder(dir)
 	for _,directory in pairs(directories) do
 		WUMA.IncludeFolder(dir..directory.."/")
 	end
+end
+
+WUMA.UniqueIDs = {}
+function WUMA.GenerateUniqueID()
+	local id = #WUMA.UniqueIDs+1
+	table.insert(WUMA.UniqueIDs,id)
+	return id
 end
 
 WUMA.Initialize()

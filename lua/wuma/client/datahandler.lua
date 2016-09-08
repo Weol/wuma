@@ -1,55 +1,96 @@
 
 WUMA = WUMA or {}
-WUMA.ServerGroups = {}
-WUMA.ServerUsers = {}
-WUMA.LookupUsers = setmetatable({}, {__newindex = function (t, key, value)
-  t[key] = value
-  WUMA.OnLookupUsersUpdate(key,value)
-end})
-WUMA.UserData = {} wd
-WUMA.Restrictions = {}
-WUMA.Limits = {}
-WUMA.Loadouts = {}
+WUMA.ServerGroups = WUMA.ServerGroups or {}
+WUMA.ServerUsers = WUMA.ServerUsers or {}
+WUMA.LookupUsers = WUMA.LookupUsers or {}
+WUMA.UserData = WUMA.UserData or {}
+WUMA.Restrictions = WUMA.Restrictions or {}
+WUMA.Limits = WUMA.Limits or {}
+WUMA.Loadouts = WUMA.Loadouts or {}
+WUMA.Maps = WUMA.Maps or {}
 
---Data updateW
-function WUMA.ProcessDataUpdate(data)
-	WUMADebug("Process Data Update:")
+//Hooks
+WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
+WUMA.LOOKUPUSERSUPDATE = "WUMALookupUsersUpdate"
+WUMA.SERVERUSERSUPDATE = "WUMAServerUsersUpdate"
+WUMA.USERDATAUPDATE = "WUMAUserDataUpdate"
+WUMA.MAPSUPDATE = "WUMAMapsUpdate"
+
+WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
+WUMA.LIMITUPDATE = "WUMALimitUpdate"
+WUMA.LOADOUTUPDATE = "WUMALoadoutUpdate"
+
+--Data update
+function WUMA.ProcessDataUpdate(id,data)
+	WUMADebug("Process Data Update: (%s)",id)
 	
-	WUMA.MakeDataSegments(data) 
-	
-	if data.restrictions then
-		WUMA.GUI.Restrictions:UpdateDataTable(data.restrictions)
+	if (id == Restriction:GetID()) then
+		WUMA.UpdateRestrictions(data)
 	end
 		
-	if data.limits then
-		WUMA.GUI.Limits:UpdateDataTable(data.limits)
+	if (id == Limit:GetID()) then
+		WUMA.UpdateLimits(data)
 	end
 		
-	if data.loadouts then
-		WUMA.GUI.Loadouts:UpdateDataTable(data.loadouts)
+	if (id == Loadout:GetID()) then
+		WUMA.UpdateLoadouts(data)
 	end
 	
 end
 
-function WUMA.MakeDataSegments(tbl) 
-	for k,v in pairs(tbl) do 
-		if not istable(v) or not v._id then
-			v = WUMA_DATASEGMENT:new(v)
-		elseif istable(v) and not v._id then
-			WUMA.MakeDataSegments(v) 
-		elseif (v == WUMA_DATASEGMENT) then
-			v:UpdateData(v)
+--Data update
+function WUMA.ProcessCompressedData(id,data)
+	WUMADebug("Processing compressed data. Size: %s",data:len())
+
+	uncompressed_data = util.Decompress(data)
+	if not uncompressed_data then
+		WUMADebug("Failed to uncompress data! Size: %s",string.len(data)) 
+		return
+	end 
+	WUMADebug("Data sucessfully decompressed. Size: %s",string.len(uncompressed_data))
+	
+	tbl = util.JSONToTable(uncompressed_data)
+
+	WUMA.ProcessDataUpdate(id, tbl)
+	
+end
+
+function WUMA.UpdateRestrictions(update)
+
+	for id, tbl in pairs(update) do
+		if istable(tbl) then 
+			tbl = Restriction:new(tbl)	
 		end
+		WUMA.Restrictions[id] = tbl		
 	end
+	
+	if WUMA.GUI.Tabs.Restrictions then
+		WUMA.GUI.Tabs.Restrictions:UpdateDataTable(WUMA.Restrictions)
+	end
+	
+	for id, data in pairs(WUMA.Restrictions) do
+		if not istable(data) then data = nil end
+	end
+	
+	hook.Call(WUMA.RESTRICTIONUPDATE, update)
+end
+
+function WUMA.UpdateLimits(update)
+
+end
+
+function WUMA.UpdateLoadouts(update)
+
+	
 end
 
 --Information update
 function WUMA.ProcessInformationUpdate(enum,data)
 	WUMADebug("Process Information Update:")
-	
-	WUMA.NET.ENUMS[enum](data)
-end
 
-function WUMA.SetData(tbl)
-	
+	if WUMA.NET.ENUMS[enum] then
+		WUMA.NET.ENUMS[enum](data)
+	else	
+		WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
+	end
 end

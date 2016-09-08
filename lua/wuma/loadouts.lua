@@ -23,7 +23,11 @@ function WUMA.GetSavedLoadouts(user)
 		saved = WUMA.GetCachedData(Loadout) or util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")) or {}
 
 		for key,obj in pairs(saved) do
-			tbl[key] = Loadout:new(obj)
+			if istable(obj) then
+				tbl[key] = Loadout:new(obj)
+			else
+				WUMADebug("%s has been marked %s",key,obj)
+			end
 		end
 	end
 	
@@ -55,14 +59,19 @@ function WUMA.HasPersonalLoadout(user)
 	return false
 end
 
-function WUMA.SetLoadoutPrimaryWeapon(usergroup,item)
-	if not(WUMA.Loadouts[usergroup]) then WUMAAlert("That usergroup has no loadout."); return end
+function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
+	if not(WUMA.Loadouts[usergroup]) then return WUMADebug("That usergroup has no loadout!") end
 	
 	WUMA.Loadouts[usergroup]:SetPrimary(item)
 	
 	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
-		tbl[usergroup] = tbl[usergroup]:SetPrimary(item)
-		
+		tbl[usergroup]:SetPrimary(item)
+
+		return tbl
+	end)
+	
+	WUMA.ScheduleClientUpdate(Restriction,function(tbl)
+		tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
 		return tbl
 	end)
 	
@@ -73,12 +82,21 @@ function WUMA.SetLoadoutPrimaryWeapon(usergroup,item)
 	end)
 end
 
-function WUMA.AddLoadoutWeapon(usergroup,item,primary,secondary)
+function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary)
 	if not(WUMA.Loadouts[usergroup]) then
 		WUMA.Loadouts[usergroup] = Loadout:new({usergroup=usergroup})
+	else
+		if (WUMA.Loadouts[usergroup]:GetWeapon(item).primary == primary) and (WUMA.Loadouts[usergroup]:GetWeapon(item).secondary == secondary) then
+			return WUMADebug("This group (%s) already has this weapon in their loadout",usergroup)
+		end
 	end
 	
 	WUMA.Loadouts[usergroup]:AddWeapon(item,primary,secondary)
+	
+	WUMA.ScheduleClientUpdate(Limit,function(tbl)
+		tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
+		return tbl
+	end)
 	
 	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
 		tbl[usergroup] = tbl[usergroup] or Loadout:new({usergroup=usergroup})
@@ -93,7 +111,7 @@ function WUMA.AddLoadoutWeapon(usergroup,item,primary,secondary)
 	
 end
  
-function WUMA.RemoveLoadoutWeapon(usergroup,item)
+function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 	if not WUMA.Loadouts[usergroup] then return end
 	
 	WUMA.Loadouts[usergroup]:RemoveWeapon(item)
@@ -101,6 +119,12 @@ function WUMA.RemoveLoadoutWeapon(usergroup,item)
 	if (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then
 		WUMA.ClearLoadout(usergroup)
 	else
+		
+		WUMA.ScheduleClientUpdate(Limit,function(tbl)
+			tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
+			return tbl
+		end)
+			
 		WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
 			tbl[usergroup]:RemoveWeapon(item)
 			
@@ -114,13 +138,18 @@ function WUMA.RemoveLoadoutWeapon(usergroup,item)
 	
 end
 
-function WUMA.ClearLoadout(usergroup)
+function WUMA.ClearLoadout(caller,usergroup)
 	if not WUMA.Loadouts[usergroup] then return end
 	
 	WUMA.Loadouts[usergroup] = nil
 	
+	WUMA.ScheduleClientUpdate(Limit,function(tbl)
+		tbl[usergroup] = nil
+		return tbl
+	end)
+	
 	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
-		tbl[usergroup] = WUMA.EMPTY
+		tbl[usergroup] = nil
 		
 		return tbl
 	end, function()
@@ -131,7 +160,7 @@ function WUMA.ClearLoadout(usergroup)
 	
 end
 
-function WUMA.SetUserLoadoutPrimaryWeapon(users,item)
+function WUMA.SetUserLoadoutPrimaryWeapon(caller,users,item)
 	users = WUMA.UserToTable(users)
 	
 	for _,user in pairs(users) do
@@ -141,13 +170,13 @@ function WUMA.SetUserLoadoutPrimaryWeapon(users,item)
 		
 		WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
 			tbl:SetPrimary(item)
-			
+
 			return tbl
 		end)
 	end
 end
 
-function WUMA.AddUserLoadoutWeapon(users,item,primary,secondary)
+function WUMA.AddUserLoadoutWeapon(caller,users,item,primary,secondary)
 	users = WUMA.UserToTable(users)
 	 
 	for _,user in pairs(users) do	
@@ -162,7 +191,7 @@ function WUMA.AddUserLoadoutWeapon(users,item,primary,secondary)
 	
 end
 
-function WUMA.RemoveUserLoadoutWeapon(users,item)
+function WUMA.RemoveUserLoadoutWeapon(caller,users,item)
 	users = WUMA.UserToTable(users)
 	
 	for _,user in pairs(users) do
@@ -189,14 +218,14 @@ function WUMA.RemoveUserLoadoutWeapon(users,item)
 		
 end
 
-function WUMA.ClearUserLoadout(users)
+function WUMA.ClearUserLoadout(caller,users)
 	users = WUMA.UserToTable(users)
 
 	for _,user in pairs(users) do
 		user:ClearLoadout()
 		
 		WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
-			tbl = false
+			tbl = nil
 				
 			return tbl
 		end, function()

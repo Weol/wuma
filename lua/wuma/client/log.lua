@@ -7,7 +7,6 @@ function WUMA.Log.ServerLog(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	WUMA.Files.Append("log.txt",msg)
 	msg = "[WUMA] " .. msg 
 	Msg(msg.."\n")
 end

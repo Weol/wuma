@@ -2,8 +2,6 @@
 WUMA = WUMA or {}
 WUMA.SQL = WUMA.SQL or {}
 
-WUMA.SQL.WUMALookupTable = "WUMALookup"
-
 function WUMA.SQL.Initialize()
 	if not sql.TableExists(WUMA.SQL.WUMALookupTable) then
 		WUMA.SQL.CreateTable(WUMA.SQL.WUMALookupTable)
@@ -16,6 +14,7 @@ function WUMA.SQL.CreateTable(str)
 end
 
 function WUMA.SQL.Query(str,...)
-	return sql.Query(string.format(str),...)
+	local tbl = sql.Query(string.format(str,...))
+	return tbl
 end
 WUMASQL = WUMA.SQL.Query --You know why

@@ -2,8 +2,8 @@
 local PANEL = {}
 
 PANEL.TabName = "Limits"
-PANEL.TabIcon = "gui/silkicons/user"
+PANEL.TabIcon = "icon16/table.png"
 
 
 
-vgui.Register("WUMA_Restriction", PANEL, 'WUMA_Base');
+vgui.Register("WUMA_Limits", PANEL, 'WUMA_Base');

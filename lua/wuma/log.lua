@@ -22,7 +22,7 @@ function WUMA.Log.ChatPrint(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	for k,v in pairs(WUMA.ALL()) do
+	for k,v in pairs(player.GetAll()) do
 		v:ChatPrint(msg)
 	end
 end
@@ -41,6 +41,7 @@ function WUMA.Log.DebugLog(msg,...)
 			ServerLog(msg)
 		end
 	end
+	return false
 end
 WUMADebug = WUMA.Log.DebugLog
 
@@ -54,15 +55,6 @@ function WUMA.Log.Error(msg)
 	debug.Trace()
 end
 WUMAError = WUMA.Log.Error --To save my fingers
-
-function WUMA.Log.Alert(ply,msg,...)
-	local args = { ... }
-	if args then
-		msg = WUMA.SafeFormat(msg,args)
-	end
-	ULib.tsayError(ply, msg, true) 
-end	
-WUMAAlert = WUMA.Log.Alert --To save my fingers
 
 function WUMA.ExtractValue(args)
 	local value = args[1]

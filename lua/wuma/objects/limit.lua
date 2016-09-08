@@ -15,12 +15,17 @@ function Limit:new(tbl)
 	
 	local obj = setmetatable({},mt)
 
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
 	obj.string = tbl.string or false
-	obj.limit = tbl.limit or false
+	obj.limit = tbl.limit or 0
 	obj.parent = tbl.parent or false
 	obj.usergroup = tbl.usergroup or false
-	obj.scope = tbl.scope or false
 	obj.count = tbl.count or 0
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Normal" end
+	
+	obj._id = Limit._id
 	
 	obj.m.override = tbl.overrive or false
 	
@@ -30,15 +35,19 @@ function Limit:new(tbl)
 	return obj
 end 
  
-function static:GenerateID(str)
-	return string.lower(str)
+function static:GetID()
+	return Limit._id
+end
+ 
+function static:GenerateID(usergroup,str)
+	return string.lower(string.format("%s%s",usergroup.."_",str))
 end
 
 function static:GenerateHit(str,ply)
 	ply:SendLua(string.format([[
 			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
 		]],str))
-	ply:SendLua([[surface.PlaySound)"buttons/button10.wav")]])
+	ply:SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
 --																								Object functions
@@ -78,11 +87,41 @@ function object:__le(that)
 end
 
 function object:Clone()
-	return Limit:new(self)
+	local obj = Limit:new(table.Copy(self))
+
+	if self.origin then
+		obj.m.origin = self.origin
+	else
+		obj.m.orign = self
+	end
+
+	return obj
+end
+
+function object:GetUniqueID()
+	return obj.m._uniqueid or false
+end
+
+function object:Delete()
+	if self:GetParent() then
+		self:GetParent():RemoveLimit(self:GetID(),self:IsPersonal()) 
+	end
+	
+	self = nil
 end
 
 function object:IsPersonal()
 	if self.usergroup then return false else return true end
+end
+	
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v or (v == 0) then
+			tbl[k] = v
+		end
+	end
+	return tbl
 end
 	
 function object:Get()
@@ -95,7 +134,11 @@ function object:Set(c)
 end
 
 function object:GetID()
-	return string.lower(self.string)
+	return string.lower(string.format("%s%s",self.usergroup.."_",self.string))
+end
+
+function object:GetStatic()
+	return Limit
 end
 
 function object:SetOverride(limit)
@@ -116,6 +159,7 @@ function object:GetCount()
 end
 
 function object:SetCount(c)
+	if (c < 0) then c = 0 end
 	self.count = c
 end
 
@@ -131,12 +175,50 @@ function object:GetUsegroup()
 	return self.usergroup
 end
 
+function object:GetOrigin()
+	return self.origin
+end
+
 function object:GetString()
 	return self.string
 end
 
 function object:SetString(str)
 	self.string = str
+end
+
+function object:GetScope()
+	return self.scope
+end
+
+function object:SetScope(scope)	
+	if (scope.m) then
+		self.scope = scope
+	else
+		self.scope = Scope:new(scope)
+	end
+	
+	self:GetScope():SetParent(self)
+	
+	self:GetScope():AllowThink()
+end
+
+function object:DeleteScope()
+	self.scope:Delete()
+	self.scope = nil
+end
+
+function object:Disable()
+	self.m.disabled = true
+end
+
+function object:Enable()
+	self.m.disabled = false
+end
+
+function object:IsDisabled() 
+	if self.m and self.m.disabled then return true end
+	return false
 end
 
 function object:Check(int)
@@ -163,7 +245,7 @@ function object:Hit()
 	self.parent:SendLua(string.format([[
 			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
 		]],str))
-	self.parent:SendLua([[surface.PlaySound)"buttons/button10.wav")]])
+	self.parent:SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
 function object:Subtract(c)

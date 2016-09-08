@@ -4,12 +4,13 @@ if not SERVER then return end
 WUMA = WUMA or {}
 
 --Definitions
-WUMA.VERSION = "1.4.1 Alpha"
+WUMA.VERSION = "1.6 Alpha"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
 WUMA.DELETE = "WUMA_delete"
 WUMA.EMPTY = "WUMA_empty" 
+WUMA.ERROR = "WUMA_error" 
 
 --Paths
 WUMA.DataDirectory = "WUMA/"
@@ -20,7 +21,7 @@ WUMA.UserDataDirectory = "users/"
 WUMA.HomeDirectory = "WUMA/"
 
 --Settings
-WUMA.DataUpdateCooldown = 10
+WUMA.DataUpdateCooldown = 1
 WUMA.Debug = true
 WUMA.ULXGUI = "xgui_wuma"
 WUMA.RegisterSize = 200
@@ -38,16 +39,21 @@ function WUMA.Initialize()
 	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
 	    
 	--Include core
+	include(WUMA.HomeDirectory.."sql.lua") 
+	include(WUMA.HomeDirectory.."util.lua") 
+	include(WUMA.HomeDirectory.."functions.lua")
+	include(WUMA.HomeDirectory.."log.lua") 
 	include(WUMA.HomeDirectory.."datahandler.lua")
 	include(WUMA.HomeDirectory.."users.lua")
-	include(WUMA.HomeDirectory.."sql.lua") 
-	include(WUMA.HomeDirectory.."logistics.lua") 
 	include(WUMA.HomeDirectory.."limits.lua")
 	include(WUMA.HomeDirectory.."restrictions.lua")
 	include(WUMA.HomeDirectory.."loadouts.lua")
 	include(WUMA.HomeDirectory.."hooks.lua") 
 	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 	include(WUMA.HomeDirectory.."extentions/entityextention.lua")
+	   
+	--Register ULX access
+	ULib.ucl.registerAccess(WUMA.ULXGUI, "superadmin", "Access to WUMA GUI", "XGUI" ) 
 	   
 	--Who am I writing these for?
 	WUMALog("User Management Addon version %s",WUMA.VERSION)
@@ -66,11 +72,14 @@ function WUMA.Initialize()
 	
 	--Initialize SQL
 	WUMA.SQL.Initialize()
-	 
+	
 	--Load data 
 	WUMA.LoadRestrictions()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
+	
+	--Allow the poor scopes to think
+	Scope:StartThink()
 	
 end
 
@@ -104,3 +113,20 @@ end
 WUMA.Initialize()
 
 WUMA.Loaded = true
+
+concommand.Add( "wuma", function(ply, a, b)
+	local args 	
+	if not IsValid(ply) then
+		args = {"Console"}
+	else
+		args = {ply or "Console"}
+	end
+	local cmd = b[1] 
+	local a, args2 = WUMA.ExtractValue(b)
+	table.Add(args,args2)
+	
+	WUMADebug(cmd)
+	PrintTable(args)
+	
+	WUMA.ProcessAccess(cmd,args)
+end )

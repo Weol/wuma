@@ -15,6 +15,8 @@ function Loadout:new(tbl)
 	
 	local obj = setmetatable({},mt)
 	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
 	obj.parent = tbl.parent or false
 	obj.usergroup = tbl.usergroup or false
 	obj.primary = tbl.primary or false
@@ -23,31 +25,70 @@ function Loadout:new(tbl)
 	obj.remove_ammo = tbl.remove_ammo or true
 	obj.respect_restrictions = tbl.respect_restrictions or false
 	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Normal" end
+	
+	obj._id = Loadout._id
+	
 	obj.m.ancestor = tbl.ancestor or false
 	obj.m.child = tbl.child or false
 
 	return obj
 end 
 
+function static:GetID()
+	return Loadout._id
+end
+
 --																					Object functions
 function object:__tostring()
 	return string.format("Loadout [%s]",self.parent or self.usergroup)
 end
 
-function object:__eq(that)
-	if not istable(that) or not that._id or that._id != self._id then return false end
-	if (that.usergroup != self.usergroup) then return false end
-	if (that.primary != self.primary) then return false end
-	if (that.weapons != self.weapons) then return false end
-	return true
+function object:__eq(v1,v2)
+	if v1._id and v2._id then return (v1._id == v2._id) end
+	return false
 end
 
 function object:Clone()
-	return Loadout:new(self)
+	local obj = Loadout:new(table.Copy(self))
+
+	if self.origin then
+		obj.m.origin = self.origin
+	else
+		obj.m.orign = self
+	end
+
+	return obj
+end
+
+function object:Delete()
+	if self:GetParent() then
+		self:GetParent():ClearLoadout() 
+	end
+	
+	self = nil
+end
+
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v then
+			tbl[k] = v
+		end
+	end
+	return tbl
+end
+
+function object:GetUniqueID()
+	return obj.m._uniqueid or false
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_%s",self.usergroup))
+	return string.lower(string.format("loadout_%s",self.usergroup or "user"))
+end
+
+function object:GetStatic()
+	return Loadout
 end
 
 function object:Give(weapon)
@@ -202,6 +243,45 @@ end
 function object:GetParent()
 	return self.parent
 end
+
+function object:GetOrigin()
+	return self.origin
+end
+
+function object:GetScope()
+	return self.scope
+end
+
+function object:SetScope(scope)	
+	if (scope.m) then
+		self.scope = scope
+	else
+		self.scope = Scope:new(scope)
+	end
+	
+	self:GetScope():SetParent(self)
+	
+	self:GetScope():AllowThink()
+end
+
+function object:DeleteScope()
+	self.scope:Delete()
+	self.scope = nil
+end
+
+function object:Disable()
+	self.m.disabled = true
+end
+
+function object:Enable()
+	self.m.disabled = false
+end
+
+function object:IsDisabled() 
+	if self.m and self.m.disabled then return true end
+	return false
+end
+
 
 function object:SetInherit(boolean)
 	self.inherit = boolean

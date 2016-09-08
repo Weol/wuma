@@ -1,5 +1,9 @@
 
 WUMA = WUMA or {}
+
+WUMA.USERGROUPSUPDATEHOOK = "WUMAUserGroupsUpdate"
+WUMA.USERGROUPUPDATEHOOK = "WUMAUserGroupUpdate"
+
 local HOOK_COOLDOWN_TIME = 5
 local HOOK_COOLDOWN = {}
 
@@ -16,7 +20,6 @@ end
 hook.Add("PlayerSpawnedSENT", "WUMAPlayerSpawnedProp", WUMA.PlayerSpawnedSENT, -2)
 
 function WUMA.PlayerSpawnProp(ply, mdl)
-	--WUMADebug("PlayerSpawnProp(%s,%s)",ply,mdl)
 	if (ply:CheckRestriction("prop",mdl) == false) then return false end
 	if (ply:CheckLimit("props",mdl) == false) then return false end
 end
@@ -81,7 +84,13 @@ function WUMA.PlayerSpawnSWEP(ply, class, weapon)
 	if (ply:CheckLimit("sents",class) == false) then return false end
 end
 hook.Add("PlayerSpawnSWEP", "WUMAPlayerSpawnSWEP", WUMA.PlayerSpawnSWEP, -1)
-hook.Add("PlayerGiveSWEP", "WUMAPlayerSpawnSWEP", WUMA.PlayerSpawnSWEP, -1)
+
+function WUMA.PlayerGiveSWEP(ply, class, weapon)
+	--WUMADebug("PlayerGiveSWEP(%s,%s,%s)",ply,class,weapon)
+	if (ply:CheckRestriction("swep",class) == false) then return false end
+	ply:DisregardNextPickup(class)
+end
+hook.Add("PlayerGiveSWEP", "WUMAPlayerGiveSWEP", WUMA.PlayerGiveSWEP, -1)
 
 function WUMA.PlayerSpawnedSWEP(ply, ent)
 	ply:AddCount("sents",ent,ent:GetClass())
@@ -90,12 +99,14 @@ hook.Add("PlayerSpawnedSWEP", "WUMAPlayerSpawnedSWEP", WUMA.PlayerSpawnedSWEP, -
 
 local pickup_last
 function WUMA.PlayerCanPickupWeapon(ply, weapon)
+	--WUMADebug("PlayerCanPickupWeapon(%s,%s)",ply,weapon)
+	if ply:ShouldDisregardPickup(weapon:GetClass()) then return end
 	return ply:CheckRestriction("pickup",weapon:GetClass())
 end
 hook.Add("PlayerCanPickupWeapon", "WUMAPlayerCanPickupWeapon", WUMA.PlayerCanPickupWeapon, -1)
 
 function WUMA.PlayerSpawnVehicle(ply, mdl, name, vehicle_table)
-	--WUMADebug("PlayerSpawnVehicle(%s,%s,%s,%s)",ply, mdl, name, vehicle_table)
+	WUMADebug("PlayerSpawnVehicle(%s,%s,%s,%s)",ply, mdl, name, vehicle_table)
 	if (ply:CheckRestriction("vehicle",string.lower(vehicle_table.Name)) == false) then return false end
 	if (ply:CheckLimit("vehicles",string.lower(vehicle_table.Name)) == false) then return false end
 end

@@ -9,13 +9,10 @@ function WUMA.InitializeUser(user)
 	
 	WUMA.AssignUserRegulations(user)
 	
-	if not user:HasWUMATables() then
+	if user:HasWUMAData() then
 		WUMA.AddLookup(user)
 	end
 	
-	if WUMA.HasAccess(user) then 
-		WUMA.SendInformation(user,WUMA.NET.USERS)
-	end
 end
 
 function WUMA.AssignUserRegulations(user)
@@ -88,10 +85,10 @@ function WUMA.GetUsers(group)
 	if not group then return player.GetAll() end	
 
 	--Check for normal usergroup
-	if (string.lower(type(group)) == "string") then
+	if isstring(group) then
+		local tbl = {}
 		for _,ply in pairs(player.GetAll()) do 
 			if (string.lower(ply:GetUserGroup()) == string.lower(group)) then 
-				tbl = tbl or {}
 				table.insert(tbl,ply) 
 			end
 		end
@@ -110,13 +107,13 @@ function WUMA.GetAuthorizedUsers()
 	return users
 end
 
-function WUMA.HasAccess(user)
-	return ULib.ucl.query(user, WUMA.ULXGUI)
+function WUMA.HasAccess(user,access_str)
+	return ULib.ucl.query(user,access_str or WUMA.ULXGUI)
 end
 
 function WUMA.UserToTable(user)
 	if (string.lower(type(user)) == "table") then
-		return user
+		return userw
 	else
 		return {user}
 	end
@@ -127,17 +124,27 @@ function WUMA.IsSteamID(steamid)
 end
 
 function WUMA.GetUserGroups()
-	local tbl = {}
-	for k, v in pairs(ULib.ucl.groups) do
-		table.insert(tbl,k)
+	local hierchy = {}
+
+	local function recursive(tbl)
+		for group, tbl in pairs(tbl) do
+			if istable(tbl) and table.Count(tbl) then
+				table.insert(hierchy,group)
+				recursive(tbl)
+			else
+				table.insert(hierchy,group)
+			end
+		end
+	end 
+	recursive(ULib.ucl.getInheritanceTree())
+
+	local hierchy_reverse = {}
+	for k, v in pairs(hierchy) do
+		hierchy_reverse[table.Count(hierchy)-(k-1)] = v
 	end
-	return tbl
+	
+	return hierchy_reverse
 end
-
-function WUMA.PlayerDisconnected(user)
-
-end
-hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.PlayerDisconnected, -2)
 
 function WUMA.PlayerLoadout(user)
 	return user:GiveLoadout()
@@ -146,13 +153,24 @@ hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout, -1)
 
 function WUMA.PlayerInitialSpawn(user)
 	WUMA.InitializeUser(user) 
-	WUMA.AddUser(user)
 end
-hook.Add("ULibLocalPlayerReady", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
+hook.Add("UCLAuthed", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
 
+function WUMA.PlayerNameChange(user,old,new)
+	WUMA.AddLookup(user)
+	WUMA.SendInformation(WUMA.NET.WHOIS(user:SteamID()))
+end
+hook.Add("ULibPlayerNameChanged", "WUMAPlayerNameChange", WUMA.PlayerNameChange, -1)
+
+WUMA.UCLTables = {}
+WUMA.UCLTables.Usergrous = WUMA.GetUserGroups()
 function WUMA.UCLChanged()
+	if not (table.Count(WUMA.UCLTables.Usergrous) == WUMA.GetUserGroups()) then
+		hook.Call(WUMA.USERGROUPSUPDATEHOOK, _, WUMA.GetUserGroups())
+	end
+
 	for _,user in pairs(player.GetAll()) do
-		if not user.WUMAPreviousGroup or (user.WUMAPreviousGroup and not(user.WUMAPreviousGroup == WUMA.GetUserGroupuser())) then
+		if not user.WUMAPreviousGroup or (user.WUMAPreviousGroup and not(user.WUMAPreviousGroup == user:GetUserGroup())) then
 			WUMA.RefreshGroupRestrictions(user)
 			WUMA.RefreshGroupLimits(user)
 			WUMA.RefreshLoadout(user)

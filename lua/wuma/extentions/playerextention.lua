@@ -60,7 +60,7 @@ function ENT:AddCount(str, ent, WUMA)
 		
 	
 end
-
+   
 function ENT:GetCount(str, minus, WUMA)
 
 	WUMADebug("GetCount(%s,%s,%s)",str or "_",tostring(minus) or "_",WUMA or "_")
@@ -141,22 +141,22 @@ end
 function ENT:CheckRestriction(type,str)
 	WUMADebug("CheckRestriction(%s,%s)",type,str)
 	
-	local key = Restriction:GenerateID(type,str)
-	 
+	local key = Restriction:GenerateID(type,self:GetUserGroup(),str)
+	
 	if not self.Restrictions[key] then return end
-
+	
 	return self.Restrictions[key](type,str)
 end   
  
-function ENT:AddRestriction(object) 
-	local key = object:GetID() 
-	 
-	object:SetParent(self)
+function ENT:AddRestriction(restriction) 
+	local key = restriction:GetID() 
+
+	restriction:SetParent(self)
 	
-	if not self.Restrictions[key] or not object:IsPersonal() then
-		self.Restrictions[key] = object
+	if not self.Restrictions[key] or not restriction:IsPersonal() then
+		self.Restrictions[key] = restriction
 	else
-		self.Restrictions[key]:SetOverride(object)
+		self.Restrictions[key]:SetOverride(restriction)
 	end
 end 
 
@@ -176,7 +176,7 @@ function ENT:RemoveRestriction(id,personal)
 				self.Restrictions[id]:RemoveOverride()
 				return
 			end
-		end
+		end  
 	end
 	
 	self.Restrictions[id] = nil
@@ -188,7 +188,7 @@ end
  
 function ENT:GetRestriction(type,str)
 	if not str then return end
-	local key = Restriction:GenerateID(type,str)
+	local key = Restriction:GenerateID(typ,self:GetUserGroup(),str)
 	
 	if (isstring(str) and type and isstring(type)) then 
 		return self.Restrictions[key]
@@ -252,7 +252,14 @@ function ENT:SetLoadout(loadout)
 end 
  
 function ENT:ClearLoadout() 
-	self.Loadout = nil
+	if (self.Loadout and self.Loadout:IsPersonal()) then
+		if (self.Loadout:GetAncestor()) then
+			local ancestor = self.Loadout:GetAncestor()
+			
+			self.Loadout = ancestor
+		end
+	end
+	self.Loadout = nil 
 end
 
 function ENT:HasLoadout()
@@ -261,4 +268,18 @@ end
 
 function ENT:GetLoadout()
 	return self.Loadout
+end
+
+ENT.DisregardTable = {}
+function ENT:DisregardNextPickup(class)
+	self.DisregardTable[class] = true
+end
+
+function ENT:ShouldDisregardPickup(class)
+	if self.DisregardTable[class] then 
+		self.DisregardTable[class] = nil
+		return true 
+	else
+		return false
+	end
 end

@@ -26,7 +26,11 @@ function WUMA.GetSavedLimits(user)
 		saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {} 
 
 		for key,obj in pairs(saved) do
-			tbl[key] = Limit:new(obj)
+			if istable(obj) then
+				tbl[key] = Limit:new(obj)
+			else
+				WUMADebug("%s has been marked %s",key,obj)
+			end
 		end
 	end
 	
@@ -56,7 +60,18 @@ function WUMA.GetLimits(user)
 	end
 end
 
-function WUMA.AddLimit(usergroup,item,limit)
+function WUMA.HasLimit(usergroup,item)
+	if isstring(usergroup) then
+		if WUMA.GetSavedLimits()[Limit:GenerateID(usergroup,item)] then return true end
+	else
+		if WUMA.GetSavedLimits()[usergroup:GetID()] then return true end
+	end 
+	return false
+end
+
+function WUMA.AddLimit(caller,usergroup,item,limit)
+	if not WUMA.HasLimit(usergroup,item) then return true end
+
 	local limit = Limit:new({string=item,usergroup=usergroup,limit=limit})
 	
 	WUMA.Limits[usergroup] = WUMA.Limits[usergroup] or {}
@@ -66,15 +81,20 @@ function WUMA.AddLimit(usergroup,item,limit)
 		user:AddLimit(limit:Clone())
 	end)
 	
+	WUMA.ScheduleClientUpdate(Limit,function(tbl)
+		tbl[limit:GetID()] = limit:GetBarebones()
+		return tbl
+	end)
+	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
-		tbl[limit:GetID()] = limit
+		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
 	end)
 
 end
 
-function WUMA.RemoveLimit(usergroup,item)
+function WUMA.RemoveLimit(caller,usergroup,item)
 	if not WUMA.Limits[usergroup] then return end
 	if not WUMA.Limits[usergroup][item] then return end
 	
@@ -83,15 +103,20 @@ function WUMA.RemoveLimit(usergroup,item)
 	WUMA.UpdateUsergroup(usergroup,function(user)
 		user:RemoveLimit(Limit:GenerateID(item))
 	end)
+
+	WUMA.ScheduleClientUpdate(Limit,function(tbl)
+		tbl[Limit:GenerateID(item)] = nil
+		return tbl
+	end)
 	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
-		tbl[Limit:GenerateID(item)] = WUMA.EMPTY
+		tbl[Limit:GenerateID(item)] = nil
 		
 		return tbl
 	end)
 end
 
-function WUMA.AddUserLimit(users,item,limit)
+function WUMA.AddUserLimit(caller,users,item,limit)
 	local limit = Limit:new({string=item,limit=limit})
 	users = WUMA.UserToTable(users)
 	
@@ -99,7 +124,7 @@ function WUMA.AddUserLimit(users,item,limit)
 		user:AddLimit(limit)
 		
 		WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
-			tbl[limit:GetID()] = limit
+			tbl[limit:GetID()] = limit:GetBarebones()
 			
 			return tbl
 		end)
@@ -107,7 +132,7 @@ function WUMA.AddUserLimit(users,item,limit)
 	
 end
 
-function WUMA.RemoveUserLimit(users,item)
+function WUMA.RemoveUserLimit(caller,users,item)
 	local id = Limit:GenerateID(item)
 	users = WUMA.UserToTable(users)
 	
@@ -115,7 +140,7 @@ function WUMA.RemoveUserLimit(users,item)
 		user:RemoveLimit(id)
 		
 		WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
-			tbl[id] = WUMA.EMPTY
+			tbl[id] = nil
 			
 			return tbl
 		end)
