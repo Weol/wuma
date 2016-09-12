@@ -2,11 +2,11 @@
 WUMA = WUMA or {}
 
 WUMA.WUMALookupTable = "WUMALookup"
-WUMA.UniqueIDs = {}
+WUMA.UniqueIDs = 0
 
 function WUMA.GenerateUniqueID()
-	local id = table.Count(WUMA.UniqueIDs)+1
-	table.insert(WUMA.UniqueIDs,id)
+	local id = WUMA.UniqueIDs+1
+	WUMA.UniqueIDs = WUMA.UniqueIDs + 1
 	return id
 end
 

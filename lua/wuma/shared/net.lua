@@ -3,19 +3,83 @@ WUMA = WUMA or {}
 
 WUMA.NET = WUMA.NET or {}
 WUMA.NET.INTSIZE = 5
+WUMA.NET.MAX_SIZE = 10
+WUMA.NET.INTERVAL = 0.5
 
 if SERVER then
 
 	util.AddNetworkString("WUMACompressedDataStream")
-	function WUMA.SendCompressedData(user,data,id)	
-		if not data then return end
-	
+	local function doSendData(user,data,id,await) 
+		if not data then return WUMADebug("No data :(") end
+		WUMADebug(id)
 		net.Start("WUMACompressedDataStream")
 			net.WriteUInt(data:len(),32)
 			net.WriteString(id)
 			net.WriteBool(await or false)
 			net.WriteData(data,data:len())
 		net.Send(user)
+	end
+	
+	WUMA.DataQueue = {}
+	function WUMA.QueueData(user,data,id,await)
+		if not (timer.Exists("WUMAPopDataQueue")) then
+			timer.Create("WUMAPopDataQueue", WUMA.NET.INTERVAL, 0, WUMA.PopDataQueue)
+		end
+		WUMADebug(8)
+		table.insert(WUMA.DataQueue,{user=user,data=data,id=id,await=await})
+	end
+	
+	function WUMA.PopDataQueue()
+		if (table.Count(WUMA.DataQueue) < 1) then
+			timer.Remove("WUMAPopDataQueue")
+		else
+			local tbl = table.remove(WUMA.DataQueue,1)
+			
+			if tbl then
+				doSendData(tbl.user,tbl.data,tbl.id,tbl.await)
+			end
+		end
+	end
+	
+	function WUMA.SendCompressedData(user,data,id)	
+		WUMADebug(4)
+			
+		if not data then return end
+	
+		WUMADebug(5)
+	
+		local keys = table.GetKeys(data)
+		
+		WUMADebug(6)
+	
+		if (table.Count(data) > WUMA.NET.MAX_SIZE) then 
+			WUMADebug(7)
+			for i = 0, table.Count(data),WUMA.NET.MAX_SIZE do
+				if (i+WUMA.NET.MAX_SIZE > table.Count(data)) then
+					local segment = {}
+					for k=i,WUMA.NET.MAX_SIZE+i do
+						if keys[k] then
+							segment[keys[k]] = data[keys[k]] 
+						end
+					end
+					
+					WUMA.QueueData(user,util.Compress(util.TableToJSON(segment)),id,false) 
+				else
+					local segment = {}
+					for k=i,WUMA.NET.MAX_SIZE+i do
+						if keys[k] then
+							segment[keys[k]] = data[keys[k]] 
+						end
+					end
+
+					WUMA.QueueData(user,util.Compress(util.TableToJSON(segment)),id,true) 
+				end
+			end
+		else
+			data = util.Compress(data)
+		
+			doSendData(user,util.Compress(data),id) 
+		end
 	end
 	
 	util.AddNetworkString("WUMAAccessStream")
@@ -84,8 +148,10 @@ else
 		local data = net.ReadData(len)
 		
 		WUMADebug("Compressed data recieved! (SIZE: %s bytes)",tostring(lenght))
-		
-		WUMA.ProcessCompressedData(id,data)
+
+		local tbl = util.JSONToTable(util.Decompress(data))
+			
+		WUMA.ProcessDataUpdate(id,tbl)
 	end
 	net.Receive("WUMACompressedDataStream", WUMA.RecieveCompressedData)
 	

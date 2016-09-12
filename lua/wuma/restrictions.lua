@@ -86,7 +86,7 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 	end)
 	
 	WUMA.ScheduleClientUpdate(Restriction,function(tbl)
-		tbl[restriction:GetID()] = restriction:GetBarebones()
+		table.insert(tbl,restriction:GetBarebones())
 		return tbl
 	end)
 	

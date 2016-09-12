@@ -5,6 +5,7 @@ PANEL.DataTable = {}
 PANEL.DataRegistry = {}
 PANEL.DataView = nil
 PANEL.SortFunction = nil
+PANEL.RightClickFunction = nil
 
 function PANEL:x(gui) 
 	local x, y = gui:GetPos()
@@ -32,8 +33,37 @@ function PANEL:GetSelectedItems()
 	return tbl
 end
 
+function PANEL:SetRightClickData(func) 
+	self.RightClickFunction = func
+	
+	if not self.SelectedItemPropertyView then
+		self.SelectedItemPropertyView = WUMA.CreatePropertyViewer{parent=self,x=0,y=0,w=120,h=200,visible=false} 
+		
+		self.SelectedItemPropertyView.OnCursorExited = function()	
+			if self.SelectedItemPropertyView then
+				self.SelectedItemPropertyView:SetVisible(false)
+			end
+		end
+	end
+end
+
 function PANEL:SetDataView(dlistview)
 	self.DataView = dlistview
+	
+	self.DataView.OnRowRightClick = function() 
+		if self.RightClickFunction then
+			local item = self:GetSelectedItems()[1]
+			
+			local tbl = self.RightClickFunction(item)
+			
+			self.SelectedItemPropertyView:SetProperties(tbl)
+
+			local x, y = self:CursorPos()
+			if (y+self.SelectedItemPropertyView:GetTall() > dlistview:GetTall()) then y = (y-self.SelectedItemPropertyView:GetTall()) end
+			self.SelectedItemPropertyView:SetPos(x,y)
+			self.SelectedItemPropertyView:SetVisible(true)
+		end
+	end
 	
 	self:SetDataTable(self.DataTable)
 end

@@ -33,10 +33,7 @@ function PANEL:CreateChildren()
 	
 	//Suggestion list
 	self.list_suggestions = WUMA.CreateList{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
-	
-	//Item property thingy
-	self.item_properties = WUMA.CreatePropertyViewer{parent=self,relative=self.list_suggestions,relative_align=1,x=0,y=20,w=self.list_suggestions:GetWide(),h=0} 
-	
+
 	//Items list
 	self.list_items = WUMA.CreateList{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 	self.list_items:AddColumn("Item")
@@ -87,6 +84,19 @@ function PANEL:CreateDataView()
 		
 	self:SetDataView(self.list_items)
 	self:SetSortFunction(sort)
+
+	local right_click = function(item)
+		local tbl = {}
+		tbl[1] = {"Item",item:GetString()}
+		tbl[2] = {"Usergroup",item:GetUsergroup()}
+		tbl[3] = {"Type",item:GetType()}
+		tbl[4] = {"Scope",item:GetScope() or "Permanent"}
+		if item:GetAllow() then tbl[5] = {"Anti-Restriction"} end
+		
+		return tbl
+	end
+
+	self:SetRightClickData(right_click)
 end
 
 PANEL.HasCreated = false
@@ -182,17 +192,10 @@ function PANEL:GetAntiSelected()
 end
 
 PANEL.ItemListVisiblility = false
-PANEL.SuggestionListVisiblility = false
 function PANEL:ToggleItemListVisiblility()
 	if (self.ItemListVisiblility) then
 		local w, h = self.list_items:GetWide(), self.ItemListVisiblility
 		self.list_items:SizeTo(w,h,0.2)
-		
-		local w, h = self.list_suggestions:GetWide(), self.SuggestionListVisiblility
-		self.list_suggestions:SizeTo(w,h,0.2)
-		
-		self.item_properties:SizeTo(w,0,0.2)
-		self.item_properties:MoveTo(self:x(self.item_properties),self.SuggestionListVisiblility+self:y(self.list_suggestions),0.2)
 		
 		self.ItemListVisiblility = false
 		
@@ -201,13 +204,6 @@ function PANEL:ToggleItemListVisiblility()
 		self.ItemListVisiblility = self.list_items:GetTall()
 		local w, h = self.list_items:GetWide(), self.list_items:GetTall() - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25
 		self.list_items:SizeTo(w,h,0.2)
-		
-		self.SuggestionListVisiblility = self.list_suggestions:GetTall()
-		local w, h = self.list_suggestions:GetWide(), 20
-		self.list_suggestions:SizeTo(w,h,0.2)
-		
-		self.item_properties:SizeTo(w,self.SuggestionListVisiblility-20,0.2)
-		self.item_properties:MoveTo(self:x(self.item_properties),self:y(self.list_suggestions)+20,0.2)
 		
 		self:ToggleAdditonalOptions()
 	end
@@ -285,21 +281,7 @@ function PANEL:OnSearch()
 end
 
 function PANEL:OnItemChange(lineid,line)
-	local self = self:GetParent()
-	 
-	local item = self:GetSelectedItems()[1]
-	
-	local tbl = {}
-	tbl[1] = {"Item",item:GetString()}
-	tbl[2] = {"Usergroup",item:GetUsergroup()}
-	tbl[3] = {"Type",item:GetType()}
-	tbl[4] = {"Scope",item:GetScope() or "Permanent"}
 
-	if item:GetAllow() then
-		tbl[5] = {"Anti-Restriction"}
-	end
-
-	self.item_properties:SetProperties(tbl) 
 end
  
 function PANEL:OnTypeChange(lineid,line)

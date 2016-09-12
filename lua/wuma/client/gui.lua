@@ -523,22 +523,28 @@ function WUMA.CreatePropertyViewer(tbl)
 	
 	local gui = WUMA.CreatePanel(tbl) 
 	gui.Paint = function()
-		local y = 5
-		surface.SetDrawColor( 105, 105, 105, 255)
+		surface.SetDrawColor( 255, 255, 255, 255)
+		surface.DrawRect(0,0,gui:GetWide(),gui:GetTall())
 		
+		surface.SetDrawColor( 0, 0, 0, 255)
+		surface.DrawOutlinedRect(0,0,gui:GetWide(),gui:GetTall())
+	
+		local y = 3
 		for k, v in pairs(gui.properties or {}) do
-			draw.DrawText( v[1], "DermaDefault", 5, y, Color(0,0,0), TEXT_ALIGN_LEFT )
-			y=y+10
+			draw.DrawText( v[1]..":", "DermaDefault", 5, y, Color(0,0,0), TEXT_ALIGN_LEFT )
+			y=y+12
 			
 			if v[2] then 
-				draw.DrawText( v[2], "DermaDefault", 10, 3+y, Color(0,0,0), TEXT_ALIGN_LEFT )
+				draw.DrawText( v[2], "DermaDefault", 10, 2+y, Color(0,0,0), TEXT_ALIGN_LEFT )
 				y=y+15
 			end
 			
 			surface.DrawLine(0,y+5,gui:GetWide(),y+5)
-			y = y+5
+			y = y+7
 			
 		end 
+		
+		gui:SetTall(y-2);
 	end
 	
 	gui.SetProperties = function(self,properties)

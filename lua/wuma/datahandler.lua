@@ -41,9 +41,12 @@ function WUMA.UpdateClients()
 	end
 	WUMA.DATA.ClientUpdateSchedule = {}
 
+	WUMADebug(1)
 	for _, user in pairs(WUMA.GetAuthorizedUsers()) do
+		WUMADebug(2)
 		for enum, update in pairs(tbl) do
-			WUMA.SendCompressedData(user,util.Compress(util.TableToJSON(update)),enum)
+			WUMADebug(3)
+			WUMA.SendCompressedData(user,update,enum)
 		end
 	end
 
@@ -52,15 +55,15 @@ end
 function WUMA.SendData(user)
  
 	if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
-		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")),Restriction:GetID())
+		WUMA.SendCompressedData(user,WUMA.GetSavedRestrictions(),Restriction:GetID())
 	end
 	
 	if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
-		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")),Limit:GetID())
+		WUMA.SendCompressedData(user,WUMA.GetSavedLimits(),Limit:GetID())
 	end
 
 	if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
-		WUMA.SendCompressedData(user,util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")),Loadout:GetID())
+		WUMA.SendCompressedData(user,WUMA.GetSavedLoadouts(),Loadout:GetID())
 	end
 	
 end

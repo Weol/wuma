@@ -107,7 +107,7 @@ WUMA.NET.WHOIS:AddInto(WUMA.NET.ENUMS)
 WUMA.NET.RESTRICTION = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.RESTRICTION:SetServerFunction(function(user,data)
 	if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
-		return {user, util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")), Restriction:GetID()}
+		return {user, WUMA.GetSavedRestrictions(), Restriction:GetID()}
 	end
 end)  
 WUMA.NET.RESTRICTION:SetAuthenticationFunction(function(user) 
@@ -121,7 +121,7 @@ WUMA.NET.RESTRICTION:AddInto(WUMA.NET.ENUMS)
 WUMA.NET.LIMIT = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.LIMIT:SetServerFunction(function(user,data)
 	if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
-		return {user, util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")), Limit:GetID()}
+		return {user, WUMA.GetSavedLimits(), Limit:GetID()}
 	end
 end) 
 WUMA.NET.LIMIT:SetAuthenticationFunction(function(user) 
@@ -135,7 +135,7 @@ WUMA.NET.LIMIT:AddInto(WUMA.NET.ENUMS)
 WUMA.NET.LOADOUT = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
 	if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
-		return {user, util.Compress(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")), Loadout:GetID()}
+		return {user, WUMA.GetSavedLoadouts(), Loadout:GetID()}
 	end
 end) 
 WUMA.NET.LOADOUT:SetAuthenticationFunction(function(user) 
