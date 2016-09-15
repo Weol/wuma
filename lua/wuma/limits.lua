@@ -6,12 +6,7 @@ function WUMA.LoadLimits()
 	local saved, tbl = WUMA.GetSavedLimits() or {}, {}
 
 	for k,v in pairs(saved) do
-		if v.usergroup then
-			tbl[v.usergroup] = tbl[v.usergroup] or {}
-			if v.string then
-				tbl[v.usergroup][v.string] = v
-			end
-		end
+		tbl[v:GetID()] = v
 	end
 	
 	WUMA.Limits = tbl

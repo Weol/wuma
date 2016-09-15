@@ -6,9 +6,7 @@ function WUMA.LoadLoadouts()
 	local saved, tbl = WUMA.GetSavedLoadouts() or {}, {}
 
 	for k,v in pairs(saved) do
-		if v.usergroup then
-			tbl[v.usergroup] = v
-		end
+		tbl[v:GetID()] = v
 	end
 	
 	WUMA.Loadouts = tbl

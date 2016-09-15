@@ -130,7 +130,7 @@ end)
 WUMA.NET.LIMIT:AddInto(WUMA.NET.ENUMS)
 
 /////////////////////////////////////////////////////////
-///// 	   LOADOUT | Returns loadouts request		 /////
+///// 	   LOADOUT | Returns loadouts request		/////
 /////////////////////////////////////////////////////////
 WUMA.NET.LOADOUT = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.LOADOUT:SetServerFunction(function(user,data)

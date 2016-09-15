@@ -39,7 +39,7 @@ function Restriction:new(tbl)
 	
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
 	
-	obj._id = Restriction._id
+	obj.m._id = Restriction._id
 	
 	obj.m.override = tbl.override or false
 	obj.m.exceptions = {} 

@@ -11,7 +11,7 @@ if SERVER then
 	util.AddNetworkString("WUMACompressedDataStream")
 	local function doSendData(user,data,id,await) 
 		if not data then return WUMADebug("No data :(") end
-		WUMADebug(id)
+
 		net.Start("WUMACompressedDataStream")
 			net.WriteUInt(data:len(),32)
 			net.WriteString(id)
@@ -25,7 +25,7 @@ if SERVER then
 		if not (timer.Exists("WUMAPopDataQueue")) then
 			timer.Create("WUMAPopDataQueue", WUMA.NET.INTERVAL, 0, WUMA.PopDataQueue)
 		end
-		WUMADebug(8)
+
 		table.insert(WUMA.DataQueue,{user=user,data=data,id=id,await=await})
 	end
 	
@@ -42,43 +42,41 @@ if SERVER then
 	end
 	
 	function WUMA.SendCompressedData(user,data,id)	
-		WUMADebug(4)
-			
+
 		if not data then return end
 	
-		WUMADebug(5)
-	
 		local keys = table.GetKeys(data)
-		
-		WUMADebug(6)
+		local max_size = WUMA.NET.MAX_SIZE
+		local queuedata = WUMA.QueueData
+		local compress = util.Compress
+		local tojson = util.TableToJSON
 	
 		if (table.Count(data) > WUMA.NET.MAX_SIZE) then 
-			WUMADebug(7)
 			for i = 0, table.Count(data),WUMA.NET.MAX_SIZE do
-				if (i+WUMA.NET.MAX_SIZE > table.Count(data)) then
+				if (i+max_size > table.Count(data)) then
 					local segment = {}
-					for k=i,WUMA.NET.MAX_SIZE+i do
+					for k=i,max_size+i do
 						if keys[k] then
 							segment[keys[k]] = data[keys[k]] 
 						end
 					end
 					
-					WUMA.QueueData(user,util.Compress(util.TableToJSON(segment)),id,false) 
+					queuedata(user,compress(tojson(segment)),id,false) 
 				else
 					local segment = {}
-					for k=i,WUMA.NET.MAX_SIZE+i do
+					for k=i,max_size+i do
 						if keys[k] then
 							segment[keys[k]] = data[keys[k]] 
 						end
 					end
 
-					WUMA.QueueData(user,util.Compress(util.TableToJSON(segment)),id,true) 
+					queuedata(user,compress(tojson(segment)),id,true) 
 				end
 			end
 		else
-			data = util.Compress(data)
+			data = util.Compress(tojson(data))
 		
-			doSendData(user,util.Compress(data),id) 
+			doSendData(user,data,id) 
 		end
 	end
 	
@@ -134,11 +132,13 @@ else
 		local enum = net.ReadInt(WUMA.NET.INTSIZE)
 		local data = net.ReadTable()
 		
-		WUMADebug("Information recieved! (ENUM: %s) (SIZE: %s kb)",tostring(enum),tostring(lenght/1024))
+		WUMADebug("Information recieved! (ENUM: %s) (SIZE: %s bytes)",tostring(enum),tostring(lenght))
 		
 		WUMA.ProcessInformationUpdate(enum,data)
 	end
 	net.Receive("WUMAInformationStream", WUMA.RecieveInformation)
+	
+	total = 0
 	
 	//RECIVE COMPRESSED DATA
 	function WUMA.RecieveCompressedData(lenght)
@@ -149,6 +149,8 @@ else
 		
 		WUMADebug("Compressed data recieved! (SIZE: %s bytes)",tostring(lenght))
 
+		total = total + lenght
+		
 		local tbl = util.JSONToTable(util.Decompress(data))
 			
 		WUMA.ProcessDataUpdate(id,tbl)

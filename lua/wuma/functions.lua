@@ -10,7 +10,7 @@ end
 function WUMA.ProcessAccess(cmd,data)
 	
 	local access = WUMA.AccessRegister[cmd]
-	
+
 	if access then
 		local arguments = {}
 		local tables = {}
@@ -107,7 +107,7 @@ Unrestrict:SetFunction(function(caller, usergroup, typ, item)
 	usergroup = string.lower(usergroup)
 	typ = string.lower(typ)
 	item = string.lower(item)
-
+	
 	WUMA.RemoveRestriction(caller,usergroup,typ,item)
 end)
 Unrestrict:AddArgument(WUMAAccess.PLAYER)

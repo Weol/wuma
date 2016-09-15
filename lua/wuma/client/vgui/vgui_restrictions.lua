@@ -177,10 +177,7 @@ function PANEL:GetSelectedScope()
 		end
 	end	
 		
-	PrintTable(scope)
-		
 	return util.TableToJSON(scope)
-	
 end
 
 function PANEL:GetAntiSelected()
@@ -195,6 +192,12 @@ PANEL.ItemListVisiblility = false
 function PANEL:ToggleItemListVisiblility()
 	if (self.ItemListVisiblility) then
 		local w, h = self.list_items:GetWide(), self.ItemListVisiblility
+		
+		if (self.list_items.VBar.oldScroll) then
+			self.list_items.VBar:AnimateTo(self.list_items.VBar.oldScroll,0.2)
+			self.list_items.VBar.oldScroll = nil
+		end
+		
 		self.list_items:SizeTo(w,h,0.2)
 		
 		self.ItemListVisiblility = false
@@ -203,6 +206,12 @@ function PANEL:ToggleItemListVisiblility()
 	else
 		self.ItemListVisiblility = self.list_items:GetTall()
 		local w, h = self.list_items:GetWide(), self.list_items:GetTall() - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25
+		
+		if (self.list_items:GetSelectedLine()) and (table.Count(self.list_items.Lines)-(math.ceil((self.list_items:GetTall()-h-self.list_items:GetHeaderHeight())/17)+1) < self.list_items:GetSortedID(self.list_items:GetSelectedLine())) then
+			self.list_items.VBar.oldScroll = self.list_items.VBar:GetScroll()
+			self.list_items.VBar:AnimateTo(table.Count(self.list_items.Lines)*17,0.2)
+		end
+		
 		self.list_items:SizeTo(w,h,0.2)
 		
 		self:ToggleAdditonalOptions()
@@ -299,6 +308,7 @@ function PANEL:OnTypeChange(lineid,line)
 	self.textbox_search:OnLoseFocus()
 
 	self.list_suggestions.VBar:SetScroll(0)
+	self.list_suggestions:SelectFirstItem()
 	
 	self:SortData()
 	
@@ -368,12 +378,36 @@ end
 
 function PANEL:OnDeleteClick()
 	self = self:GetParent()
-
+	
+	local items = self:GetSelectedItems()
+	if (table.Count(items) < 1) then return end
+	
+	local usergroups = {}
+	local type = self:GetSelectedType()
+	local strings = {}
+	
+	for _, v in pairs(items) do
+		table.insert(usergroups,v:GetUsergroup())
+		table.insert(strings,v:GetString())
+	end
+	
 	local access = "unrestrict"
+	local data = {usergroups,type,strings}
+	
+	
+	WUMA.SendCommand(access,data)
 end
 
 function PANEL:OnEditClick()
-
+	self = self:GetParent()
+	
+	local items = self:GetSelectedItems()
+	if (table.Count(items) ~= 1) then return end
+	
+	local access = "restrict"
+	local data = {items[1]:GetUsergroup(),items[1]:GetType(),items[1]:GetString(),self:GetAntiSelected(),self:GetSelectedScope()}
+	
+	WUMA.SendCommand(access,data,true)
 end
 
 function PANEL:OnSettingsClick()

@@ -104,7 +104,6 @@ function PANEL:SortItem(item)
 end
 
 function PANEL:SortData()
-
 	for id, data in pairs(self.DataTable) do
 		if isstring(data) then 
 			data = nil 
@@ -121,6 +120,10 @@ function PANEL:SortData()
 				end
 			end
 		end
+	end
+	
+	if self.DataView then
+		self.DataView.VBar:SetScroll(0)
 	end
 end
 

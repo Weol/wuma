@@ -6,15 +6,7 @@ function WUMA.LoadRestrictions()
 	local saved, tbl = WUMA.GetSavedRestrictions() or {}, {}
 
 	for k,v in pairs(saved) do
-		if v.usergroup then
-			tbl[v.usergroup] = tbl[v.usergroup] or {}
-			if v.type then
-				tbl[v.usergroup][v.type] = tbl[v.usergroup][v.type] or {}
-				if v.string then
-					tbl[v.usergroup][v.type][v.string] = v
-				end
-			end
-		end
+		tbl[v:GetID()] = v
 	end
 	
 	WUMA.Restrictions = tbl
@@ -73,7 +65,8 @@ function WUMA.HasRestriction(usergroup,type,item)
 end
 
 function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
-	if WUMA.HasRestriction(usergroup,type,item) then return true end
+
+	WUMADebug("Huh")
 
 	local restriction = Restriction:new({type=type,string=item,usergroup=usergroup,allow=anti,scope=scope})
 	
@@ -86,7 +79,7 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 	end)
 	
 	WUMA.ScheduleClientUpdate(Restriction,function(tbl)
-		table.insert(tbl,restriction:GetBarebones())
+		tbl[restriction:GetID()] = restriction:GetBarebones()
 		return tbl
 	end)
 	

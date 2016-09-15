@@ -41,11 +41,10 @@ function WUMA.UpdateClients()
 	end
 	WUMA.DATA.ClientUpdateSchedule = {}
 
-	WUMADebug(1)
+	PrintTable(tbl)
+	
 	for _, user in pairs(WUMA.GetAuthorizedUsers()) do
-		WUMADebug(2)
 		for enum, update in pairs(tbl) do
-			WUMADebug(3)
 			WUMA.SendCompressedData(user,update,enum)
 		end
 	end
