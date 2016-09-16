@@ -803,7 +803,14 @@ function WUMA.CreateDateChooser(tbl)
 		if tbl.background then
 			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
 		end
-				
+	
+		local color = Color(0,0,0,150)
+		if (tonumber(gui.day:GetValue()) ~= nil && tonumber(gui.month:GetValue()) ~= nil && tonumber(gui.year:GetValue()) ~= nil) then
+			if not validateDate(tonumber(gui.day:GetValue()), tonumber(gui.month:GetValue()), tonumber(gui.year:GetValue())) then
+				color = Color(255,0,0,150)
+			end
+		end
+	
 		draw.DrawText("day", "WUMATextSmall", 12, 0, Color(0, 0, 0, 150))
 		draw.DrawText("month", "WUMATextSmall", 44, 0, Color(0, 0, 0, 150))
 		draw.DrawText("year", "WUMATextSmall", 87, 0, Color(0, 0, 0, 150))
@@ -841,6 +848,12 @@ function WUMA.CreateDateChooser(tbl)
 	
 	return gui
 
+end
+
+local function validateDate(day, month, year)
+	local epoch = os.time{year=Y, month=m, day=d}
+	local zeromdy = string.format("%02d/%02d/%04d", d, m, Y)
+	return (zeromdy == os.date('%d/%m/%Y', epoch))
 end
 
 --[[ARGUMENTS:
