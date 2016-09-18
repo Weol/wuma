@@ -10,7 +10,7 @@ function PANEL:CreateChildren()
 	self.list_types = WUMA.CreateList{parent=self,multiselect=false,text="Types",onrowselected=self.OnTypeChange,populate=Restriction:GetTypes("print"),select="Entity",x=5,y=5,size_to_content_y=true,w=100,sortable=false}
 
 	//Usergroups list
-	self.list_usergroups = WUMA.CreateList{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-self.list_types:GetTall())-15,sortable=false} 
+	self.list_usergroups = WUMA.CreateList{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-5)-(self:y(self.list_types)+self.list_types:GetTall()+5),sortable=false} 
 	
 	hook.Add( WUMA.USERGROUPSUPDATE , "WUMAVGUIRestrictionsUserGroupsList", function() 
 		WUMA.PopulateList(self.list_usergroups,WUMA.ServerGroups,true) 
@@ -354,6 +354,10 @@ function PANEL:OnScopeChange(lineid, line)
 	end
 	
 	scope.previous_line = lineid
+end
+
+function PANEL:OnInheritanceClick()
+
 end
 
 function PANEL:OnAddClick()

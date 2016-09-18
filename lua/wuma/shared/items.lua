@@ -29,6 +29,10 @@ function WUMA.GetWeapons()
 	return tbl
 end
 
+function WUMA.GetStandardLimits()
+	return cleanup.GetTable()
+end
+
 function WUMA.GetAllItems()
 	local tbl = {}
 	table.Add(tbl,WUMA.GetEntities())

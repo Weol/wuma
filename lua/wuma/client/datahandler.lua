@@ -24,8 +24,6 @@ WUMA.LOADOUTUPDATE = "WUMALoadoutUpdate"
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
 
-	PrintTable(data)
-	
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
 	end

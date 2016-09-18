@@ -419,7 +419,16 @@ end
 --]]
 function WUMA.CreateSlider(tbl) 
 
-	local gui = vgui.Create("DNumSlider", tbl.parent)
+	local gui = vgui.Create("DPanel", tbl.parent)
+	local slider = vgui.Create("DSlider", gui)
+	local label = vgui.Create("DLabel", gui)
+	local wang = vgui.Create( "DNumberWang", gui )
+	
+	gui.Paint = function()
+		if tbl.background then
+			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
+		end
+	end
 	
 	if tbl.size_to_content then gui:SizeToContents() end
 	if tbl.size_to_content_x then gui:SizeToContentsX() end
@@ -432,20 +441,47 @@ function WUMA.CreateSlider(tbl)
 	handleRelative(tbl)
 	handlePercent(tbl)
 	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	if tbl.min then gui:SetMin( tbl.min ) end
-	if tbl.max then gui:SetMax( tbl.max ) end
-	if tbl.decimals then gui:SetDecimals( tbl.decimals ) end
+	if tbl.w then gui:SetWide(tbl.w) else gui:SetWide(120) end
+	if tbl.h then gui:SetTall(tbl.h) else gui:SetTall(wang:GetTall()+slider:GetTall()) end
 		
 	gui:SetPos(tbl.x, tbl.y)
 	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
 	
+	wang:SetDecimals(tbl.decimals or 2)
+	wang:SetWide(40)
+	wang:SetPos(gui:GetWide()-wang:GetWide(),0)
+	wang:SetMinMax(tbl.min or 0, tbl.max or 100)
+	
+	wang.OnValueChanged = function(panel,val)
+		val = math.Clamp(tonumber(val),tbl.min,tbl.max)
+		slider:SetSlideX(val/tbl.max)
+	end
+	
+	slider.TranslateValues = function(panel,x,y) 
+		wang:SetFraction(x)
+		return x, y
+	end
+	
+	label:SetPos(8,3)
+	label:SetText( tbl.text or "" )
+	label:SizeToContents()
+	label:SetTextColor(Color(0,0,0,255))
+	
+	slider:SetWide(gui:GetWide())
+	slider:SetHeight( 16 )
+	slider:SetPos(0,gui:GetTall()-slider:GetTall())
+	slider:SetLockY( 0.5 )
+	slider:SetTrapInside( true )
+	Derma_Hook( slider, "Paint", "Paint", "NumSlider" )
+	
+	gui.GetValue = function()
+		return wang:GetValue()
+	end
+	
 	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
+	gui.slider = slider
+	gui.label = label
+	gui.wang = wang
 	
 	return gui
 
@@ -799,6 +835,12 @@ function WUMA.CreateDateChooser(tbl)
 	local month = WUMA.CreateTextbox{parent=gui,default="Month",text_align=5,numeric=true,min_numeric=0,max_numeric=12,x=38,y=9,w=36,h=20}
 	local year = WUMA.CreateTextbox{parent=gui,default="Year",text_align=5,numeric=true,min_numeric=0,max_numeric=3000,x=76,y=9,w=36,h=20}
 
+	local function validateDate(day, month, year)
+		local epoch = os.time{year=year, month=month, day=day}
+		local zeromdy = string.format("%02d/%02d/%04d", day, month, year)
+		return (zeromdy == os.date('%d/%m/%Y', epoch))
+	end
+		
 	gui.Paint = function()
 		if tbl.background then
 			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
@@ -811,9 +853,9 @@ function WUMA.CreateDateChooser(tbl)
 			end
 		end
 	
-		draw.DrawText("day", "WUMATextSmall", 12, 0, Color(0, 0, 0, 150))
-		draw.DrawText("month", "WUMATextSmall", 44, 0, Color(0, 0, 0, 150))
-		draw.DrawText("year", "WUMATextSmall", 87, 0, Color(0, 0, 0, 150))
+		draw.DrawText("day", "WUMATextSmall", 12, 0, color)
+		draw.DrawText("month", "WUMATextSmall", 44, 0, color)
+		draw.DrawText("year", "WUMATextSmall", 87, 0, color)
 	end
 	
 	if tbl.size_to_content then gui:SizeToContents() end
@@ -850,11 +892,6 @@ function WUMA.CreateDateChooser(tbl)
 
 end
 
-local function validateDate(day, month, year)
-	local epoch = os.time{year=Y, month=m, day=d}
-	local zeromdy = string.format("%02d/%02d/%04d", d, m, Y)
-	return (zeromdy == os.date('%d/%m/%Y', epoch))
-end
 
 --[[ARGUMENTS:
 	parent - Parent gui
