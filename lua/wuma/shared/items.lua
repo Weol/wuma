@@ -45,13 +45,13 @@ function WUMA.GetAllItems()
 end
 
 function WUMA.IsValidProp()
-
+	return true
 end
 
 function WUMA.IsValidRagdoll()
-
+	return true
 end
 
 function WUMA.IsValidEffect()
-
+	return true
 end

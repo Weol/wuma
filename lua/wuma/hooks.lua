@@ -1,14 +1,8 @@
 
 WUMA = WUMA or {}
 
-WUMA.USERGROUPSUPDATEHOOK = "WUMAUserGroupsUpdate"
-WUMA.USERGROUPUPDATEHOOK = "WUMAUserGroupUpdate"
-
-local HOOK_COOLDOWN_TIME = 5
-local HOOK_COOLDOWN = {}
-
 function WUMA.PlayerSpawnSENT(ply, sent)
-	--WUMADebug("PlayerSpawnSENT(%s,%s)",ply,sent)
+	WUMADebug("PlayerSpawnSENT(%s,%s)",ply,sent)
 	if (ply:CheckRestriction("entity",sent) == false) then return false end
 	if (ply:CheckLimit("sents",sent) == false) then return false end
 end
@@ -107,8 +101,9 @@ hook.Add("PlayerCanPickupWeapon", "WUMAPlayerCanPickupWeapon", WUMA.PlayerCanPic
 
 function WUMA.PlayerSpawnVehicle(ply, mdl, name, vehicle_table)
 	WUMADebug("PlayerSpawnVehicle(%s,%s,%s,%s)",ply, mdl, name, vehicle_table)
-	if (ply:CheckRestriction("vehicle",string.lower(vehicle_table.Name)) == false) then return false end
-	if (ply:CheckLimit("vehicles",string.lower(vehicle_table.Name)) == false) then return false end
+
+	if (ply:CheckRestriction("vehicle",string.lower(name)) == false) then return false end
+	if (ply:CheckLimit("vehicles",string.lower(name)) == false) then return false end
 end
 hook.Add("PlayerSpawnVehicle", "WUMAPlayerSpawnVehicle", WUMA.PlayerSpawnVehicle, -1)
 

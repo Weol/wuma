@@ -7,7 +7,7 @@ local static = {}
 Limit._id = "WUMA_Limit"
 object._id = "WUMA_Limit"
 
---																								Static functions
+/////////////////////////////////////////////////////////////////////////////////
 function Limit:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -17,17 +17,24 @@ function Limit:new(tbl)
 
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
-	obj.string = tbl.string or false
+	obj.string = tbl.string or nil
 	obj.limit = tbl.limit or 0
-	obj.parent = tbl.parent or false
-	obj.usergroup = tbl.usergroup or false
+	obj.parent = tbl.parent or nil
+	obj.usergroup = tbl.usergroup or nil
 	obj.count = tbl.count or 0
+	obj.exclusive = tbl.exclusive or nil
 	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Normal" end
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
 	
 	obj._id = Limit._id
 	
-	obj.m.override = tbl.overrive or false
+	obj.m.override = tbl.overrive or nil
+	
+	--No numeric adv. limits
+	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
+	
+	--Make sure limit and string cannot be the same
+	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
 	
 	--Parse limit
 	if (tonumber(obj.limit) != nil) then obj.limit = tonumber(obj.limit) end
@@ -40,7 +47,11 @@ function static:GetID()
 end
  
 function static:GenerateID(usergroup,str)
-	return string.lower(string.format("%s%s",usergroup.."_",str))
+	if usergroup then
+		return string.lower(string.format("%s_%s",usergroup,str))
+	else
+		return string.lower(str)
+	end
 end
 
 function static:GenerateHit(str,ply)
@@ -79,7 +90,7 @@ end
 
 function object:__le(that)
 	if istable(that) and that._id and that._id == self._id then
-		return (self:Get() <= that:GetLimit())
+		return (self:Get() <= that:Get())
 	elseif not(tonumber(that) == nil) then
 		return (self:Get() <= that)
 	end
@@ -110,6 +121,14 @@ function object:Delete()
 	self = nil
 end
 
+function object:Shred()
+	if self:IsPersonal() then
+		WUMA.RemoveUserLimit(_,self:GetParentID(),self:GetString())
+	else
+		WUMA.RemoveLimit(_,self:GetUserGroup(),self:GetString())
+	end
+end
+
 function object:IsPersonal()
 	if self.usergroup then return false else return true end
 end
@@ -134,7 +153,11 @@ function object:Set(c)
 end
 
 function object:GetID()
-	return string.lower(string.format("%s%s",self.usergroup.."_",self.string))
+	if self:GetUserGroup() then
+		return string.lower(string.format("%s_%s",self.usergroup,self.string))
+	else
+		return string.lower(self.string)
+	end
 end
 
 function object:GetStatic()
@@ -171,7 +194,7 @@ function object:SetParent(user)
 	self.parent = user
 end
 
-function object:GetUsegroup()
+function object:GetUserGroup()
 	return self.usergroup
 end
 
@@ -185,6 +208,19 @@ end
 
 function object:SetString(str)
 	self.string = str
+end
+
+function object:IsExclusive()
+	return self.exclusive
+end
+
+function object:SetExclusive(bool)
+	self.exclusive = str
+end
+
+function object:GetParentID()
+	if isstring(self:GetParent()) then return self:GetParent() end
+	return self:GetParent():SteamID()
 end
 
 function object:GetScope()
@@ -227,8 +263,19 @@ function object:Check(int)
 	else
 		local limit = int or self:Get()
 		
-		if istable(limit) then return self:Check(limit:Get()) end
-
+		if istable(limit) then 
+			if not limit:IsExclusive() then
+				return limit:Check()
+			else
+				return self:Check(limit:Get()) 
+			end
+		elseif isstring(limit) and self:GetParent():HasLimit(limit) then
+			self:Set(self:GetParent():GetLimit(limit))
+			return self:Check(self:Get())
+		elseif isstring(limit) then
+			return nil
+		end
+		
 		if (limit < 0) then return end
 		if (limit <= self.count) then
 			self:Hit()
@@ -255,6 +302,10 @@ end
 
 function object:Add(entity)
 	self:SetCount(self:GetCount() + 1)
+	local limit = self:Get()
+	
+	if istable(self:Get()) and not self:Get():IsExclusive() then limit:Add(entity) end
+	
 	if self:GetOverride() then self:GetOverride():SetCount(self:GetOverride():GetCount() + 1) end
 	
 	entity:AddWUMAParent(self) 

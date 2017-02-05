@@ -2,6 +2,9 @@
 if not SERVER then return end
 
 WUMA = WUMA or {}
+WUMA.ConVars = WUMA.ConVars or {}
+WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
+WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
 --Definitions
 WUMA.VERSION = "1.6 Alpha"
@@ -21,9 +24,7 @@ WUMA.UserDataDirectory = "users/"
 WUMA.HomeDirectory = "WUMA/"
 
 --Settings
-WUMA.DataUpdateCooldown = 1
-WUMA.Debug = true
-WUMA.ULXGUI = "xgui_wuma"
+WUMA.WUMAGUI = "wuma gui"
 WUMA.RegisterSize = 200
 
 function WUMA.Initialize()
@@ -34,41 +35,32 @@ function WUMA.Initialize()
 	include(WUMA.HomeDirectory.."files.lua")
 	include(WUMA.HomeDirectory.."log.lua")
 	  
+	--Initialize data files  
+	WUMA.Files.Initialize()
+
 	--Loading objects
 	WUMA.LoadFolder(WUMA.ObjectsDirectory)
 	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
-	    
+
 	--Include core
-	include(WUMA.HomeDirectory.."sql.lua") 
-	include(WUMA.HomeDirectory.."util.lua") 
+	include(WUMA.HomeDirectory.."sql.lua")
+	include(WUMA.HomeDirectory.."util.lua") 	
 	include(WUMA.HomeDirectory.."functions.lua")
-	include(WUMA.HomeDirectory.."log.lua") 
 	include(WUMA.HomeDirectory.."datahandler.lua")
 	include(WUMA.HomeDirectory.."users.lua")
 	include(WUMA.HomeDirectory.."limits.lua")
 	include(WUMA.HomeDirectory.."restrictions.lua")
 	include(WUMA.HomeDirectory.."loadouts.lua")
 	include(WUMA.HomeDirectory.."hooks.lua") 
+	include(WUMA.HomeDirectory.."duplicator.lua")
 	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 	include(WUMA.HomeDirectory.."extentions/entityextention.lua")
-	   
-	--Register ULX access
-	ULib.ucl.registerAccess(WUMA.ULXGUI, "superadmin", "Access to WUMA GUI", "XGUI" ) 
+
+	--Register WUMA access with CAMI
+	CAMI.RegisterPrivilege{Name=WUMA.WUMAGUI,MinAccess="superadmin",Description="Access to WUMA GUI"}
 	   
 	--Who am I writing these for?
 	WUMALog("User Management Addon version %s",WUMA.VERSION)
-	 
-	--Loading shared files
-	WUMALog("Loading shared files")
-	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
-	WUMA.LoadFolder(WUMA.SharedDirectroy) 
-	 
-	--Loading client files
-	WUMALog("Loading client files")
-	WUMA.LoadCLFolder(WUMA.ClientDirectory)
-	
-	--Initialize data files  
-	WUMA.Files.Initialize()
 	
 	--Initialize SQL
 	WUMA.SQL.Initialize()
@@ -78,9 +70,42 @@ function WUMA.Initialize()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
 	
+	--Loading shared files
+	WUMALog("Loading shared files")
+	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
+	WUMA.LoadFolder(WUMA.SharedDirectroy) 
+	
+	--Loading client files
+	WUMALog("Loading client files")
+	WUMA.LoadCLFolder(WUMA.ClientDirectory)
+	
 	--Allow the poor scopes to think
 	Scope:StartThink()
 	
+	//Add hook so playerextention loads when the first player joins
+	hook.Add("PlayerAuthed","WUMAPlayerAuthedPlayerExtentionInit", function()  
+		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
+		hook.Remove("WUMAPlayerAuthedPlayerExtentionInit")
+	end)
+	
+end
+
+function WUMA.CreateConVar(...)
+	local convar = CreateConVar(...)
+	WUMA.ConVars.CVars[convar:GetName()] = convar
+	WUMA.ConVars.ToClient[convar:GetName()] = convar:GetString()
+	
+	cvars.AddChangeCallback(convar:GetName(), function(convar,old,new) 
+		WUMA.ConVars.ToClient[convar] = new
+	
+		local tbl = {}
+		tbl[convar] = new
+		WUMA.GetAuthorizedUsers(function(users) 
+			WUMA.SendInformation(users,WUMA.NET.SETTINGS,tbl) 
+		end)
+	end)
+	
+	return convar
 end
 
 function WUMA.LoadFolder(dir)
@@ -112,21 +137,4 @@ function WUMA.LoadCLFolder(dir)
 end
 WUMA.Initialize()
 
-WUMA.Loaded = true
-
-concommand.Add( "wuma", function(ply, a, b)
-	local args 	
-	if not IsValid(ply) then
-		args = {"Console"}
-	else
-		args = {ply or "Console"}
-	end
-	local cmd = b[1] 
-	local a, args2 = WUMA.ExtractValue(b)
-	table.Add(args,args2)
-	
-	WUMADebug(cmd)
-	PrintTable(args)
-	
-	WUMA.ProcessAccess(cmd,args)
-end )
+WUMA.Loaded = trueW

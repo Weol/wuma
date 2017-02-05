@@ -22,11 +22,11 @@ function WUMA.Initialize()
 	
 	//Load shared folder
 	WUMA.IncludeFolder("wuma/shared/")
-	
+	 
 	//Load vgui folder
 	WUMADebug("Loading VGUI Folder")
 	WUMA.IncludeFolder(WUMA.HomePath.."vgui/")
-	
+
 end
 
 function WUMA.IncludeFolder(dir)
@@ -44,11 +44,15 @@ function WUMA.IncludeFolder(dir)
 	end
 end
 
-WUMA.UniqueIDs = {}
+WUMA.UniqueIDs = 0
 function WUMA.GenerateUniqueID()
-	local id = #WUMA.UniqueIDs+1
-	table.insert(WUMA.UniqueIDs,id)
+	local id = WUMA.UniqueIDs
+	WUMA.UniqueIDs = WUMA.UniqueIDs + 1
 	return id
+end
+
+function WUMA.IsSteamID(steamid)
+	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
 end
 
 WUMA.Initialize()

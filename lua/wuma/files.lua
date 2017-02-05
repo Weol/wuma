@@ -33,6 +33,7 @@ function Files.Exists(path)
 end
 
 function Files.Delete(path) 
+	debug.Trace()
 	file.Delete(path)
 end
 

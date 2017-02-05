@@ -5,6 +5,53 @@ WUMA.NET = WUMA.NET or {}
 WUMA.NET.ENUMS = {}
 
 /////////////////////////////////////////////////////////
+/////    Settings | Sends server's wuma settings	/////
+/////////////////////////////////////////////////////////
+WUMA.NET.SETTINGS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
+WUMA.NET.SETTINGS:SetServerFunction(function(user,data)
+	return {user, WUMA.NET.SETTINGS, WUMA.ConVars.ToClient}
+end) 
+WUMA.NET.SETTINGS:SetClientFunction(function(data) 
+	for name, value in pairs(data[1]) do
+		WUMA.ServerSettings[string.sub(name,6)] = value
+	end
+	hook.Call(WUMA.SETTINGSUPDATE, _,WUMA.ServerSettings)
+end)
+WUMA.NET.SETTINGS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
+end)
+WUMA.NET.SETTINGS:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
+/////  SUBSCRIPTION | Subscribes client to a table  /////
+/////////////////////////////////////////////////////////
+WUMA.NET.SUBSCRIPTION = WUMA_NET_STREAM:new()
+WUMA.NET.SUBSCRIPTION:SetServerFunction(function(user,data)
+	if (data[2]) then
+		WUMA.RemoveDataSubscription(user,data[1],data[3])
+	else
+		WUMA.AddDataSubscription(user,data[1],data[3])
+	end
+end) 
+WUMA.NET.SUBSCRIPTION:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
+end)
+WUMA.NET.SUBSCRIPTION:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
+/////   Push | Notifies clients about data updates  /////
+/////////////////////////////////////////////////////////
+WUMA.NET.PUSH = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
+WUMA.NET.PUSH:SetServerFunction(function(user,data)
+	return {user, WUMA.NET.PUSH, data}
+end) 
+WUMA.NET.PUSH:SetClientFunction(WUMA.RecievePushNotification)
+WUMA.NET.PUSH:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
+end)
+WUMA.NET.PUSH:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
 /////     Groups | Returns all the usergroups		/////
 /////////////////////////////////////////////////////////
 WUMA.NET.GROUPS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
@@ -15,8 +62,8 @@ WUMA.NET.GROUPS:SetClientFunction(function(data)
 	WUMA.ServerGroups = data[1]
 	hook.Call(WUMA.USERGROUPSUPDATE)
 end)
-WUMA.NET.GROUPS:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.GROUPS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.GROUPS:AddInto(WUMA.NET.ENUMS)
 
@@ -24,17 +71,33 @@ WUMA.NET.GROUPS:AddInto(WUMA.NET.ENUMS)
 /////        Users | Returns online players		    /////
 /////////////////////////////////////////////////////////
 WUMA.NET.USERS = WUMA_NET_STREAM:new{send=WUMA.SendInformation,auto_update=true}
-WUMA.NET.USERS:SetServerFunction(function(user,data)
-	return {user, WUMA.NET.USERS, player.GetAll()}
+WUMA.NET.USERS:SetServerFunction(function(user,data)	
+	local users = {}
+	for _, ply in pairs(player.GetAll()) do
+		users[ply:SteamID()] = {}
+		users[ply:SteamID()].usergroup = ply:GetUserGroup()
+		users[ply:SteamID()].nick = ply:Nick()
+		users[ply:SteamID()].steamid = ply:SteamID()
+		users[ply:SteamID()].t = os.time()
+	end
+	return {user, WUMA.NET.USERS, users}
 end) 
 WUMA.NET.USERS:SetClientFunction(function(data) 
-	WUMA.ServerUsers = data[1]
+	local players = {}
+	for _, v in pairs(data[1]) do
+		players[v.steamid] = v
+
+		if not WUMA.LookupUsers[v.steamid] then 
+			v.t=tostring(v.t)
+			WUMA.LookupUsers[v.steamid] = v
+		end
+	end
+	WUMA.ServerUsers = players
 	hook.Call(WUMA.SERVERUSERSUPDATE)
 end) 
-WUMA.NET.USERS:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.USERS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
-WUMA.NET.USERS:AddHook("PlayerDisconnected","PlayerInitialSpawn")
 WUMA.NET.USERS:AddInto(WUMA.NET.ENUMS)
 
 /////////////////////////////////////////////////////////
@@ -49,8 +112,8 @@ WUMA.NET.USER:SetClientFunction(function(data)
 	WUMA.UserData[data.steamid] = data
 	hook.Call(WUMA.USERDATAUPDATE, data.steamid)
 end)  
-WUMA.NET.USER:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.USER:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.USER:AddInto(WUMA.NET.ENUMS)
 
@@ -63,15 +126,18 @@ WUMA.NET.LOOKUP:SetServerFunction(function(user,data)
 end) 
 WUMA.NET.LOOKUP:SetClientFunction(function(data)
 	for i=1,table.Count(data[1]) do
-		WUMA.LookupUsers[data[1][i].steamid] = data[1][i].nick
+		WUMA.LookupUsers[data[1][i].steamid] = data[1][i]
 	end
 	hook.Call(WUMA.LOOKUPUSERSUPDATE)
 end) 
-WUMA.NET.LOOKUP:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.LOOKUP:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.LOOKUP:AddInto(WUMA.NET.ENUMS)
 
+/////////////////////////////////////////////////////////
+/////          MAPS | Returns maps request   	   	/////
+/////////////////////////////////////////////////////////
 WUMA.NET.MAPS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
 WUMA.NET.MAPS:SetServerFunction(function(user,data)
 	local maps = {file.Find("maps/*.bsp", "GAME")}
@@ -81,8 +147,8 @@ WUMA.NET.MAPS:SetClientFunction(function(data)
 	WUMA.Maps = data[1]
 	hook.Call(WUMA.MAPSUPDATE)
 end) 
-WUMA.NET.MAPS:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.MAPS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.MAPS:AddInto(WUMA.NET.ENUMS)
 
@@ -96,8 +162,8 @@ end)
 WUMA.NET.WHOIS:SetClientFunction(function(data)
 	WUMA.LookupUsers[data.steamid] = data.nick 
 end) 
-WUMA.NET.WHOIS:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.WHOIS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.WHOIS:AddInto(WUMA.NET.ENUMS)
 
@@ -106,12 +172,20 @@ WUMA.NET.WHOIS:AddInto(WUMA.NET.ENUMS)
 /////////////////////////////////////////////////////////
 WUMA.NET.RESTRICTION = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.RESTRICTION:SetServerFunction(function(user,data)
-	if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
-		return {user, WUMA.GetSavedRestrictions(), Restriction:GetID()}
+	if data[1] then
+		if WUMA.CheckUserFileExists(data[1],Restriction) then
+			local tbl = WUMA.GetSavedRestrictions(data[1])
+			if (table.Count(tbl) < 1) then tbl = false end
+			return {user, tbl, Restriction:GetID()..":::"..data[1]}
+		end
+	else
+		if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
+			return {user, WUMA.GetSavedRestrictions(), Restriction:GetID()}
+		end
 	end
 end)  
-WUMA.NET.RESTRICTION:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.RESTRICTION:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.RESTRICTION:AddInto(WUMA.NET.ENUMS)
 
@@ -120,12 +194,20 @@ WUMA.NET.RESTRICTION:AddInto(WUMA.NET.ENUMS)
 /////////////////////////////////////////////////////////
 WUMA.NET.LIMIT = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.LIMIT:SetServerFunction(function(user,data)
-	if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
-		return {user, WUMA.GetSavedLimits(), Limit:GetID()}
+	if data[1] then
+		if WUMA.CheckUserFileExists(data[1],Limit) then
+			local tbl = WUMA.GetSavedLimits(data[1])
+			if (table.Count(tbl) < 1) then tbl = false end
+			return {user, tbl, Limit:GetID()..":::"..data[1]}
+		end
+	else
+		if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
+			return {user, WUMA.GetSavedLimits(), Limit:GetID()}
+		end
 	end
 end) 
-WUMA.NET.LIMIT:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.LIMIT:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.LIMIT:AddInto(WUMA.NET.ENUMS)
 
@@ -134,11 +216,19 @@ WUMA.NET.LIMIT:AddInto(WUMA.NET.ENUMS)
 /////////////////////////////////////////////////////////
 WUMA.NET.LOADOUT = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
-	if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
-		return {user, WUMA.GetSavedLoadouts(), Loadout:GetID()}
+	if data[1] then
+		if WUMA.CheckUserFileExists(data[1],Loadout) then
+			local tbl = WUMA.GetSavedLoadouts(data[1])
+			if (tbl:GetWeaponCount() < 1) then tbl = false end
+			return {user, tbl, Loadout:GetID()..":::"..data[1]}
+		end
+	else
+		if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
+			return {user, WUMA.GetSavedLoadouts(), Loadout:GetID()}
+		end
 	end
 end) 
-WUMA.NET.LOADOUT:SetAuthenticationFunction(function(user) 
-	return WUMA.HasAccess(user)
+WUMA.NET.LOADOUT:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.LOADOUT:AddInto(WUMA.NET.ENUMS)

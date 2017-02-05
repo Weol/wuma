@@ -64,20 +64,24 @@ function WUMA.HasLimit(usergroup,item)
 	return false
 end
 
-function WUMA.AddLimit(caller,usergroup,item,limit)
-	if not WUMA.HasLimit(usergroup,item) then return true end
+function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 
-	local limit = Limit:new({string=item,usergroup=usergroup,limit=limit})
+	if (item == limit) then return false end
+	if (tonumber(item) != nil) then return false end
+
+	local limit = Limit:new({string=item,usergroup=usergroup,limit=limit,exclusive=exclusive,scope=scope})
+
+	WUMADebug(limit:GetID())
 	
-	WUMA.Limits[usergroup] = WUMA.Limits[usergroup] or {}
-	WUMA.Limits[usergroup][item] = limit
+	WUMA.Limits[limit:GetID()] = limit
 	
-	WUMA.UpdateUsergroup(usergroup,function(user)
+	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
 		user:AddLimit(limit:Clone())
 	end)
 	
-	WUMA.ScheduleClientUpdate(Limit,function(tbl)
+	WUMA.AddClientUpdate(Limit,function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
+		
 		return tbl
 	end)
 	
@@ -90,73 +94,93 @@ function WUMA.AddLimit(caller,usergroup,item,limit)
 end
 
 function WUMA.RemoveLimit(caller,usergroup,item)
-	if not WUMA.Limits[usergroup] then return end
-	if not WUMA.Limits[usergroup][item] then return end
+	local id = Limit:GenerateID(usergroup,item)
 	
-	WUMA.Limits[usergroup][item] = nil
+	if not WUMA.Limits[id] then return false end
+	
+	WUMA.Limits[id] = nil
 
-	WUMA.UpdateUsergroup(usergroup,function(user)
-		user:RemoveLimit(Limit:GenerateID(item))
+	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
+		user:RemoveLimit(id)
 	end)
 
-	WUMA.ScheduleClientUpdate(Limit,function(tbl)
-		tbl[Limit:GenerateID(item)] = nil
+	WUMA.AddClientUpdate(Limit,function(tbl)
+		tbl[id] = WUMA.DELETE
+		
 		return tbl
 	end)
 	
 	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
-		tbl[Limit:GenerateID(item)] = nil
+		tbl[id] = nil
 		
 		return tbl
 	end)
 end
 
-function WUMA.AddUserLimit(caller,users,item,limit)
-	local limit = Limit:new({string=item,limit=limit})
-	users = WUMA.UserToTable(users)
+function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)
+
+	if (item == limit) then return false end
+	if (tonumber(item) != nil) then return false end
 	
-	for _,user in pairs(users) do
+	local limit = Limit:new({string=item,limit=limit,exclusive=exclusive,scope=scope})
+
+	if isentity(user) then
 		user:AddLimit(limit)
 		
-		WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
-			tbl[limit:GetID()] = limit:GetBarebones()
-			
-			return tbl
-		end)
+		user = user:SteamID()
 	end
+	
+	WUMA.AddClientUpdate(Limit,function(tbl)
+		tbl[limit:GetID()] = limit:GetBarebones()
+		
+		return tbl
+	end,user)
+	
+	WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
+		tbl[limit:GetID()] = limit:GetBarebones()
+		
+		return tbl
+	end)
 	
 end
 
-function WUMA.RemoveUserLimit(caller,users,item)
-	local id = Limit:GenerateID(item)
-	users = WUMA.UserToTable(users)
+function WUMA.RemoveUserLimit(caller,user,item)
+	local id = Limit:GenerateID(_,item)
 	
-	for _,user in pairs(users) do
+	if isentity(user) then
 		user:RemoveLimit(id)
 		
-		WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
-			tbl[id] = nil
-			
-			return tbl
-		end)
+		user = user:SteamID()
 	end
-end
-
-function WUMA.AssignLimits(user)
-	if not(WUMA.Limits[user:GetUserGroup()]) then return end
+	
+	WUMA.AddClientUpdate(Limit,function(tbl)
+		tbl[id] = WUMA.DELETE
 		
-	for _,object in pairs(WUMA.Limits[user:GetUserGroup()]) do
-		user:AddLimit(object:Clone())
+		return tbl
+	end,user)
+		
+	WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
+		tbl[id] = nil
+			
+		return tbl
+	end)
+end
+
+function WUMA.AssignLimits(user, usergroup)
+	for _,object in pairs(WUMA.Limits) do
+		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
+			user:AddLimit(object:Clone())
+		end
 	end
 end
 
-function WUMA.RefreshGroupLimits(user)
+function WUMA.RefreshGroupLimits(user, usergroup)
 	for k,v in pairs(user:GetLimits()) do
 		if not v:IsPersonal() then
 			user:RemoveLimit(v:GetID())
 	 	end
 	end
 	
-	WUMA.AssignLimits(user)
+	WUMA.AssignLimits(user, usergroup)
 end
 

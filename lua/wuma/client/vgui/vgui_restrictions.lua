@@ -4,70 +4,112 @@ local PANEL = {}
 PANEL.TabName = "Restrictions"
 PANEL.TabIcon = "gui/silkicons/shield"
 
-function PANEL:CreateChildren()
+function PANEL:Init()
+	
+	self.Command = {}
+	self.Command.Add = "restrict"
+	self.Command.Delete = "unrestrict"
+	self.Command.Edit = "unrestrict"
 	
 	//Restriction types list
-	self.list_types = WUMA.CreateList{parent=self,multiselect=false,text="Types",onrowselected=self.OnTypeChange,populate=Restriction:GetTypes("print"),select="Entity",x=5,y=5,size_to_content_y=true,w=100,sortable=false}
+	self.list_types = vgui.Create("DListView",self)
+	self.list_types:SetMultiSelect(false)
+	self.list_types:AddColumn("Types")
+	self.list_types:SetSortable(false)
+	self.list_types.OnRowSelected = self.OnTypeChange
+	--{parent=self,multiselect=false,text="Types",onrowselected=self.OnTypeChange,populate=Restriction:GetTypes("print"),select="Entity",x=5,y=5,size_to_content_y=true,w=100,sortable=false}
 
 	//Usergroups list
-	self.list_usergroups = WUMA.CreateList{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-5)-(self:y(self.list_types)+self.list_types:GetTall()+5),sortable=false} 
-	
-	hook.Add( WUMA.USERGROUPSUPDATE , "WUMAVGUIRestrictionsUserGroupsList", function() 
-		WUMA.PopulateList(self.list_usergroups,WUMA.ServerGroups,true) 
-	end )
+	self.list_usergroups = vgui.Create("DListView",self)
+	self.list_usergroups:SetMultiSelect(true)
+	self.list_usergroups:AddColumn("Usergroups")
+	self.list_usergroups.OnRowSelected = self.OnUsergroupChange
+	--{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-5)-(self:y(self.list_types)+self.list_types:GetTall()+5),sortable=false} 
 	
 	//Search bar
-	self.textbox_search = WUMA.CreateTextbox{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
+	self.textbox_search = vgui.Create("WTextbox",self)
+	self.textbox_search:SetDefault("Search..")
+	self.textbox_search.OnChange = self.OnSearch
+	--{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
 	
 	//Settings button
-	self.button_settings = WUMA.CreateButton{parent=self,icon="icon16/cog.png",onclick=self.OnSettingsClick,align=4,x=self:GetWide()-5,y=self:GetTall()-5,w=25,h=25}
+	self.button_settings = vgui.Create("DButton",self)
+	self.button_settings:SetIcon("icon16/cog.png")
+	self.button_settings.DoClick = self.OnSettingsClick
+	--{parent=self,icon="icon16/cog.png",onclick=self.OnSettingsClick,align=4,x=self:GetWide()-5,y=self:GetTall()-5,w=25,h=25}
 	
 	//Edit button
-	self.button_edit = WUMA.CreateButton{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
+	self.button_edit = vgui.Create("DButton",self)
+	self.button_edit:SetText("Edit")
+	self.button_edit.DoClick = self.OnEditClick
+	--{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
 	
 	//Delete button
-	self.button_delete = WUMA.CreateButton{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
+	self.button_delete = vgui.Create("DButton",self)
+	self.button_delete:SetText("Delete")
+	self.button_delete.DoClick = self.OnDeleteClick
+	
+	--{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
 
 	//Add button
-	self.button_add = WUMA.CreateButton{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
+	self.button_add = vgui.Create("DButton",self)
+	self.button_add:SetText("Add")
+	self.button_add.DoClick = self.OnAddClick
+	
+	--{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
 	
 	//Suggestion list
-	self.list_suggestions = WUMA.CreateList{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
+	self.list_suggestions = vgui.Create("DListView",self)
+	self.list_suggestions:SetMultiSelect(true)
+	self.list_suggestions:AddColumn("Items")
+	self.list_suggestions:SetSortable(true)
+	--{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
 
 	//Items list
-	self.list_items = WUMA.CreateList{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
+	self.list_items = vgui.Create("WDataView",self)
+	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Item")
 	self.list_items:AddColumn("Scope")
+	self.list_items.OnRowSelected = self.OnItemChange
+	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 
 	//Scope list
-	self.list_scopes = WUMA.CreateList{parent=self,multiselect=false,select="Normal",text="Scope",onrowselected=self.OnScopeChange,populate=table.Add({"Permanent"},Scope:GetTypes("print")),relative=self.list_usergroups,relative_align=4,align=3,x=5,y=0,w=120,visible=false,sortable=false} 
+	self.list_scopes = vgui.Create("DListView",self)
+	self.list_scopes:SetMultiSelect(true)
+	self.list_scopes:AddColumn("Scope")
+	self.list_scopes:SetMultiSelect(false)
+	self.list_scopes.OnRowSelected = self.OnScopeChange
+	--{parent=self,multiselect=false,select="Normal",text="Scope",onrowselected=self.OnScopeChange,populate=table.Add({"Permanent"},Scope:GetTypes("print")),relative=self.list_usergroups,relative_align=4,align=3,x=5,y=0,w=120,visible=false,sortable=false} 
 
 		//date_chooser list
-		self.date_chooser = WUMA.CreateDateChooser{parent=self,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
+		self.date_chooser = vgui.Create("WDatePicker",self)	
+		self.date_chooser:SetVisible(false)
+		--{parent=self,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 		
 		//time_chooser list
-		self.time_chooser = WUMA.CreateTimeChooser{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
+		self.time_chooser = vgui.Create("WDurationSlider",self)
+		self.time_chooser:SetVisible(false)
+		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 		
 		//period_chooser list
-		self.period_chooser = WUMA.CreatePeriodChooser{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
+		self.period_chooser = vgui.Create("WPeriodPicker",self)
+		self.period_chooser:SetVisible(false)
+		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 		
 		//map_chooser 
-		self.map_chooser = WUMA.CreateMapChooser{parent=self,options=WUMA.Maps,relative=self.list_scopes,relative_align=2,x=5,y=0,w=125,visible=false}
-	
-	hook.Add( WUMA.MAPSUPDATE , "WUMAVGUIRestrictionsMapsUpdate", function() 
-		self.map_chooser:Clear()
-		self.map_chooser:AddOptions(WUMA.Maps)
-	end )
+		self.map_chooser = vgui.Create("WMapPicker",self)
+		self.map_chooser:SetVisible(false)
+		--{parent=self,options=WUMA.Maps,relative=self.list_scopes,relative_align=2,x=5,y=0,w=125,visible=false}
 
 	//Allow checkbox
-	self.checkbox_allow = WUMA.CreateCheckbox{parent=self,text="Anti Restriction",checked=0,align=3,relative=self.list_scopes,x=0,y=-5,visible=false} 
+	self.checkbox_allow = vgui.Create("DCheckBoxLabel",self)
+	self.checkbox_allow:SetText("Anti-Restriction")
+	self.checkbox_allow:SetTextColor(Color(0,0,0))
+	self.checkbox_allow:SetValue(false)
+	self.checkbox_allow:SetVisible(false)
 	
-	self.list_types:SelectFirstItem()
+	--{parent=self,text="Anti Restriction",checked=0,align=3,relative=self.list_scopes,x=0,y=-5,visible=false} 
 	
-end
-
-function PANEL:CreateDataView()
-
 	local sort = function(data)
 		if not data.usergroup or not data.type then return false end
 		if not table.HasValue(self:GetSelectedUsergroups(),data.usergroup) then return false end 
@@ -79,16 +121,15 @@ function PANEL:CreateDataView()
 		end
 		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
 		
-		return {data.usergroup, data.print or data.string, scope}
+		return {data.usergroup, data.print or data.string, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup)}
 	end
 		
-	self:SetDataView(self.list_items)
-	self:SetSortFunction(sort)
+	self:GetDataView():SetSortFunction(sort)
 
 	local right_click = function(item)
 		local tbl = {}
 		tbl[1] = {"Item",item:GetString()}
-		tbl[2] = {"Usergroup",item:GetUsergroup()}
+		tbl[2] = {"Usergroup",item:GetUserGroup()}
 		tbl[3] = {"Type",item:GetType()}
 		tbl[4] = {"Scope",item:GetScope() or "Permanent"}
 		if item:GetAllow() then tbl[5] = {"Anti-Restriction"} end
@@ -96,15 +137,90 @@ function PANEL:CreateDataView()
 		return tbl
 	end
 
-	self:SetRightClickData(right_click)
+	self:GetDataView():SetRightClickFunction(right_click)
+	
+	self:PopulateList("list_types",Restriction:GetTypes("print"),true,true)
+	self:PopulateList("list_usergroups",WUMA.ServerGroups,true,true)
+	self:PopulateList("list_scopes",table.Add({"Permanent"},Scope:GetTypes("print")),true)
+	WUMA.GUI.AddHook(WUMA.USERGROUPSUPDATE,"WUMARestrictionsGUIUsergroupUpdateHook",function() 
+		self:PopulateList("list_usergroups",WUMA.ServerGroups,true,true)
+	end)
+	
+	WUMA.GUI.AddHook(WUMA.MAPSUPDATE,"WUMARestrictionsGUIScopeMapsUpdateHook",function() 
+		self.map_chooser:AddOptions(WUMA.Maps)
+	end)
+		
 end
 
-PANEL.HasCreated = false
-function PANEL:Think() 
-	if not (self.HasCreated) then
-		self:CreateChildren()
-		self:CreateDataView()
-		self.HasCreated = true
+function PANEL:PerformLayout()
+
+	self.list_types:SetPos(5,5)
+	self.list_types:SizeToContents()
+	self.list_types:SetWide(100)
+
+	self.list_usergroups:SetPos(5,self.list_types.y+self.list_types:GetTall()+5)
+	self.list_usergroups:SetSize(self.list_types:GetWide(),self:GetTall()-self.list_usergroups.y-5)
+
+	self.textbox_search:SetSize(130,20)
+	self.textbox_search:SetPos((self:GetWide()-5)-self.textbox_search:GetWide(),5)
+
+	self.button_settings:SetSize(25,25)
+	self.button_settings:SetPos((self:GetWide()-5)-self.button_settings:GetWide(),(self:GetTall()-5)-self.button_settings:GetTall())
+
+	self.button_edit:SetSize(self.textbox_search:GetWide()-(self.button_settings:GetWide()+5),25)
+	self.button_edit:SetPos((self.button_settings.x-10)-self.button_edit:GetWide()+5,self.button_settings.y)
+
+	self.button_delete:SetSize(self.textbox_search:GetWide(),25)
+	self.button_delete:SetPos(self.button_edit.x,(self.button_edit.y-5)-self.button_delete:GetTall())
+
+	self.button_add:SetSize(self.textbox_search:GetWide(),25)
+	self.button_add:SetPos(self.button_delete.x,(self.button_delete.y-5)-self.button_delete:GetTall())   
+
+	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
+	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
+
+	self.list_items:SetPos(self.list_types.x+5+self.list_types:GetWide(),5)
+	
+	if self:GetAdditonalOptionsVisibility() then
+		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5,self:GetTall()-10 - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25)
+	else
+		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5,self:GetTall()-10)
+	end
+
+	self.checkbox_allow:SetPos(self.list_scopes.x,self.list_items.y+self.list_items:GetTall()+5)
+	
+	self.list_scopes:SetPos(self.list_items.x,self.checkbox_allow.y+self.checkbox_allow:GetTall()+5)
+	self.list_scopes:SizeToContents()
+	self.list_scopes:SetWide(120)
+
+		self.date_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
+
+		self.time_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
+		self.time_chooser:SetSize(120,40)
+
+		self.period_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
+
+		self.map_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
+
+end
+
+function PANEL:GetDataView()
+	return self.list_items
+end
+
+function PANEL:PopulateList(key,tbl,clear,select)
+	local listview = self[key]
+
+	if clear then
+		listview:Clear()
+	end
+	
+	for k, v in pairs(tbl) do
+		listview:AddLine(v)
+	end
+	
+	if select then
+		listview:SelectFirstItem()
 	end
 end
 
@@ -118,12 +234,12 @@ function PANEL:ReloadSuggestions(type)
 	else
 		self.list_suggestions:SetDisabled(false)
 		
-		WUMA.PopulateList(self.list_suggestions,items(),true)
+		self:PopulateList("list_suggestions",items(),true)
 	end
 end
 
 function PANEL:GetSelectedType()
-	if not self.list_types:GetSelected() then return false end
+	if not self.list_types:GetSelected()[1] then return false end
 	for k,v in pairs(Restriction:GetTypes()) do
 		if (v.print == self.list_types:GetSelected()[1]:GetValue(1)) then
 			return k
@@ -132,8 +248,15 @@ function PANEL:GetSelectedType()
 end
 
 function PANEL:GetSelectedSuggestions()
-	if not self.list_suggestions:GetSelected() then return false end
-	
+	if not self.list_suggestions:GetSelectedLine() then 
+		local typ = self:GetSelectedType()
+		PrintTable(Restriction:GetTypes()[typ])
+		if not Restriction:GetTypes()[typ].items then
+			return {self.textbox_search:GetValue()}
+		else 
+			return {}
+		end
+	end
 	local tbl = {}
 	for _,v in pairs(self.list_suggestions:GetSelected()) do
 		table.insert(tbl,v:GetColumnText(1))
@@ -188,82 +311,21 @@ function PANEL:GetAntiSelected()
 	end
 end
 
-PANEL.ItemListVisiblility = false
-function PANEL:ToggleItemListVisiblility()
-	if (self.ItemListVisiblility) then
-		local w, h = self.list_items:GetWide(), self.ItemListVisiblility
-		
-		if (self.list_items.VBar.oldScroll) then
-			self.list_items.VBar:AnimateTo(self.list_items.VBar.oldScroll,0.2)
-			self.list_items.VBar.oldScroll = nil
-		end
-		
-		self.list_items:SizeTo(w,h,0.2)
-		
-		self.ItemListVisiblility = false
-		
-		self:ToggleAdditonalOptions()
-	else
-		self.ItemListVisiblility = self.list_items:GetTall()
-		local w, h = self.list_items:GetWide(), self.list_items:GetTall() - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25
-		
-		if (self.list_items:GetSelectedLine()) and (table.Count(self.list_items.Lines)-(math.ceil((self.list_items:GetTall()-h-self.list_items:GetHeaderHeight())/17)+1) < self.list_items:GetSortedID(self.list_items:GetSelectedLine())) then
-			self.list_items.VBar.oldScroll = self.list_items.VBar:GetScroll()
-			self.list_items.VBar:AnimateTo(table.Count(self.list_items.Lines)*17,0.2)
-		end
-		
-		self.list_items:SizeTo(w,h,0.2)
-		
-		self:ToggleAdditonalOptions()
-	end
+function PANEL:GetAdditonalOptionsVisibility()
+	return self.additionaloptionsvisibility
 end
 
-PANEL.AdditonalOptionsVisibility = false
-function PANEL:ToggleAdditonalOptions()
-
-	local scope = self.list_scopes
-	local x,y = scope:GetPos()
-	local height = #(scope:GetLines() or {}) * 17 + scope:GetHeaderHeight() + 1
-	
-	scope:SetVisible(true)
-	self.checkbox_allow:SetVisible(true)
-	
-	if self.AdditonalOptionsVisibility then
-		self.AdditonalOptionsVisibility = false
- 
-		scope:MoveTo(x,y+height,0.2)
-		scope:SizeTo(scope:GetWide(),0,0.2)
+function PANEL:ToggleAdditionalOptionsVisiblility()
+	if self.additionaloptionsvisibility then
+		self.additionaloptionsvisibility = false
 		
-		self.checkbox_allow:MoveTo(self:x(self.checkbox_allow),y+height,0.2)
-		self.checkbox_allow:SizeTo(self.checkbox_allow:GetWide(),0,0.2)
-		
-		for _, parts in pairs(Scope:GetTypes("parts")) do 
-			for _, part_name in pairs(parts) do 
-				local part = self[part_name]
-				if part then
-					part:MoveTo(self:x(part),y+height+part:GetTall(),0.2)
-					part.showing = false
-				end
-			end
-		end
+		self.list_scopes:SetVisible(false)
+		self.checkbox_allow:SetVisible(false)
 	else
-		self.AdditonalOptionsVisibility = true
+		self.additionaloptionsvisibility = true
 		
-		scope:SizeTo(scope:GetWide(),height,0.2)
-		scope:MoveTo(x,y-height,0.2)
-		
-		self.checkbox_allow:MoveTo(x,y-height-5-15,0.2)
-		self.checkbox_allow:SizeTo(self.checkbox_allow:GetWide(),15,0.2)
-		
-		for _, parts in pairs(Scope:GetTypes("parts")) do 
-			for _, part_name in pairs(parts) do 
-				local part = self[part_name]
-				if part then
-					part:MoveTo(self:x(part),y-height,0.2)
-					part.showing = false
-				end
-			end
-		end
+		self.list_scopes:SetVisible(true)
+		self.checkbox_allow:SetVisible(true)
 	end
 end
 
@@ -279,7 +341,7 @@ function PANEL:OnSearch()
 	
 		for k, line in pairs(self.list_suggestions:GetLines()) do
 			local item = line:GetValue(1)
-			if not string.match(item,text) then
+			if not string.match(string.lower(item),string.lower(text)) then
 				self.list_suggestions:RemoveLine(k)
 			end
 		end
@@ -310,7 +372,7 @@ function PANEL:OnTypeChange(lineid,line)
 	self.list_suggestions.VBar:SetScroll(0)
 	self.list_suggestions:SelectFirstItem()
 	
-	self:SortData()
+	self.list_items:SortData()
 	
 	self.list_types.previous_line = lineid
 	
@@ -319,7 +381,7 @@ end
 function PANEL:OnUsergroupChange()
 	local self = self:GetParent()
 	
-	self:SortData()
+	self:GetDataView():SortData()
 end
 
 function PANEL:OnScopeChange(lineid, line)
@@ -332,9 +394,7 @@ function PANEL:OnScopeChange(lineid, line)
 	for _, parts in pairs(Scope:GetTypes("parts")) do 
 		for _, part_name in pairs(parts) do 
 			if self[part_name] then
-				self[part_name]:MoveTo(self:x(self[part_name]),self:GetTall() + self[part_name]:GetTall()+10,0.2)
-				self[part_name].showing = false
-				timer.Simple(0.2, function() if not self[part_name].showing then self[part_name]:SetVisible(false) end end)
+				self[part_name]:SetVisible(false)
 			end
 		end
 	end
@@ -344,10 +404,7 @@ function PANEL:OnScopeChange(lineid, line)
 			for _, part_name in pairs(tbl.parts) do
 				if self[part_name] then
 					local part = self[part_name]
-					part:SetPos(self:x(part),self:GetTall()+part:GetTall()+10)
-					part.showing = true
 					part:SetVisible(true)
-					part:MoveTo(self:x(part),self:y(scope),0.2)
 				end
 			end
 		end
@@ -356,9 +413,6 @@ function PANEL:OnScopeChange(lineid, line)
 	scope.previous_line = lineid
 end
 
-function PANEL:OnInheritanceClick()
-
-end
 
 function PANEL:OnAddClick()
 	self = self:GetParent()
@@ -374,7 +428,7 @@ function PANEL:OnAddClick()
 		
 	local type = self:GetSelectedType()
 	
-	local access = "restrict"
+	local access = self.Command.Add
 	local data = {usergroups,type,suggestions,self:GetAntiSelected(),self:GetSelectedScope()}
 	
 	WUMA.SendCommand(access,data)
@@ -383,7 +437,7 @@ end
 function PANEL:OnDeleteClick()
 	self = self:GetParent()
 	
-	local items = self:GetSelectedItems()
+	local items = self:GetDataView():GetSelectedItems()
 	if (table.Count(items) < 1) then return end
 	
 	local usergroups = {}
@@ -391,11 +445,13 @@ function PANEL:OnDeleteClick()
 	local strings = {}
 	
 	for _, v in pairs(items) do
-		table.insert(usergroups,v:GetUsergroup())
+		if not table.HasValue(usergroups,v:GetUserGroup()) then
+			table.insert(usergroups,v:GetUserGroup())	
+		end
 		table.insert(strings,v:GetString())
 	end
 	
-	local access = "unrestrict"
+	local access = self.Command.Delete
 	local data = {usergroups,type,strings}
 	
 	
@@ -405,18 +461,19 @@ end
 function PANEL:OnEditClick()
 	self = self:GetParent()
 	
-	local items = self:GetSelectedItems()
-	if (table.Count(items) ~= 1) then return end
+	local items = self:GetDataView():GetSelectedItems()
+	if items and (table.Count(items) ~= 1) then return end
 	
-	local access = "restrict"
-	local data = {items[1]:GetUsergroup(),items[1]:GetType(),items[1]:GetString(),self:GetAntiSelected(),self:GetSelectedScope()}
+	local access = self.Command.Edit
+	local data = {items[1]:GetUserGroup(),items[1]:GetType(),items[1]:GetString(),self:GetAntiSelected(),self:GetSelectedScope()}
 	
 	WUMA.SendCommand(access,data,true)
 end
 
 function PANEL:OnSettingsClick()
-	self:GetParent():ToggleItemListVisiblility()
+	self:GetParent():ToggleAdditionalOptionsVisiblility()
+	self:GetParent():InvalidateLayout()
 end
 
-vgui.Register("WUMA_Restrictions", PANEL, 'WUMA_Base');
+vgui.Register("WUMA_Restrictions", PANEL, 'DPanel');
 

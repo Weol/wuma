@@ -1,4 +1,4 @@
-
+ 
 Scope = {}
 Scope.types = {}
 
@@ -8,6 +8,7 @@ local static = {}
 Scope.UNTIL = {
 	print="Until date",
 	print2=function(obj) return string.format("Until %s/%s/%s",obj:GetData().day,obj:GetData().month,obj:GetData().year) end,
+	log_prefix="",
 	parts={"date_chooser"},
 	save=true,
 	checkfunction=function(obj) 
@@ -39,7 +40,8 @@ Scope.types.UNTIL = Scope.UNTIL
 
 Scope.DURATION = {
 	print="Duration",
-	print2=function(obj) return string.format("Duration %s",obj:GetData()) end,
+	print2=function(obj) return string.format("%s seconds",obj:GetData()-os.time()) end,
+	log_prefix="for",
 	parts={"time_chooser"},
 	save=true,
 	processdata=function(data) return tonumber(data)+os.time() end,
@@ -53,6 +55,7 @@ Scope.types.DURATION = Scope.DURATION
 Scope.MAP = {
 	print="Map",
 	print2=function(obj) return string.format("Map %s",obj:GetData()) end,
+	log_prefix="on",
 	parts={"map_chooser"},
 	save=true,
 	keep=true,
@@ -71,9 +74,9 @@ Scope.types.MAP = Scope.MAP
 Scope.PERIOD = {
 	print="Time period",
 	print2=function(obj) 
-		
 		return string.format("%s to %s",math.floor(obj:GetData().from/3600)..":"..(obj:GetData().from/3600 - math.floor(obj:GetData().from/3600)) * 60,math.floor(obj:GetData().to/3600)..":"..(obj:GetData().to/3600 - math.floor(obj:GetData().to/3600)) * 60) 
 	end,
+	log_prefix="from",
 	parts={"period_chooser"},
 	save=true,
 	keep=true,
@@ -91,7 +94,10 @@ Scope.types.PERIOD = Scope.PERIOD
 Scope._id = "WUMA_Scope"
 Scope.Objects = Scope.Objects or {}
 
---																								Static functions
+/////////////////////////////////////////////////////////////////////////////////
+/////////						STATIC FUNCTIONS						/////////
+/////////////////////////////////////////////////////////////////////////////////
+
 function Scope:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -104,8 +110,9 @@ function Scope:new(tbl)
 	obj.m.parent = tbl.parent or false
 	obj.type = tbl.type or "Permanent"
 	obj.data = tbl.data or false
+	obj.class = tbl.class or false
 
-	hook.Add("WUMAScopeThink","WUMAScopeThink"..tostring(obj.m._uniqueid),function() obj:Think() end)
+	hook.Add("WUMAScopeThink","WUMAScopeThink"..tostring(obj:GetUniqueID()),function() obj:Think() end)
   
 	return obj
 end 
@@ -144,13 +151,20 @@ function static:__eq(v1, v2)
 end
 
 function static:Think()
-	if SERVER then hook.Call("WUMAScopeThink") end
+	hook.Call("WUMAScopeThink")
 end
 
---																								Object function
+/////////////////////////////////////////////////////////////////////////////////
+/////////						 OBJECT FUNCTIONS						/////////
+/////////////////////////////////////////////////////////////////////////////////
 
 function object:__tostring()
-	return string.format("Scope (%s)",self:GetType())
+	local scope = Scope.types[self:GetType()]
+	if scope.print2 then 
+		return scope.print2(self)
+	else
+		return scope.print
+	end
 end
 
 function object:GetUniqueID()
@@ -161,56 +175,19 @@ function object:GetStatic()
 	return Scope
 end
 
-function object:Shred()
-	if SERVER then
-		if (self:GetParent():GetStatic() == Restriction) then 
-			WUMADebug("Shredding! (%s)",self:GetParent():GetID())
-		
-			if not self:GetParent():IsPersonal() then
-				WUMADebug("%s %s %s",self:GetParent():GetUsergroup(),self:GetParent():GetType(),self:GetParent():GetString())
-				WUMA.RemoveRestriction(_,self:GetParent():GetUsergroup(),self:GetParent():GetType(),self:GetParent():GetString())
-				self:Delete()
-				self:GetParent():Delete()
-			else
-				WUMA.RemoveUserRestriction(_,self:GetParent():GetParent(),self:GetParent():GetType(),self:GetParent():GetString())
-				self:GetParent():Delete()
-			end
-		elseif (self:GetParent():GetStatic() == Limit) then 
-			WUMADebug("Shredding! (%s)",self:GetParent():GetID())
-		
-			if not self:GetParent():IsPersonal() then
-				WUMA.RemoveLimit(_,self:GetParent():GetUsergroup(),self:GetParent():GetType(),self:GetParent():GetString())
-				self:GetParent():Delete()
-			else
-				WUMA.RemoveUserRestriction(_,self:GetParent():GetParent(),self:GetParent():GetType(),self:GetParent():GetString())
-				self:GetParent():Delete()
-			end
-		elseif (self:GetParent():GetStatic() == Loadout) then
-			WUMADebug("Shredding! (%s)",self:GetParent():GetID())
-			
-			if not self:GetParent():IsPersonal() then
-				--WUMA.RemoveLoadout(_,self:GetParent():GetUsergroup(),self:GetParent():GetType(),self:GetParent():GetString())
-			else
-				--WUMA.CleUserLoadout(_,self:GetParent():GetParent(),self:GetParent():GetType(),self:GetParent():GetString())
-			end
-		end
-	end
-end
-
 function object:Delete()
 	hook.Remove("WUMAScopeThink","WUMAScopeThink"..tostring(self:GetUniqueID()))
 	self = nil
-end
+end	
 
 function object:Think()
-	--WUMADebug("Think: %s %s",self:GetUniqueID(),self:GetParent():GetParent())
-
 	if self:CanThink() then
+		if not self:GetParent() then return self:Delete() end
+	
 		local typ = Scope.types[self:GetType()]
 		local checkdata = nil
 		if typ.checkdata then checkdata = typ.checkdata() end
 			
-		--WUMADebug("CanThink: %s",self:GetUniqueID())
 		if not typ.checkfunction(self,checkdata) then
 			if not self:GetParent():IsDisabled() then
 				if typ.keep then
@@ -220,7 +197,8 @@ function object:Think()
 						WUMADebug("Warning! Scope has no parent!")
 					end
 				else
-					self:Shred()
+					self:Delete()
+					self:GetParent():Shred()
 				end
 			end
 		else
@@ -229,6 +207,10 @@ function object:Think()
 			end
 		end
 	end
+end
+
+function object:SetProperty(id, value)
+	self[id] = value
 end
 
 function object:Clone()

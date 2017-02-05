@@ -7,7 +7,7 @@ local static = {}
 WUMA_NET_STREAM._id = "WUMA_NET_STREAM"
 object._id = "WUMA_NET_STREAM"
 
---																								Static functions
+/////////////////////////////////////////////////////////////////////////////////
 function WUMA_NET_STREAM:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -57,33 +57,20 @@ function object:GetStatic()
 end
 
 function object:Send(user,data)
-	if not self.send or not self.server then return WUMADebug("NET_STREAM Object has no server or send function! (ID: %s)",self:GetID()) end
+	if not self.server then return false end
 	local arguments = self.server(user,data)
+	if not self.send then return false end
 	if arguments then
 		self.send(unpack(arguments))
 	end
 end
 
-function object:AutoUpdate(...)
-	local args = {...}
-	
-	if not isentity(args[1]) then return WUMADebug("NET_STREAM Auto Update does not have user argument! (ENUM: %s)",tostring(self:GetID())) end
-	
-	if self.auto_update and self.send then
-		for _, user in pairs(player.GetAll()) do
-			if self:IsAuthorized(user) then
-				self.send(self.server(...))
-			end
-		end 
-	end
-end 
-
-function object:IsAuthorized(user)
+function object:IsAuthorized(user, callback)
 	if not self.auth then 
-		WUMAError("WARNING! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION! THIS CAN CAUSE FATAL SECURITY ISSUES!")
-		return false 
+		WUMAError("WARNING! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION!!")
+		callback(false)
 	else
-		return self.auth(user)
+		self.auth(user, callback)
 	end
 end
 
@@ -105,30 +92,6 @@ end
 
 function object:SetAutoUpdate(auto_update)
 	self.auto_update = auto_update
-end
-
-function object:AddHook(...)
-	local h = {...}
-	if (table.Count(h) < 2) then
-		h = h[1]
-	else
-		for _, v in pairs(h) do
-			self:AddHook(v)
-		end
-		return
-	end
-	
-	self.hooks = self.hooks or {}
-	hook.Add( "WUMANETSTREAMHook"..table.Count(self.hooks) , self.AutoUpdate )
-	table.insert(self.hooks, h)
-end
-
-function object:SetUpdateTimer(time)
-	if (timer.Exists("WUMANETSTREAMObjectTimer"..self:GetUniqueID())) then
-		timer.Adjust( "WUMANETSTREAMObjectTimer"..self:GetUniqueID(), time, 0, self.AutoUpdate )
-	else
-		timer.Create( "WUMANETSTREAMObjectTimer"..self:GetUniqueID(), time, 0, self.AutoUpdate )
-	end
 end
 
 function object:AddInto(tbl)

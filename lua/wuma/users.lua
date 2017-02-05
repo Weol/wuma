@@ -2,6 +2,8 @@
 WUMA = WUMA or {}
 WUMA.Users = {}
 
+WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
+
 function WUMA.InitializeUser(user)
 	WUMA.AssignRestrictions(user)
 	WUMA.AssignLimits(user)
@@ -12,6 +14,10 @@ function WUMA.InitializeUser(user)
 	if user:HasWUMAData() then
 		WUMA.AddLookup(user)
 	end
+	
+	WUMA.HasAccess(user, function(bool) 
+		user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
+	end)	
 	
 end
 
@@ -49,36 +55,45 @@ end
 function WUMA.UpdateUsergroup(group,func)
 	local players = WUMA.GetUsers(group)
 	if not players then return false end
-	for _,player in pairs(players) do
-		func(player)
+	for _,user in pairs(players) do
+		func(user)
 	end
+	return players
 end
 
-function WUMA.GetUserData(user)
-	if (string.lower(type(user)) == "string") then
-		if not WUMA.IsSteamID(user) then
-			if not steamid then return false end
-		end
-
-		local restrictions = false
-		local limits = false
-		local loadout = false
-		
-		if WUMA.CheckUserFileExists(user,Restriction) then restrictions = WUMA.ReadUserRestrictions(user) end
-		if WUMA.CheckUserFileExists(user,Limit) then limits = WUMA.ReadUserLimits(user) end
-		if WUMA.CheckUserFileExists(user,Loadout) then loadout = WUMA.ReadUserLoadout(user) end
+function WUMA.GetUserData(user,typ)
+	if not isstring(user) then user = user:SteamID() end
 	
-		if not restrictions and not limits and not loadout then return false end
-			
-		return {
-			steamid = user,
-			restrictions = restrictions,
-			limits = limits,
-			loadout = loadout
-		}
-	else
-		return user:GetWUMAData()
+	if not WUMA.IsSteamID(user) then return false end
+
+	local restrictions = false
+	local limits = false
+	local loadout = false
+	
+	if typ then
+		if (typ == Restriction:GetID() and WUMA.CheckUserFileExists(user,Restriction)) then
+			return WUMA.ReadUserRestrictions(user)
+		elseif (typ == Limit:GetID() and WUMA.CheckUserFileExists(user,Limit)) then 
+			return WUMA.ReadUserLimits(user)
+		elseif (typ == Loadout:GetID() and WUMA.CheckUserFileExists(user,Loadout)) then 
+			return WUMA.ReadUserLoadout(user)
+		else
+			return false
+		end
 	end
+	
+	if WUMA.CheckUserFileExists(user,Restriction) then restrictions = WUMA.ReadUserRestrictions(user) end
+	if WUMA.CheckUserFileExists(user,Limit) then limits = WUMA.ReadUserLimits(user) end
+	if WUMA.CheckUserFileExists(user,Loadout) then loadout = WUMA.ReadUserLoadout(user) end
+
+	if not restrictions and not limits and not loadout then return false end
+		
+	return {
+		steamid = user,
+		restrictions = restrictions,
+		limits = limits,
+		loadout = loadout
+	}
 end
 
 function WUMA.GetUsers(group)
@@ -97,54 +112,41 @@ function WUMA.GetUsers(group)
 	
 end
 
-function WUMA.GetAuthorizedUsers()
-	local users = {}
-	for _,user in pairs(player.GetAll()) do
-		if WUMA.HasAccess(user) then
-			table.insert(users,user)
-		end
-	end
-	return users
+function WUMA.GetAuthorizedUsers(callback)
+	CAMI.GetPlayersWithAccess(WUMA.WUMAGUI, callback)
 end
 
-function WUMA.HasAccess(user,access_str)
-	return ULib.ucl.query(user,access_str or WUMA.ULXGUI)
+function WUMA.HasAccess(user,callback)
+	CAMI.PlayerHasAccess(user, WUMA.WUMAGUI, callback)
 end
 
 function WUMA.UserToTable(user)
 	if (string.lower(type(user)) == "table") then
-		return userw
+		return user
 	else
 		return {user}
 	end
 end
 
 function WUMA.IsSteamID(steamid)
-	return ULib.isValidSteamID(steamid)
+	if not isstring(steamid) then return false end
+	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
 end
 
 function WUMA.GetUserGroups()
-	local hierchy = {}
-
-	local function recursive(tbl)
-		for group, tbl in pairs(tbl) do
-			if istable(tbl) and table.Count(tbl) then
-				table.insert(hierchy,group)
-				recursive(tbl)
-			else
-				table.insert(hierchy,group)
-			end
-		end
-	end 
-	recursive(ULib.ucl.getInheritanceTree())
-
-	local hierchy_reverse = {}
-	for k, v in pairs(hierchy) do
-		hierchy_reverse[table.Count(hierchy)-(k-1)] = v
+	local groups = {"superadmin","admin","user"}
+	for group, tbl in pairs(CAMI.GetUsergroups()) do
+		if not table.HasValue(groups,group) then table.insert(groups,group) end
 	end
-	
-	return hierchy_reverse
+	return groups
 end
+
+function WUMA.UserDisconnect(user)
+	if user:HasWUMAData() then
+		WUMA.AddLookup(user)
+	end
+end
+hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect, 0)
 
 function WUMA.PlayerLoadout(user)
 	return user:GiveLoadout()
@@ -153,29 +155,20 @@ hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout, -1)
 
 function WUMA.PlayerInitialSpawn(user)
 	WUMA.InitializeUser(user) 
+	timer.Simple(1,function() WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end) end)
 end
-hook.Add("UCLAuthed", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
+hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
 
-function WUMA.PlayerNameChange(user,old,new)
-	WUMA.AddLookup(user)
-	WUMA.SendInformation(WUMA.NET.WHOIS(user:SteamID()))
+function WUMA.PlayerUsergroupChanged(user, old, new, source)
+	WUMA.RefreshGroupRestrictions(user,new)
+	WUMA.RefreshGroupLimits(user,new)
+	WUMA.RefreshLoadout(user,new)
+	
+	timer.Simple(2, function()
+		WUMA.HasAccess(user, function(bool) 
+			user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
+			user:SendLua([[WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())]])
+		end)
+	end)	
 end
-hook.Add("ULibPlayerNameChanged", "WUMAPlayerNameChange", WUMA.PlayerNameChange, -1)
-
-WUMA.UCLTables = {}
-WUMA.UCLTables.Usergrous = WUMA.GetUserGroups()
-function WUMA.UCLChanged()
-	if not (table.Count(WUMA.UCLTables.Usergrous) == WUMA.GetUserGroups()) then
-		hook.Call(WUMA.USERGROUPSUPDATEHOOK, _, WUMA.GetUserGroups())
-	end
-
-	for _,user in pairs(player.GetAll()) do
-		if not user.WUMAPreviousGroup or (user.WUMAPreviousGroup and not(user.WUMAPreviousGroup == user:GetUserGroup())) then
-			WUMA.RefreshGroupRestrictions(user)
-			WUMA.RefreshGroupLimits(user)
-			WUMA.RefreshLoadout(user)
-			user.WUMAPreviousGroup = user:GetUserGroup()
-		end 
-	end
-end
-hook.Add("UCLChanged", "WUMAUCLChanged", WUMA.UCLChanged)
+hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)

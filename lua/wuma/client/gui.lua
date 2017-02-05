@@ -14,1123 +14,290 @@ if not WUMA.HasCreatedFonts then
 		antialias = true
 	})
 end
-
 WUMA.HasCreatedFonts = true
 
-function WUMA.GUI.Initialize(panel)
+WUMA.Subscriptions = {}
+WUMA.Subscriptions.user = {}
+WUMA.Subscriptions.timers = {}
 
-	WGUI.Tab = panel
-	
-	WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
-	WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
-	WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
-	
-	WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
-	WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
-	WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
-	WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
-	
+WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
 
-	--Paint function
-	WGUI.Tab.Paint = function()
-		draw.RoundedBox(3, 0 , 0, WGUI.Tab:GetWide(), WGUI.Tab:GetTall(), {r=234, g=234, b=234, a=255})
+function WUMA.GUI.Initialize()
+
+	//Requests
+	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
+		WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())
+		
+		if GetConVar("wuma_request_on_join"):GetBool() then
+			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
+			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
+			WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
+			WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
+			WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
+			 
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID())
+			
+			WUMA.Subscriptions.info = true
+			WUMA.Subscriptions.restrictions = true
+			WUMA.Subscriptions.limits = true
+			WUMA.Subscriptions.loadouts = true
+			WUMA.Subscriptions.users = true
+		end
 	end
-	
+
 	--Create propertysheet
-	WGUI.Base = WUMA.CreatePropertySheet{parent=WGUI.Tab,x=-5,y=7,w=WGUI.Tab:GetWide()-3,h=WGUI.Tab:GetTall()-7}
-	
+	WGUI.Base = vgui.Create("WPropertySheet")
+	WGUI.Base:SetSize(ScrW()*0.40,ScrH()*0.44)
+	WGUI.Base:SetPos(ScrW()/2-WGUI.Base:GetWide()/2,ScrH()/2-WGUI.Base:GetTall()/2)
+	WGUI.Base:SetVisible(false)
+	WGUI.Base.OnTabChange = WUMA.OnTabChange
+
 	--Request panels
 	WGUI.Tabs.Settings = vgui.Create("WUMA_Settings", WGUI.Base) --Settings
-	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.Base) --Restriction
-	WGUI.Tabs.Limits = vgui.Create("WUMA_Limits", WGUI.Base) --Limit
-	WGUI.Tabs.Loadouts = vgui.Create("WUMA_Loadouts", WGUI.Base) --Loadout
+	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.Base) --Restriction	
+	WGUI.Tabs.Limits = vgui.Create("WUMA_Limits", WGUI.Base) --Limit	
+	WGUI.Tabs.Loadouts = vgui.Create("WUMA_Loadouts", WGUI.Base) --Loadouts
 	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.Base) --Player
 
 	--Adding panels to base
-	WGUI.Base:AddSheet(WGUI.Tabs.Settings:GetTabName(), WGUI.Tabs.Settings, WGUI.Tabs.Settings:GetTabIcon()) --Settings
-	WGUI.Base:AddSheet(WGUI.Tabs.Restrictions:GetTabName(), WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions:GetTabIcon()) --Restriction
-	WGUI.Base:AddSheet(WGUI.Tabs.Limits:GetTabName(), WGUI.Tabs.Limits, WGUI.Tabs.Limits:GetTabIcon()) --Limit
-	WGUI.Base:AddSheet(WGUI.Tabs.Loadouts:GetTabName(), WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts:GetTabIcon()) --Loadout
-	WGUI.Base:AddSheet(WGUI.Tabs.Users:GetTabName(), WGUI.Tabs.Users, WGUI.Tabs.Users:GetTabIcon()) --Player
+	WGUI.Base:AddSheet(WGUI.Tabs.Settings.TabName, WGUI.Tabs.Settings, WGUI.Tabs.Settings.TabIcon) --Settings
+	WGUI.Base:AddSheet(WGUI.Tabs.Restrictions.TabName, WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions.TabIcon) --Restriction
+	WGUI.Base:AddSheet(WGUI.Tabs.Limits.TabName, WGUI.Tabs.Limits, WGUI.Tabs.Limits.TabIcon) --Limit
+	WGUI.Base:AddSheet(WGUI.Tabs.Loadouts.TabName, WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts.TabIcon) --Loadout
+	WGUI.Base:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player
+	
+	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
+	
+	hook.Call("OnWUMAInitialized", _, WGUI.Base)
 	
 end
+hook.Add( "InitPostEntity", "WUMAGuiInitialize", WUMA.GUI.Initialize)
 
-local function handleRelative(tbl,gui)
-
-	if tbl.relative then
-		tbl.relative_align = tbl.relative_align or 1
-		
-		local x, y = tbl.relative:GetPos()
-		
-		if (tbl.relative_align == 1) then
-			tbl.x = tbl.x + x
-			tbl.y = tbl.y + y
-		elseif (tbl.relative_align == 2) then
-			tbl.x = tbl.x + x + tbl.relative:GetWide()
-			tbl.y = tbl.y + y
-		elseif (tbl.relative_align == 3) then
-			tbl.x = tbl.x + x
-			tbl.y = tbl.y + y + tbl.relative:GetTall()
-		elseif (tbl.relative_align == 4) then
-			tbl.x = tbl.x + x + tbl.relative:GetWide()
-			tbl.y = tbl.y + y + tbl.relative:GetTall()
-		end
-		
-	end	
-	
-	return tbl
-
+function WUMA.GUI.SetParent(panel)
+	WUMA.GUI.Base:SetParent(panel)
+	WUMA.GUI.Base:InvalidateLayout()
 end
 
-local function handleAlign(tbl,gui)
-
-	if tbl.align then
+function WUMA.GUI.Show()
 	
-		if (tbl.align == 2) and tbl.x and tbl.w then
-			tbl.x = tbl.x-tbl.w
-			tbl.y = tbl.y
-		elseif (tbl.align == 3) and tbl.y and tbl.h then
-			tbl.x = tbl.x
-			tbl.y = tbl.y-tbl.h
-		elseif (tbl.align == 4) and tbl.x and tbl.y and tbl.w and tbl.h then
-			tbl.x = tbl.x-tbl.w
-			tbl.y = tbl.y-tbl.h
-		end
-		
-	end
-	
-	return tbl
-	
+	WUMA.GUI.Base:SetVisible(true)
+	gui.EnableScreenClicker(true)
 end
 
-local function handlePercent(tbl,gui)
-
-	if not tbl.percent then return end
-	if not tbl.parent then return end
-	
-	if tbl.w then
-		tbl.w = tbl.parent:GetWide()/100 * tbl.w
-	end
-	
-	if tbl.h then
-		tbl.h = tbl.parent:GetTall()/100 * tbl.h
-	end
-	
-	return tbl
-
+function WUMA.GUI.Hide()
+	WUMA.GUI.Base:SetVisible(false)
+	gui.EnableScreenClicker(false)
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
-	text - Button text
-	icon - Button icon
-	onclick - DoClick function
---]]
-function WUMA.CreateButton(tbl) 
-	
-	local gui = vgui.Create("DButton", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-	
-	handleAlign(tbl,gui)
-	handleRelative(tbl,gui)
-	handlePercent(tbl,gui)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui:SetText(tbl.text or "")
-	gui:SetContentAlignment(5)
-	
-	if tbl.icon then gui:SetImage(tbl.icon) end
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-
-	if tbl.onclick then
-		gui.DoClick = tbl.onclick
-	end
-
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-	
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	visible - Wether or not to set visibility. Default: true
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
-	text - Header text
-	multiselect - Enable multiselect? true/false
-	header_height - Header height
-	onrowselected = OnRowSelected function
-	populate = table to populate
---]]
-function WUMA.CreateList(tbl) 
-
-	local gui = vgui.Create("DListView", tbl.parent)
-
-	gui.wuma = tbl
-	
-	if tbl.populate then WUMA.PopulateList(gui,tbl.populate) end
-
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-		
-	if tbl.size_to_content_y then 
-		gui:SetTall( #gui:GetLines() * 17 + gui:GetHeaderHeight() + 5)
-	end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui:SetMultiSelect(tbl.multiselect)
-	gui:SetHeaderHeight(tbl.header_height or 20)
-		
-	if not (gui.sortable == nil) then gui:SetSortable(gui.sortable) end
-		
-	if istable(tbl.text) then
-		for _,text in pairs(tbl.text) do
-			gui:AddColumn(text)
-		end
+function WUMA.GUI.Toggle()
+	if WUMA.GUI.Base:IsVisible() then
+		WUMA.GUI.Hide()
 	else
-		gui:AddColumn(tbl.text)
+		WUMA.GUI.Show()
+	end
+end
+
+function WUMA.OnTabChange(_,tabname)
+	
+	if not WUMA.Subscriptions.info then
+		WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
+		WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
+		WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
+		
+		WUMA.Subscriptions.info = true
 	end
 	
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-
-	if tbl.onrowselected then gui.OnRowSelected = tbl.onrowselected end
-	
-	--[[if tbl.sort then
-		local oldAddLine = gui.AddLine
-		gui.AddLine = function(...)
-			local line = oldAddLine(...)
-			local metatable = getmetatable(line)
-			
-			metatable.__lt = function(obj1, obj2) 
-				return tbl.sort.lt(obj1, obj2)
-			end
-			
-			metatable.__eq = function(obj1, obj2) 
-				return tbl.sort.eq(obj1, obj2)
-			end
-			
-			metatable.__le = function(obj1, obj2) 
-				return tbl.sort.le(obj1, obj2)
-			end
-		end
-	end--]]
-	
-	return gui
+	if (tabname == WUMA.GUI.Tabs.Restrictions.TabName and not WUMA.Subscriptions.restrictions) then
+		WUMA.FetchData(Restriction:GetID())
+	elseif (tabname == WUMA.GUI.Tabs.Limits.TabName and not WUMA.Subscriptions.limits) then
+		WUMA.FetchData(Limit:GetID())
+	elseif (tabname == WUMA.GUI.Tabs.Loadouts.TabName and not WUMA.Subscriptions.loadouts) then
+		WUMA.FetchData(Loadout:GetID())
+	elseif (tabname == WUMA.GUI.Tabs.Users.TabName and not WUMA.Subscriptions.users) then
+		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
+		
+		WUMA.Subscriptions.users = true
+	end
 	
 end
- 
-function WUMA.PopulateList(gui,tbl,column,clear)
 
-	if isbool(column) or clear then 
-		gui:Clear() 
-		column = 1
+function WUMA.OnUserTabChange(_,typ,steamid)
+	if not (typ == "default") then
+		if not WUMA.Subscriptions.user[steamid] then
+			WUMA.Subscriptions.user[steamid] = {}
+		end
 	end
 
-	column = column or 1
-
-	for k, v in pairs(tbl) do
-		if istable(v) then
-			gui:AddLine(k,column)
-			gui.population = v
+	if (typ == Restriction:GetID()) then
+		if not WUMA.Subscriptions.user[steamid][typ] then
+			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID(),steamid)	
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
 		else
-			gui:AddLine(v,column)
-		end
-	end
-	
-	if gui.wuma.select then
-		if isstring(gui.wuma.select) then
-			if (#gui:GetLines() > 0) then
-				for line, item in pairs(gui:GetLines()) do
-					if (item:GetColumnText(1) == gui.wuma.select) then
-						gui:SelectItem(gui:GetLines()[line])
-					end
-				end
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
 			end
+		end
+		
+		WUMA.Subscriptions.user[steamid][typ] = true
+	elseif (typ == Limit:GetID()) then
+		if not WUMA.Subscriptions.user[steamid][typ] then
+			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID(),steamid)	
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
 		else
-			if (#gui:GetLines() > 0) then
-				gui:SelectFirstItem()
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
+			end
+		end
+		
+		WUMA.Subscriptions.user[steamid][typ] = true
+	elseif (typ == Loadout:GetID()) then
+		if not WUMA.Subscriptions.user[steamid][typ] then
+			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID(),steamid)	
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
+		else
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
+			end
+		end
+		
+		WUMA.Subscriptions.user[steamid][typ] = true
+	elseif (typ == "default") then
+		local timeout = GetConVar("wuma_autounsubscribe_user"):GetInt()
+	
+		if timeout and (timeout >= 0) and WUMA.Subscriptions.user[steamid] then
+			for k, _ in pairs(WUMA.Subscriptions.user[steamid]) do
+				timer.Create(k..":::"..steamid,timeout,1,function() WUMA.FlushUserData(steamid,k) end)
 			end
 		end
 	end
-
-end
- 
- --[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreatePropertySheet(tbl) 
-
-	local gui = vgui.Create("DPropertySheet", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-	
 end
 
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
-	text - Label text
-	text_color - Text color
---]]
-function WUMA.CreateLabel(tbl) 
-
-	local gui = vgui.Create("DLabel", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui:SetText(tbl.text)
-	
-	if tbl.text_color then gui:SetTextColor(tbl.text_color) end
-
-	if tbl.relative then
-		tbl.relative.relatives = tbl.relative.relatives or {}
-		if tbl.relative then table.insert(gui.relative.relatives, gui) end
-	end
-	
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	min = Min value
-	max = Max value.
-	decimals = decimals
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreateSlider(tbl) 
-
-	local gui = vgui.Create("DPanel", tbl.parent)
-	local slider = vgui.Create("DSlider", gui)
-	local label = vgui.Create("DLabel", gui)
-	local wang = vgui.Create( "DNumberWang", gui )
-	
-	gui.Paint = function()
-		if tbl.background then
-			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
-		end
-	end
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) else gui:SetWide(120) end
-	if tbl.h then gui:SetTall(tbl.h) else gui:SetTall(wang:GetTall()+slider:GetTall()) end
-		
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	wang:SetDecimals(tbl.decimals or 2)
-	wang:SetWide(40)
-	wang:SetPos(gui:GetWide()-wang:GetWide(),0)
-	wang:SetMinMax(tbl.min or 0, tbl.max or 100)
-	
-	wang.OnValueChanged = function(panel,val)
-		val = math.Clamp(tonumber(val),tbl.min,tbl.max)
-		slider:SetSlideX(val/tbl.max)
-	end
-	
-	slider.TranslateValues = function(panel,x,y) 
-		wang:SetFraction(x)
-		return x, y
-	end
-	
-	label:SetPos(8,3)
-	label:SetText( tbl.text or "" )
-	label:SizeToContents()
-	label:SetTextColor(Color(0,0,0,255))
-	
-	slider:SetWide(gui:GetWide())
-	slider:SetHeight( 16 )
-	slider:SetPos(0,gui:GetTall()-slider:GetTall())
-	slider:SetLockY( 0.5 )
-	slider:SetTrapInside( true )
-	Derma_Hook( slider, "Paint", "Paint", "NumSlider" )
-	
-	gui.GetValue = function()
-		return wang:GetValue()
-	end
-	
-	gui.wuma = tbl
-	gui.slider = slider
-	gui.label = label
-	gui.wang = wang
-	
-	return gui
-
-end
-
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreateCombobox(tbl) 
-
-	local gui = vgui.Create("DComboBox", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	if tbl.onselect then gui.OnSelect = tbl.ononselect end
-	
-	gui:SetValue( tbl.default or "" )
-	
-	if tbl.options then
-		for option,data in pairs(tbl.options) do
-			if istable(data) then
-				gui:AddChoice(option,data,data.select)
-			else
-				gui:AddChoice(data)
-			end
-		end
-	end
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreatePropertyViewer(tbl) 
-	
-	local gui = WUMA.CreatePanel(tbl) 
-	gui.Paint = function()
-		surface.SetDrawColor( 255, 255, 255, 255)
-		surface.DrawRect(0,0,gui:GetWide(),gui:GetTall())
-		
-		surface.SetDrawColor( 0, 0, 0, 255)
-		surface.DrawOutlinedRect(0,0,gui:GetWide(),gui:GetTall())
-	
-		local y = 3
-		for k, v in pairs(gui.properties or {}) do
-			draw.DrawText( v[1]..":", "DermaDefault", 5, y, Color(0,0,0), TEXT_ALIGN_LEFT )
-			y=y+12
+function WUMA.FetchData(typ)
+	if typ then
+		if (typ == Restriction:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID())
 			
-			if v[2] then 
-				draw.DrawText( v[2], "DermaDefault", 10, 2+y, Color(0,0,0), TEXT_ALIGN_LEFT )
-				y=y+15
-			end
+			WUMA.Subscriptions.restrictions = true
+		elseif (typ == Limit:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
 			
-			surface.DrawLine(0,y+5,gui:GetWide(),y+5)
-			y = y+7
+			WUMA.Subscriptions.limits = true
+		elseif (typ == Loadout:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID())
 			
-		end 
-		
-		gui:SetTall(y-2);
-	end
-	
-	gui.SetProperties = function(self,properties)
-		gui.properties = properties
-	end
-
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreateMapChooser(tbl) 
-	
-	local options = tbl.options
-	tbl.options = nil
-
-	local gui = WUMA.CreateCombobox(tbl)
-	
-	gui.AddOptions = function(self,options)
-		for _, map in pairs(options) do
-			map = string.gsub(map,".bsp","")
-			if (map == game.GetMap()) then
-				self:AddChoice(map,nil,true)
-			else
-				self:AddChoice(map)
-			end
+			WUMA.Subscriptions.loadouts = true
 		end
-	end
-	gui:AddOptions(options)
-	
-	gui.GetArgument = function()
-		if not gui or not gui:GetSelected() then return nil end
-	
-		local text, data = gui:GetSelected()
-
-		return text
-	end
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	decimals = decimals
-	background = background color. Color value
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreateTimeChooser(tbl) 
-
-	local gui = vgui.Create("DPanel", tbl.parent)
-	local slider = vgui.Create("DSlider", gui)
-	local combobox = vgui.Create("DComboBox", gui)
-	local wang = vgui.Create( "DNumberWang", gui )
-	
-	gui.Paint = function()
-		if tbl.background then
-			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
-		end
-	end
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) else gui:SetWide(120) end
-	if tbl.h then gui:SetTall(tbl.h) else gui:SetTall(combobox:GetTall()+slider:GetTall()) end
 		
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	wang:SetWide(40)
-	wang:SetPos(gui:GetWide()-wang:GetWide(),0)
-	
-	wang.OnValueChanged = function(panel,val)
-		val = math.Clamp(tonumber(val),0,combobox:GetOptionData(combobox:GetSelectedID()).max)
-		slider:SetSlideX(1/combobox:GetOptionData(combobox:GetSelectedID()).max*val)
-	end
-	
-	slider:SetWide(gui:GetWide())
-	slider:SetPos(0,gui:GetTall()-slider:GetTall())
-	slider:SetLockY( 0.5 )
-	slider:SetTrapInside( true )
-	slider:SetHeight( 16 )
-	Derma_Hook( slider, "Paint", "Paint", "NumSlider" )
-	
-	slider.TranslateValues = function(panel,x,y) 
-		wang:SetValue(math.Round(combobox:GetOptionData(combobox:GetSelectedID()).max*x))
-		return x, y
-	end
-	
-	combobox:SetPos( 0, 0 )
-	combobox:SetSize( 60, 20 )
-	combobox:SetValue( "kek" )
-	
-	local options = {
-		Minutes = {max=1440,default=30,time=60,select=true},
-		Hours = {max=168,default=12,time=60*60},
-		Days = {max=365,default=3,time=3600*24},
-		Weeks = {max=52,default=2,time=3600*60*24*7},
-		Months = {max=60,default=3,time=math.Round(52/12*(3600*60*24*7))},
-		Years = {max=5,default=1,time=3600*60*24*365}
-	}
-	
-	combobox.OnSelect = function(panel, index, value, data)
-		wang:SetMinMax(1, data.max)
-		wang:SetValue(data.default)
-		slider:SetSlideX(1/data.max*data.default)
-	end
-	
-	for option,data in pairs(options) do
-		combobox:AddChoice(option,data,data.select)
-	end
-	
-	gui.GetArgument = function()
-		if not combobox or not combobox:GetSelected() then return nil end
-	
-		local text, data = combobox:GetSelected()
-
-		return math.Round(data.time*wang:GetValue())
-	end
-	
-	gui.wuma = tbl
-	gui.slider = slider
-	gui.combobox = combobox
-	gui.wang = wang
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	decimals = decimals
-	background = background color. Color value
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreatePeriodChooser(tbl) 
-
-	local gui = vgui.Create("DPanel", tbl.parent)
-	local from_hour = WUMA.CreateTextbox{parent=gui,default="hh",text_align=5,numeric=true,min_numeric=0,max_numeric=23,x=0,y=9,w=36,h=20}
-	local from_minute = WUMA.CreateTextbox{parent=gui,default="mm",text_align=5,numeric=true,min_numeric=0,max_numeric=59,x=38,y=9,w=36,h=20}
-	
-	local until_hour = WUMA.CreateTextbox{parent=gui,default="hh",text_align=5,numeric=true,min_numeric=0,max_numeric=23,x=0,y=38,w=36,h=20}
-	local until_minute = WUMA.CreateTextbox{parent=gui,default="mm",text_align=5,numeric=true,min_numeric=0,max_numeric=59,x=38,y=38,w=36,h=20}
-	
-	gui.Paint = function()
-		if tbl.background then
-			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
-		end
-				
-		draw.DrawText("from", "WUMATextSmall", 29, 0, Color(0, 0, 0, 150))
-		draw.DrawText("until", "WUMATextSmall", 29, 29, Color(0, 0, 0, 150))
-	end
-	
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) else gui:SetWide(120) end
-	if tbl.h then gui:SetTall(tbl.h) else gui:SetTall(from_hour:GetTall()*2+9*2) end
-		
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui.GetArgument = function()
-		if (from_hour:GetValue() == "") or (from_minute:GetValue() == "") or (until_hour:GetValue() == "") or (until_minute:GetValue() == "") then return nil end
-		
-		if (tonumber(from_hour:GetValue()) == nil) or (tonumber(from_minute:GetValue()) == nil) or (tonumber(until_hour:GetValue()) == nil) or (tonumber(until_minute:GetValue()) == nil) then return nil end
-		
-		return {from = tonumber(from_hour:GetValue())*3600+tonumber(from_minute:GetValue())*60,to = tonumber(until_hour:GetValue())*3600+tonumber(until_minute:GetValue())*60}
-	end
-	
-	gui.wuma = tbl
-	gui.from_hour = from_hour
-	gui.from_minute = from_minute
-	gui.until_hour = until_hour
-	gui.until_minute = until_minute
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	decimals = decimals
-	background = background color. Color value
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreateDateChooser(tbl) 
-
-	local gui = vgui.Create("DPanel", tbl.parent)
-	local day = WUMA.CreateTextbox{parent=gui,default="Day",text_align=5,numeric=true,min_numeric=0,max_numeric=31,x=0,y=9,w=36,h=20}
-	local month = WUMA.CreateTextbox{parent=gui,default="Month",text_align=5,numeric=true,min_numeric=0,max_numeric=12,x=38,y=9,w=36,h=20}
-	local year = WUMA.CreateTextbox{parent=gui,default="Year",text_align=5,numeric=true,min_numeric=0,max_numeric=3000,x=76,y=9,w=36,h=20}
-
-	local function validateDate(day, month, year)
-		local epoch = os.time{year=year, month=month, day=day}
-		local zeromdy = string.format("%02d/%02d/%04d", day, month, year)
-		return (zeromdy == os.date('%d/%m/%Y', epoch))
-	end
-		
-	gui.Paint = function()
-		if tbl.background then
-			draw.RoundedBox(4,0,0,gui:GetWide(),gui:GetTall(),tbl.background)
-		end
-	
-		local color = Color(0,0,0,150)
-		if (tonumber(gui.day:GetValue()) ~= nil && tonumber(gui.month:GetValue()) ~= nil && tonumber(gui.year:GetValue()) ~= nil) then
-			if not validateDate(tonumber(gui.day:GetValue()), tonumber(gui.month:GetValue()), tonumber(gui.year:GetValue())) then
-				color = Color(255,0,0,150)
-			end
-		end
-	
-		draw.DrawText("day", "WUMATextSmall", 12, 0, color)
-		draw.DrawText("month", "WUMATextSmall", 44, 0, color)
-		draw.DrawText("year", "WUMATextSmall", 87, 0, color)
-	end
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) else gui:SetWide(112) end
-	if tbl.h then gui:SetTall(tbl.h) else gui:SetTall(29) end
-		
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui.GetArgument = function()
-		if (day:GetValue() == "") or (month:GetValue() == "") or (year:GetValue() == "") then return nil end
-		
-		if (tonumber(day:GetValue()) == nil) or (tonumber(month:GetValue()) == nil) or (tonumber(year:GetValue()) == nil) then return nil end
-		
-		return {day=tonumber(day:GetValue()),month=tonumber(month:GetValue()),year=tonumber(year:GetValue())}
-	end
-	
-	gui.wuma = tbl
-	gui.day = day
-	gui.month = month
-	gui.year = year
-	
-	return gui
-
-end
-
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	text - Checkbox text
-	checked - 1/0
-	checkedFunc - Function, return 1/0
---]]
-function WUMA.CreateCheckbox(tbl) 
-
-	local gui = vgui.Create("DCheckBoxLabel", tbl.parent)
-
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetSize(tbl.w or 15, tbl.h or 15)
-	
-	gui:SetText(tbl.text)
-	gui:SetTextColor(tbl.text_color or Color(0,0,0))
-	
-	gui:SizeToContents()
-
-	if tbl.checked then gui:SetValue(tbl.checked) end
-	if tbl.checkedFunc then gui:SetValue(tbl.checkedFunc()) end
-	
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-
-	gui.wuma = tbl
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
---]]
-function WUMA.CreatePanel(tbl) 
-
-	local gui = vgui.Create("DPanel", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align = Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	size_to_content = Wether or not to size gui to content. True / false
-	size_to_content_x = Wether or not to size gui x-axis to content. True / false
-	size_to_content_y = Wether or not to size gui y-axis to content. True / false
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	fill - Should fill?
-	title - Frame title
---]]
-function WUMA.CreateFrame(tbl) 
-
-	local gui = vgui.Create("DFrame", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-	
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui:SetTitle(tbl.title or "")
-	
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-
-end
-
---[[ARGUMENTS:
-	parent - Parent gui
-	x, y, w, h - Bounds
-	align - Which corner of the gui that x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	percent - wether or not to treat w & h like percent instead of px. true/false
-	relative - The gui element that x and y should be relative to
-	relative_align - Which part of the relative gui it should be aligned to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	align - Which corner x & y should apply to. 1 = top left, 2 = top right, 3 = bottom left, 4 = bottom right
-	minimum_width, minimum_height - Minimum size
-	animation - Wether to enable automatic animation or not. True/false. Default: true
-	numeric - Wether or not textbox should be numeric. True/false. Default: false
-	max_numeric = max numeric value, only enabled if numeric == true
-	min_numeric = max numeric value, only enabled if numeric == true
-	fill - Should fill?
-	text_color - Text color
-	text_changed - OnChange function
-	default - Default text
---]]
-function WUMA.CreateTextbox(tbl) 
-
-	local gui = vgui.Create("DTextEntry", tbl.parent)
-	
-	if tbl.size_to_content then gui:SizeToContents() end
-	if tbl.size_to_content_x then gui:SizeToContentsX() end
-	if tbl.size_to_content_y then gui:SizeToContentsY() end
-
-	if tbl.fill then gui:Dock(FILL) end
-	if (tbl.visible != nil) then gui:SetVisible(tbl.visible) end
-		
-	handleAlign(tbl)
-	handleRelative(tbl)
-	handlePercent(tbl)
-	
-	if tbl.w then gui:SetWide(tbl.w) end
-	if tbl.h then gui:SetTall(tbl.h) end
-	
-	gui:SetPos(tbl.x, tbl.y)
-	gui:SetMinimumSize(tbl.minimum_width or 0, tbl.minimum_height or 0)
-	
-	gui:SetTextColor(tbl.text_color or Color(0,0,0))
-	
-	if tbl.text_align then
-		gui:SetContentAlignment( tbl.text_align )
-	end
-	
-	if tbl.numeric and (tbl.max_numeric or tbl.min_numeric) then
-		gui:SetNumeric(tbl.numeric)
-		gui.OnChange = function(...)
-			gui:SetAllowNonAsciiCharacters(false)
-			if (tbl.max_numeric and gui:GetValue() and gui:GetValue() ~= "") then
-				if (tonumber(gui:GetValue()) > tonumber(tbl.max_numeric)) then gui:SetText(tostring(tbl.max_numeric)) end
-			end
-			
-			if (tbl.min_numeric and gui:GetValue()  and gui:GetValue() ~= "") then
-				if (tonumber(gui:GetValue()) < tonumber(tbl.min_numeric)) then gui:SetText(tostring(tbl.min_numeric)) end
-			end
-			
-			if tbl.text_changed then
-				gui.OnChange = tbl.text_changed
-			end
-		end
 	else
-		if tbl.text_changed then
-			gui.OnChange = tbl.text_changed
-		end
+		WUMA.FetchData(Restriction:GetID())
+		WUMA.FetchData(Limit:GetID())
+		WUMA.FetchData(Loadout:GetID())
 	end
-	
-	if tbl.default then
-		
-		gui.default = tbl.default
-		color = Color(150,150,150)
-		default_color = tbl.text_color or Color(0,0,0)
-		
-		gui.OnLoseFocus = function()
-			local text = gui:GetValue()
-			if (not text) or (text == "") then
-				gui:SetText(gui.default)
-				gui:SetTextColor(color)
+end
+
+function WUMA.FlushData(typ)
+	if typ then
+		if (typ == Restriction:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID(),true)
+			WUMA.Restrictions = {}
+			
+			if WUMA.GUI.Tabs.Restrictions then
+				WUMA.GUI.Tabs.Restrictions:GetDataView():SetDataTable({})
 			end
 			
-			gui:UpdateConvarValue()
-			hook.Call("OnTextEntryLoseFocus", nil, gui)
-		end
-
-		gui.OnGetFocus = function()
-			local text = gui:GetValue()
-			if (text == gui.default) then
-				gui:SetText("")
-				gui:SetTextColor(default_color)
-			else
-				gui:SetTextColor(default_color)
-				gui:SelectAll()
+			WUMA.Subscriptions.restrictions = false
+		elseif (typ == Limit:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID(),true)
+			WUMA.Limits = {}
+			
+			if WUMA.GUI.Tabs.Limits then
+				WUMA.GUI.Tabs.Limits:GetDataView():SetDataTable({})
 			end
-			hook.Run("OnTextEntryGetFocus", gui)
+			 
+			WUMA.Subscriptions.loadouts = false
+		elseif (typ == Loadout:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID(),true)
+			WUMA.Loadouts = {}
+			
+			if WUMA.GUI.Tabs.Loadouts then
+				WUMA.GUI.Tabs.Loadouts:GetDataView():SetDataTable({})
+			end
+			
+			WUMA.Subscriptions.limits = false
 		end
 		
-		gui:SetText(gui.default)
-		gui:SetTextColor(color)
-		
+	else
+		WUMA.FlushData(Restriction:GetID())
+		WUMA.FlushData(Limit:GetID())
+		WUMA.FlushData(Loadout:GetID())
 	end
-	
-	gui.wuma = tbl
-	gui.wuma.handleRelative = handleRelative
-	gui.wuma.handleAlign = handleAlign
-	gui.wuma.handlePercent = handlePercent
-	
-	return gui
-
 end
+
+function WUMA.FlushUserData(steamid,typ)
+	if typ and steamid then
+		WUMADebug("Flushing %s data (%s)",steamid,typ)
+		if (typ == Restriction:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Restriction:GetID()})
+			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Restrictions = nil end
+			
+			WUMA.GUI.Tabs.Users.restrictions:GetDataView():SetDataTable({})
+			if WUMA.GUI.Tabs.Users.restrictions:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.restrictions) end
+			
+			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
+		elseif (typ == Limit:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Limit:GetID()})
+			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Limits = nil end
+			
+			WUMA.GUI.Tabs.Users.limits:GetDataView():SetDataTable({})
+			if WUMA.GUI.Tabs.Users.limits:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.limits) end
+			
+			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
+		elseif (typ == Loadout:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Loadout:GetID()})
+			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Loadouts = nil end
+			
+			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable({})
+			if WUMA.GUI.Tabs.Users.loadouts:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.loadouts) end
+			
+			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
+		end
+		
+		if (WUMA.Subscriptions.user[steamid] and table.Count(WUMA.Subscriptions.user[steamid]) < 1) then WUMA.Subscriptions.user[steamid] = nil end
+		if (WUMA.UserData[steamid] and table.Count(WUMA.UserData[steamid]) < 1) then WUMA.UserData[steamid] = nil end
+	elseif (steamid) then
+		WUMA.FlushUserData(steamid,Restriction:GetID())
+		WUMA.FlushUserData(steamid,Limit:GetID())
+		WUMA.FlushUserData(steamid,Loadout:GetID())
+	else
+		for id, _ in pairs(WUMA.Subscriptions.user) do
+			WUMA.FlushUserData(id)
+		end
+	end
+end
+
+WUMA.GUI.HookIDs = 1
+function WUMA.GUI.AddHook(h,name,func)
+	hook.Add(h,name..WUMA.GUI.HookIDs,func)
+	WUMA.GUI.HookIDs = WUMA.GUI.HookIDs + 1
+end
+
+concommand.Add( "wuma", function() 
+	WUMA.GUI.Toggle()
+end)
+
+concommand.Add( "loadout", function() 
+	WUMA.Selfout = vgui.Create("WUMA_UserLoadout")
+	WUMA.Selfout:SetSize(700,700)
+	WUMA.Selfout:SetPos(400,100)
+	WUMA.Selfout:AddWeapons(list.Get( "Weapon" ))
+	
+	WUMA.Selfout:SetVisible(true)
+	WUMA.Selfout:MakePopup()
+end)

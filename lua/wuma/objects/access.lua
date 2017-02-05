@@ -11,31 +11,8 @@ WUMAAccess.PLAYER = function(str)
 			return ply
 		end
 	end
-	return false
-end
-
-WUMAAccess.PLAYERS = function(str) 
-	--WUMADebug("%s (%s)",str,"PLAYERS")
-
-	if isstring(str) then
-		local players = {}
-		for _, ply in pairs(player.GetAll()) do
-			if (ply:GetUsergroup() == str) then
-				table.insert(players,ply)
-			end
-		end
-		return players
-	elseif istable(str) then
-		local players = {}
-		for _, ply in pairs(player.GetAll()) do
-			for _, id in pairs(str) do
-				if (ply:Nick() == id) or (ply:SteamID() == id) then
-					table.insert(players,ply)
-				end
-			end
-		end
-		return players
-	end
+	
+	if (WUMA.IsSteamID(str)) then return str end
 	return false
 end
 
@@ -77,7 +54,7 @@ local static = {}
 WUMAAccess._id = "WUMA_Command"
 object._id = "WUMA_Command"
 
---																								Static functions
+/////////////////////////////////////////////////////////////////////////////////
 function WUMAAccess:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -86,11 +63,14 @@ function WUMAAccess:new(tbl)
 	local obj = setmetatable({},mt)
 	
 	obj.func = tbl.func or false
-	obj.cmd = tbl.cmd or false
+	obj.cmd = tbl.name or false
 	obj.arguments = tbl.arguments or {}
 	obj.help = tbl.help or false
 	obj.access = tbl.access or false
 	obj.optional = tbl.optional or false
+	obj.log = tbl.log or false
+	obj.strict = tbl.strict or false
+	obj.log_function = tbl.log_function or false
 
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -103,11 +83,20 @@ end
 
 --																								Object functions
 function object:__tostring()
-	return string.format("WUMAAccess [%s][%s/%s]",self:GetString(),tostring(self:GetCount()),tostring(self:Get()))
+	return string.format("WUMAAccess [%s]",self:GetName())
 end
  
 function object:__call(...)
-	self.func(...)
+	local tbl = {...}
+	self:GetAccessFunction()(self, tbl[1], function(allow)
+		debug.Trace()
+		if allow then
+			local log, affected = self.func(unpack(tbl))
+			if self.log_function then self.log_function(log, affected) end
+		else
+			tbl[1]:ChatPrint("You do not have access to "..self:GetName())
+		end
+	end)
 end
 
 function object:Clone()
@@ -124,6 +113,10 @@ function object:Delete()
 	self = nil
 end
 
+function object:IsStrict()
+	return self.strict
+end
+
 function object:SetAccess(str)
 	self.access = str
 end
@@ -136,12 +129,20 @@ function object:SetFunction(func)
 	self.func = func
 end
 
+function object:GetFunction()
+	return self.func
+end
+
+function object:SetAccessFunction(func)
+	self.access_func = func
+end
+
+function object:GetAccessFunction()
+	return self.access_func
+end
+
 function object:AddArgument(arg,tbl,optional)
-	if tbl and not isbool(tbl) then
-		table.insert(self.arguments,{arg,tbl,optional or false})
-	else
-		table.insert(self.arguments,{arg,optional or false})
-	end
+	table.insert(self.arguments,{arg,tbl,optional})
 end
 
 function object:GetArguments()
@@ -156,8 +157,16 @@ function object:GetName()
 	return self.cmd
 end
 
+function object:SetLog(bool)
+	self.log = bool
+end
+
+function object:GetLog()
+	return self.log
+end
+
 function object:SetLogFunction(func)
-	self.log_function = log_function
+	self.log_function = func
 end
 
 function object:GetLogFunction()

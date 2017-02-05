@@ -20,7 +20,10 @@ Restriction.types = {
 	use = {print="Use",search="Search..",items=function() return table.Merge(table.Merge(WUMA.GetEntities(),WUMA.GetVehicles()),WUMA.GetNPCs()) end}  
 } 
 
---																								Static functions
+/////////////////////////////////////////////////////////////////////////////////
+/////////						STATIC FUNCTIONS						/////////
+/////////////////////////////////////////////////////////////////////////////////
+
 function Restriction:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -35,7 +38,7 @@ function Restriction:new(tbl)
 	obj.string = tbl.string or false
 	obj.parent = tbl.parent or false 
 	obj.print = tbl.print or tbl.string
-	obj.allow = tbl.allow or false
+	obj.allow = tbl.allow or false 
 	
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
 	
@@ -48,7 +51,10 @@ function Restriction:new(tbl)
 end 
 
 function Restriction:GenerateID(type,usergroup,str)
+	type = string.lower(type)
+	str = string.lower(str)
 	if usergroup then
+		usergroup = string.lower(usergroup)
 		return string.lower(type.."_"..usergroup.."_"..str)
 	else
 		return string.lower(type.."_"..str)
@@ -94,13 +100,14 @@ end
 
 --																								Object functions
 function object:__call(type,str)
-	if self:IsDisabled() then return end
 
+	if self:IsDisabled() then return end
+	
 	if (self:HasException(str)) then 
 		self:RemoveException(str)
 		return
 	end
-	
+
 	if self.override then 
 		return self.override(type,str)
 	else
@@ -120,13 +127,16 @@ function object:GetStatic()
 end
 
 function object:Delete()
-	if SERVER then
-		if self:GetParent() then
-			self:GetParent():RemoveRestriction(self:GetID(),self:IsPersonal())
-		end
-	end
-	
+	self.scope = nil
 	self = nil
+end
+
+function object:Shred()
+	if self:IsPersonal() then
+		WUMA.RemoveUserRestriction(_,self:GetParentID(),self:GetType(),self:GetString())
+	else
+		WUMA.RemoveRestriction(_,self:GetUserGroup(),self:GetType(),self:GetString())
+	end
 end
 
 function object:Disable()
@@ -144,15 +154,15 @@ end
 
 function object:Hit()
 	if (self.type == "pickup") then return end
-
+	
 	if (self.type == "use") then
 		if self.m.lasthit and not (os.time() - self.m.lasthit > 1) then self.m.lasthit = os.time(); return end
 	end
 
 	self.m.lasthit = os.time()
- 
+
 	local str = self.print or self.string
-	
+
 	self.parent:SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
 		]],self:GetType(),str))
@@ -202,7 +212,7 @@ function object:HasException(str)
 	return false
 end
 
-function object:GetUsergroup()
+function object:GetUserGroup()
 	return self.usergroup
 end
 
@@ -259,6 +269,11 @@ function object:GetParent()
 	return self.parent
 end
 
+function object:GetParentID()
+	if isstring(self:GetParent()) then return self:GetParent() end
+	return self:GetParent():SteamID()
+end
+
 function object:GetOrigin()
 	return self.origin
 end
@@ -285,7 +300,11 @@ function object:GetAllow()
 end
 
 function object:GetID()
-	return string.lower(string.format("%s_%s%s",self.type,self.usergroup.."_" or "",self.string))
+	if not self:GetUserGroup() then
+		return string.lower(string.format("%s_%s",self.type,self.string))
+	else
+		return string.lower(string.format("%s_%s_%s",self.type,self.usergroup,self.string))
+	end
 end
 
 object.__index = object
