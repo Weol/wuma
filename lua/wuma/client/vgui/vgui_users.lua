@@ -303,18 +303,12 @@ function PANEL:ToggleExtra()
 		end
 		self.isextravisible = false 
 		
-		self.isanimating = true 
-		timer.Simple(xgui.settings.animTime,function() self.isanimating = false end)
-		
 		self.label_user:SetVisible(false)
 	else
 		for _, child in pairs(self:GetChildren()) do
 			child:SetPos(child.x-self:GetWide(),child.y)
 		end 
 		self.isextravisible = true
-		
-		self.isanimating = true 
-		timer.Simple(xgui.settings.animTime,function() self.isanimating = false; self:InvalidateLayout() end)
 		
 		self.label_user:SetVisible(true)
 		

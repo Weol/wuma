@@ -89,7 +89,6 @@ end
 function object:__call(...)
 	local tbl = {...}
 	self:GetAccessFunction()(self, tbl[1], function(allow)
-		debug.Trace()
 		if allow then
 			local log, affected = self.func(unpack(tbl))
 			if self.log_function then self.log_function(log, affected) end

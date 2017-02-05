@@ -83,9 +83,12 @@ function WUMA.GUI.SetParent(panel)
 end
 
 function WUMA.GUI.Show()
-	
-	WUMA.GUI.Base:SetVisible(true)
-	gui.EnableScreenClicker(true)
+	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
+		WUMA.GUI.Base:SetVisible(true)
+		gui.EnableScreenClicker(true)
+	else
+		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE,"You do not have access to this command.\n")
+	end
 end
 
 function WUMA.GUI.Hide()

@@ -7,7 +7,7 @@ WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
 --Definitions
-WUMA.VERSION = "1.6 Alpha"
+WUMA.VERSION = "1.0 Beta"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
