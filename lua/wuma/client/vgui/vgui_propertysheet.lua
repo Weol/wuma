@@ -86,8 +86,12 @@ function PANEL:PerformLayout(w, h)
 	self.close_button:SetSize( 31, 22 )
 	self.close_button:SetPos( self:GetWide() - self.close_button:GetWide() - 3, 0 )
 	
-	if (self:GetParent():GetTable().Panel:GetName() != "GModBase") then self.close_button:SetVisible(false) else self.close_button:SetVisible(true) end
+	if self.showexitbutton then self.close_button:SetVisible(true) else self.close_button:SetVisible(false) end
 		
+end
+
+function PANEL:SetShowExitButton(bool)
+	self.showexitbutton = bool
 end
 
 function PANEL:OnTabChange(tab)

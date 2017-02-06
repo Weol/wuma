@@ -283,7 +283,6 @@ end
 local DisregardSettingsChange = false
 function WUMA.UpdateSettings(settings)
 	DisregardSettingsChange = true
-	
 	if (WUMA.GUI.Tabs.Settings) then
 		WUMA.GUI.Tabs.Settings:UpdateSettings(settings)
 	end

@@ -11,6 +11,8 @@ local function OnWUMAInitialized(panel)
 		panel.tabScroller:DockMargin( 3, 0, 3, 0 )
 	end
 	
+	panel:SetShowExitButton(false)
+	
 	panel:SetVisible(true)
 	
 	wuma_tab:InvalidateLayout()

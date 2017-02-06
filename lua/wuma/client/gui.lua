@@ -49,43 +49,44 @@ function WUMA.GUI.Initialize()
 		end
 	end
 
-	--Create propertysheet
-	WGUI.Base = vgui.Create("WPropertySheet")
+	--Create EditablePanel 
+	WGUI.Base = vgui.Create("EditablePanel")
 	WGUI.Base:SetSize(ScrW()*0.40,ScrH()*0.44)
 	WGUI.Base:SetPos(ScrW()/2-WGUI.Base:GetWide()/2,ScrH()/2-WGUI.Base:GetTall()/2)
 	WGUI.Base:SetVisible(false)
-	WGUI.Base.OnTabChange = WUMA.OnTabChange
+	
+	--Create propertysheet
+	WGUI.PropertySheet = vgui.Create("WPropertySheet",WGUI.Base)
+	WGUI.PropertySheet:SetSize(WGUI.Base:GetSize())
+	WGUI.PropertySheet:SetPos(0,0)
+	WGUI.PropertySheet:SetShowExitButton(true)
+	WGUI.PropertySheet.OnTabChange = WUMA.OnTabChange
 
 	--Request panels
-	WGUI.Tabs.Settings = vgui.Create("WUMA_Settings", WGUI.Base) --Settings
-	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.Base) --Restriction	
-	WGUI.Tabs.Limits = vgui.Create("WUMA_Limits", WGUI.Base) --Limit	
-	WGUI.Tabs.Loadouts = vgui.Create("WUMA_Loadouts", WGUI.Base) --Loadouts
-	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.Base) --Player
+	WGUI.Tabs.Settings = vgui.Create("WUMA_Settings", WGUI.PropertySheet) --Settings
+	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.PropertySheet) --Restriction	
+	WGUI.Tabs.Limits = vgui.Create("WUMA_Limits", WGUI.PropertySheet) --Limit	
+	WGUI.Tabs.Loadouts = vgui.Create("WUMA_Loadouts", WGUI.PropertySheet) --Loadouts
+	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.PropertySheet) --Player
 
-	--Adding panels to base
-	WGUI.Base:AddSheet(WGUI.Tabs.Settings.TabName, WGUI.Tabs.Settings, WGUI.Tabs.Settings.TabIcon) --Settings
-	WGUI.Base:AddSheet(WGUI.Tabs.Restrictions.TabName, WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions.TabIcon) --Restriction
-	WGUI.Base:AddSheet(WGUI.Tabs.Limits.TabName, WGUI.Tabs.Limits, WGUI.Tabs.Limits.TabIcon) --Limit
-	WGUI.Base:AddSheet(WGUI.Tabs.Loadouts.TabName, WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts.TabIcon) --Loadout
-	WGUI.Base:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player
+	--Adding panels to PropertySheet
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Settings.TabName, WGUI.Tabs.Settings, WGUI.Tabs.Settings.TabIcon) --Settings
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Restrictions.TabName, WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions.TabIcon) --Restriction
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Limits.TabName, WGUI.Tabs.Limits, WGUI.Tabs.Limits.TabIcon) --Limit
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Loadouts.TabName, WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts.TabIcon) --Loadout
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player
 	
 	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
 	
-	hook.Call("OnWUMAInitialized", _, WGUI.Base)
+	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
 	
 end
 hook.Add( "InitPostEntity", "WUMAGuiInitialize", WUMA.GUI.Initialize)
 
-function WUMA.GUI.SetParent(panel)
-	WUMA.GUI.Base:SetParent(panel)
-	WUMA.GUI.Base:InvalidateLayout()
-end
-
 function WUMA.GUI.Show()
 	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
 		WUMA.GUI.Base:SetVisible(true)
-		gui.EnableScreenClicker(true)
+		WUMA.GUI.Base:MakePopup()
 	else
 		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE,"You do not have access to this command.\n")
 	end
@@ -93,7 +94,6 @@ end
 
 function WUMA.GUI.Hide()
 	WUMA.GUI.Base:SetVisible(false)
-	gui.EnableScreenClicker(false)
 end
 
 function WUMA.GUI.Toggle()
