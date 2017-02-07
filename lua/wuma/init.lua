@@ -2,6 +2,7 @@
 if not SERVER then return end
 
 WUMA = WUMA or {}
+
 WUMA.ConVars = WUMA.ConVars or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
@@ -83,10 +84,13 @@ function WUMA.Initialize()
 	Scope:StartThink()
 	
 	//Add hook so playerextention loads when the first player joins
-	hook.Add("PlayerAuthed","WUMAPlayerAuthedPlayerExtentionInit", function()  
+	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()  
 		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 		hook.Remove("WUMAPlayerAuthedPlayerExtentionInit")
 	end)
+	
+	--All overides should be loaded after WUMA
+	hook.Call("PostWUMALoad")
 	
 end
 

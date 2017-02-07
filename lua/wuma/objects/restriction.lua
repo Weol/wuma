@@ -20,10 +20,9 @@ Restriction.types = {
 	use = {print="Use",search="Search..",items=function() return table.Merge(table.Merge(WUMA.GetEntities(),WUMA.GetVehicles()),WUMA.GetNPCs()) end}  
 } 
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////						STATIC FUNCTIONS						/////////
-/////////////////////////////////////////////////////////////////////////////////
-
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function Restriction:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -51,10 +50,7 @@ function Restriction:new(tbl)
 end 
 
 function Restriction:GenerateID(type,usergroup,str)
-	type = string.lower(type)
-	str = string.lower(str)
 	if usergroup then
-		usergroup = string.lower(usergroup)
 		return string.lower(type.."_"..usergroup.."_"..str)
 	else
 		return string.lower(type.."_"..str)
@@ -98,7 +94,9 @@ function static:GetAllResitrictableItems()
 	
 end
 
---																								Object functions
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__call(type,str)
 
 	if self:IsDisabled() then return end
@@ -299,8 +297,8 @@ function object:GetAllow()
 	return self.allow 
 end
 
-function object:GetID()
-	if not self:GetUserGroup() then
+function object:GetID(short)
+	if (not self:GetUserGroup()) or short then
 		return string.lower(string.format("%s_%s",self.type,self.string))
 	else
 		return string.lower(string.format("%s_%s_%s",self.type,self.usergroup,self.string))

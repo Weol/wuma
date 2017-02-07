@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.Restrictions = WUMA.Restrictions or {}
  
 function WUMA.LoadRestrictions()
@@ -23,8 +25,6 @@ function WUMA.GetSavedRestrictions(user)
 		for key,obj in pairs(saved) do
 			if istable(obj) then
 				tbl[key] = Restriction:new(obj)
-			else
-				WUMADebug("%s has been marked %s",key,obj)
 			end
 		end
 	end
@@ -93,7 +93,7 @@ function WUMA.RemoveRestriction(caller,usergroup,type,item)
 	WUMA.Restrictions[Restriction:GenerateID(type,usergroup,item)] = nil
 
 	local affected = WUMA.UpdateUsergroup(usergroup,function(ply)
-		ply:RemoveRestriction(Restriction:GenerateID(type,usergroup,item))
+		ply:RemoveRestriction(Restriction:GenerateID(type,_,item))
 	end)
 	
 	WUMA.AddClientUpdate(Restriction,function(tbl)
@@ -167,7 +167,7 @@ end
 function WUMA.RefreshGroupRestrictions(user,usergroup)
 	for k,v in pairs(user:GetRestrictions()) do
 		if v:GetUserGroup() then
-			user:RemoveRestriction(v:GetID())
+			user:RemoveRestriction(v:GetID(true))
 	 	end
 	end
 	

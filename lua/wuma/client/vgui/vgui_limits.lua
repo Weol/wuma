@@ -458,7 +458,10 @@ function PANEL:OnDeleteClick()
 		if not table.HasValue(usergroups,v:GetUserGroup()) then
 			table.insert(usergroups,v:GetUserGroup())	
 		end
-		table.insert(strings,v:GetString())
+		
+		if not table.HasValue(strings,v:GetString()) then
+			table.insert(strings,v:GetString())	
+		end
 	end
 	
 	local access = self.Command.Delete

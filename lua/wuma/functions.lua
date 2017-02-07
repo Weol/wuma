@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 
 WUMA.EchoChanges = WUMA.CreateConVar("wuma_echo_changes", "2", FCVAR_ARCHIVE, "0=Nobody, 1=Access, 2=Everybody, 3=Relevant")
 WUMA.EchoToChat = WUMA.CreateConVar("wuma_echo_to_chat", "1", FCVAR_ARCHIVE, "Enable / disable echo in chat.")
@@ -82,18 +84,17 @@ function WUMA.CheckAccess(access, user, callback)
 end
 
 function WUMA.CheckSelfAccess(access, user, callback)
-	local a = WUMA.AccessRegister["selfloadout"]
-	local name = a:GetName()
-	WUMADebug("wuma "..name)
-	CAMI.PlayerHasAccess(user, "wuma "..name, callback)
+	CAMI.PlayerHasAccess(user, "wuma "..WUMA.AccessRegister["selfloadout"]:GetName(), callback)
 end
  
-function WUMA.EchoFunction(msg, affected)
+function WUMA.EchoFunction(args, affected, caller)
 	
-	local msg, args = WUMA.ExtractValue(msg)
-	local user, args = WUMA.ExtractValue(args)
+	if not args then return end
 	
-	local str = string.format(msg,user:Nick(),unpack(args))
+	local msg = args[1]
+	table.remove(args,1)
+	
+	local str = string.format(msg,caller:Nick(),unpack(args))
 	
 	if WUMA.EchoChanges then
 		if (WUMA.EchoChanges:GetInt() == 1) then
@@ -126,6 +127,7 @@ function WUMA.EchoFunction(msg, affected)
 			end
 		end
 	end
+	
 	WUMALog(str)
 end
 
@@ -144,11 +146,17 @@ Restrict:SetFunction(function(caller, usergroup, typ, item, anti, scope)
 	local sucess = WUMA.AddRestriction(caller,usergroup,typ,item,anti,scope)
 
 	if not (sucess == false) then
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
 		if anti then
-			return {"%s derestricted %s %s from %s %s",caller,typ,item,usergroup,scope_str}, sucess, caller
+			return {"%s derestricted %s %s from %s"..prefix,typ,item,usergroup,scope_str}, sucess, caller
 		else
-			return {"%s restricted %s %s from %s %s",caller,typ,item,usergroup,scope_str}, sucess, caller 
+			return {"%s restricted %s %s from %s"..prefix,typ,item,usergroup,scope_str}, sucess, caller 
 		end
 	end
 end)
@@ -175,11 +183,18 @@ RestrictUser:SetFunction(function(caller, target, typ, item, anti, scope)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
+		
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
 		if anti then
-			return {"%s derestricted %s %s from %s %s",caller,typ,item,nick,scope_str}, sucess, caller
+			return {"%s derestricted %s %s from %s"..prefix,typ,item,nick,scope_str}, sucess, caller
 		else
-			return {"%s restricted %s %s from %s %s",caller,typ,item,nick,scope_str}, sucess, caller
+			return {"%s restricted %s %s from %s"..prefix,typ,item,nick,scope_str}, sucess, caller
 		end
 	end
 end)
@@ -205,7 +220,7 @@ Unrestrict:SetFunction(function(caller, usergroup, typ, item)
 	local sucess = WUMA.RemoveRestriction(caller,usergroup,typ,item)
 	
 	if not (sucess == false) then
-		return {"%s unrestricted %s %s from %s",caller,typ,item,usergroup}, sucess, caller
+		return {"%s unrestricted %s %s from %s",typ,item,usergroup}, sucess, caller
 	end
 end)
 Unrestrict:AddArgument(WUMAAccess.PLAYER)
@@ -228,7 +243,7 @@ UnrestrictUser:SetFunction(function(caller, target, typ, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s unrestricted %s %s from %s",caller,typ,item,nick}, sucess, caller
+		return {"%s unrestricted %s %s from %s",typ,item,nick}, sucess, caller
 	end
 end)
 UnrestrictUser:AddArgument(WUMAAccess.PLAYER)
@@ -253,8 +268,14 @@ SetLimit:SetFunction(function(caller, usergroup, item, limit, exclusive, scope)
 	local sucess = WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 	
 	if not (sucess == false) then
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
-		return {"%s set %s limit to %s for %s %s",caller,item,limit,usergroup,scope_str}, sucess, caller
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
+		return {"%s set %s limit to %s for %s"..prefix,item,limit,usergroup,scope_str}, sucess, caller
 	end
 end)
 SetLimit:AddArgument(WUMAAccess.PLAYER)
@@ -281,8 +302,15 @@ SetUserLimit:SetFunction(function(caller, target, item, limit, exclusive, scope)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
-		return {"%s set %s limit to %s for %s %s",caller,item,limit,nick,scope_str}, sucess, caller
+		
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
+		return {"%s set %s limit to %s for %s"..prefix,item,limit,nick,scope_str}, sucess, caller
 	end
 end)
 SetUserLimit:AddArgument(WUMAAccess.PLAYER)
@@ -306,7 +334,7 @@ UnsetLimit:SetFunction(function(caller, usergroup, item)
 	local sucess = WUMA.RemoveLimit(caller,usergroup, item)
 	
 	if not (sucess == false) then
-		return {"%s unset %s limit for %s",caller,item,usergroup}, sucess, caller
+		return {"%s unset %s limit for %s",item,usergroup}, sucess, caller
 	end
 end)
 UnsetLimit:AddArgument(WUMAAccess.PLAYER)
@@ -327,7 +355,7 @@ UnsetUserLimit:SetFunction(function(caller, target, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s unset %s limit for %s",caller,item,nick}, sucess, caller
+		return {"%s unset %s limit for %s",item,nick}, sucess, caller
 	end
 end)
 UnsetUserLimit:AddArgument(WUMAAccess.PLAYER)
@@ -353,8 +381,14 @@ AddLoadout:SetFunction(function(caller, usergroup, item, primary, secondary, res
 	local sucess = WUMA.AddLoadoutWeapon(caller,usergroup, item, primary, secondary, respect, scope)
 	
 	if not (sucess == false) then
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
-		return {"%s added %s to %s loadout %s",caller,item,usergroup,scope_str}, sucess, caller
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
+		return {"%s added %s to %s loadout"..prefix,item,usergroup,scope_str}, sucess, caller
 	end
 end)
 AddLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -384,8 +418,15 @@ AddUserLoadout:SetFunction(function(caller, target, item, primary, secondary, re
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		if scope then scope_str = scope:GetScopeType().log_prefix.." "..string.lower(scope:GetPrint2()) else scope_str = "" end
-		return {"%s added %s to %s loadout %s",caller,item,nick,scope_str}, sucess, caller
+		
+		local prefix = " %s"
+		local scope_str = ""
+		if scope then 
+			scope_str = string.lower(scope:GetPrint2())
+			prefix = " "..scope:GetScopeType().log_prefix.." %s"
+		end
+		
+		return {"%s added %s to %s loadout"..prefix,item,nick,scope_str}, sucess, caller
 	end
 end)
 AddUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -407,10 +448,10 @@ RemoveLoadout:SetFunction(function(caller, usergroup, item)
 	usergroup = string.lower(usergroup)
 	item = string.lower(item)
 
-	local sucess = WUMA.RemoveLoadoutWeapon(caller,usergroup, item)
+	local sucess = WUMA.RemoveLoadoutWeapon(caller, usergroup, item)
 	
 	if not (sucess == false) then
-		return {"%s removed %s from %s loadout",caller,item,usergroup}, sucess, caller
+		return {"%s removed %s from %s loadout",item,usergroup}, sucess, caller
 	end
 end)
 RemoveLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -431,7 +472,7 @@ RemoveUserLoadout:SetFunction(function(caller, target, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s removed %s from %s loadout",caller,item,nick}, sucess, caller
+		return {"%s removed %s from %s loadout",item,nick}, sucess, caller
 	end
 end)
 RemoveUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -451,7 +492,7 @@ ClearLoadout:SetFunction(function(caller, usergroup)
 	local sucess = WUMA.ClearLoadout(caller,usergroup)
 	
 	if not (sucess == false) then
-		return {"%s cleared %s loadout",caller,usergroup}, sucess, caller
+		return {"%s cleared %s loadout",usergroup}, sucess, caller
 	end
 end)
 ClearLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -469,7 +510,7 @@ ClearUserLoadout:SetFunction(function(caller, target)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s cleared %s loadout",caller,nick}, sucess, caller
+		return {"%s cleared %s loadout",nick}, sucess, caller
 	end
 end)
 ClearUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -488,7 +529,7 @@ SetPrimaryWeapon:SetFunction(function(caller, usergroup, item)
 	local sucess = WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item, scope)
 	
 	if not (sucess == false) then
-		return {"%s set %s as %s primary weapons",caller,usergroup,item}, sucess, caller
+		return {"%s set %s as %s primary weapons",usergroup,item}, sucess, caller
 	end
 end)
 SetPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
@@ -509,7 +550,7 @@ SetUserPrimaryWeapon:SetFunction(function(caller, users, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s set %s as %s primary weapons",caller,nick,item}, sucess, caller
+		return {"%s set %s as %s primary weapons",nick,item}, sucess, caller
 	end
 end)
 SetUserPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)

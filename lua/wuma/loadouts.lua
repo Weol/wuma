@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.Loadouts = WUMA.Loadouts or {}
 
 function WUMA.LoadLoadouts()
@@ -23,8 +25,6 @@ function WUMA.GetSavedLoadouts(user)
 		for key,obj in pairs(saved) do
 			if istable(obj) then
 				tbl[key] = Loadout:new(obj)
-			else
-				WUMADebug("%s has been marked %s",key,obj)
 			end
 		end
 	end
@@ -268,9 +268,7 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 end
 
 function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
-	
-	WUMADebug("%s, %s",tostring(user),item)
-	
+
 	if not WUMA.CheckUserFileExists(user,Loadout) then return false end
 	local loadout = WUMA.ReadUserLoadout(user)
 	

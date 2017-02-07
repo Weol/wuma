@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 
 function WUMA.GetEntities()
 	return table.GetKeys(list.Get( "SpawnableEntities" ))

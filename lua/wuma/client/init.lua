@@ -2,6 +2,7 @@
 if SERVER then return end
 
 WUMA = WUMA or {}
+
 WUMA.HomePath = "wuma/client/"
 
 WUMA.Debug = true

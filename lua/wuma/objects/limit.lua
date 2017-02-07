@@ -7,7 +7,9 @@ local static = {}
 Limit._id = "WUMA_Limit"
 object._id = "WUMA_Limit"
 
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function Limit:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -21,7 +23,6 @@ function Limit:new(tbl)
 	obj.limit = tbl.limit or 0
 	obj.parent = tbl.parent or nil
 	obj.usergroup = tbl.usergroup or nil
-	obj.count = tbl.count or 0
 	obj.exclusive = tbl.exclusive or nil
 	
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
@@ -29,6 +30,7 @@ function Limit:new(tbl)
 	obj._id = Limit._id
 	
 	obj.m.override = tbl.overrive or nil
+	obj.m.count = tbl.count or 0
 	
 	--No numeric adv. limits
 	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
@@ -61,7 +63,9 @@ function static:GenerateHit(str,ply)
 	ply:SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
---																								Object functions
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__tostring()
 	return string.format("Limit [%s][%s/%s]",self:GetString(),tostring(self:GetCount()),tostring(self:Get()))
 end
@@ -152,8 +156,8 @@ function object:Set(c)
 	self.limit = c
 end
 
-function object:GetID()
-	if self:GetUserGroup() then
+function object:GetID(short)
+	if self:GetUserGroup() and not short then
 		return string.lower(string.format("%s_%s",self.usergroup,self.string))
 	else
 		return string.lower(self.string)
@@ -166,6 +170,7 @@ end
 
 function object:SetOverride(limit)
 	self:RemoveOverride(limit)
+	
 	self.override = limit
 end
 
@@ -178,12 +183,12 @@ function object:RemoveOverride()
 end
 
 function object:GetCount()
-	return self.count
+	return self.m.count
 end
 
 function object:SetCount(c)
 	if (c < 0) then c = 0 end
-	self.count = c
+	self.m.count = c
 end
 
 function object:GetParent()
@@ -277,7 +282,7 @@ function object:Check(int)
 		end
 		
 		if (limit < 0) then return end
-		if (limit <= self.count) then
+		if (limit <= self:GetCount()) then
 			self:Hit()
 			return false
 		end
@@ -298,6 +303,7 @@ end
 function object:Subtract(c)
 	c = tonumber(c) or 1
 	self:SetCount(self:GetCount() - c)
+	if self:GetOverride() then self:GetOverride():Subtract(c) end
 end 
 
 function object:Add(entity)

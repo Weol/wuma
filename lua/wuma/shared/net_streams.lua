@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.NET = WUMA.NET or {}
 
 WUMA.NET.ENUMS = {}
@@ -74,11 +76,14 @@ WUMA.NET.USERS = WUMA_NET_STREAM:new{send=WUMA.SendInformation,auto_update=true}
 WUMA.NET.USERS:SetServerFunction(function(user,data)	
 	local users = {}
 	for _, ply in pairs(player.GetAll()) do
-		users[ply:SteamID()] = {}
-		users[ply:SteamID()].usergroup = ply:GetUserGroup()
-		users[ply:SteamID()].nick = ply:Nick()
-		users[ply:SteamID()].steamid = ply:SteamID()
-		users[ply:SteamID()].t = os.time()
+		local id = ply:SteamID()
+		
+		users[id] = {}
+		users[id].usergroup = ply:GetUserGroup()
+		users[id].nick = ply:Nick()
+		users[id].steamid = id
+		users[id].t = os.time()
+		users[id].ent = ply
 	end
 	return {user, WUMA.NET.USERS, users}
 end) 

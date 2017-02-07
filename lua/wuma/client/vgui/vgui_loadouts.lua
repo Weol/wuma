@@ -521,7 +521,9 @@ function PANEL:OnSetAsClick()
 		WUMA.SendCommand(self_loadout.Command.Clear,self_loadout:GetSelectedUsergroups())
 		
 		--Add new loadout
-		local ply = WUMA.ServerUsers[listview:GetLines()[listview:GetSelectedLine()]:GetSortValue(1)]
+		local ply = WUMA.ServerUsers[listview:GetLines()[listview:GetSelectedLine()]:GetSortValue(1)].ent
+		if not IsValid(ply) then return end
+		
 		local weapons = {}
 		local active_wep = ply:GetActiveWeapon()	
 		for k, v in pairs(ply:GetWeapons()) do
@@ -575,7 +577,10 @@ function PANEL:OnDeleteClick()
 		if not table.HasValue(usergroups,v.usergroup) then
 			table.insert(usergroups,v.usergroup)	
 		end
-		table.insert(strings,v.class)
+		
+		if not table.HasValue(strings,v.class) then
+			table.insert(strings,v.class)	
+		end
 	end
 	
 	local access = self.Command.Delete

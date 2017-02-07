@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.Limits = WUMA.Limits or {}
  
 function WUMA.LoadLimits()
@@ -23,8 +25,6 @@ function WUMA.GetSavedLimits(user)
 		for key,obj in pairs(saved) do
 			if istable(obj) then
 				tbl[key] = Limit:new(obj)
-			else
-				WUMADebug("%s has been marked %s",key,obj)
 			end
 		end
 	end
@@ -71,8 +71,6 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 
 	local limit = Limit:new({string=item,usergroup=usergroup,limit=limit,exclusive=exclusive,scope=scope})
 
-	WUMADebug(limit:GetID())
-	
 	WUMA.Limits[limit:GetID()] = limit
 	
 	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
@@ -101,7 +99,7 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 	WUMA.Limits[id] = nil
 
 	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
-		user:RemoveLimit(id)
+		user:RemoveLimit(Limit:GenerateID(_,item))
 	end)
 
 	WUMA.AddClientUpdate(Limit,function(tbl)
@@ -148,7 +146,7 @@ function WUMA.RemoveUserLimit(caller,user,item)
 	local id = Limit:GenerateID(_,item)
 	
 	if isentity(user) then
-		user:RemoveLimit(id)
+		user:RemoveLimit(id, true)
 		
 		user = user:SteamID()
 	end
@@ -177,7 +175,7 @@ end
 function WUMA.RefreshGroupLimits(user, usergroup)
 	for k,v in pairs(user:GetLimits()) do
 		if not v:IsPersonal() then
-			user:RemoveLimit(v:GetID())
+			user:RemoveLimit(v:GetID(true))
 	 	end
 	end
 	

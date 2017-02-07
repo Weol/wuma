@@ -7,12 +7,11 @@ local static = {}
 
 Scope.UNTIL = {
 	print="Until date",
-	print2=function(obj) return string.format("Until %s/%s/%s",obj:GetData().day,obj:GetData().month,obj:GetData().year) end,
-	log_prefix="",
+	print2=function(obj) return string.format("%s/%s/%s",obj:GetData().day,obj:GetData().month,obj:GetData().year) end,
+	log_prefix="until",
 	parts={"date_chooser"},
 	save=true,
 	checkfunction=function(obj) 
-		//Fuck this nesting stuff
 		local tbl = obj:GetData()
 		if (tonumber(os.date("%Y", os.time())) > tbl.year) then 
 			return false 
@@ -94,10 +93,9 @@ Scope.types.PERIOD = Scope.PERIOD
 Scope._id = "WUMA_Scope"
 Scope.Objects = Scope.Objects or {}
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////						STATIC FUNCTIONS						/////////
-/////////////////////////////////////////////////////////////////////////////////
-
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function Scope:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -154,10 +152,10 @@ function static:Think()
 	hook.Call("WUMAScopeThink")
 end
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////						 OBJECT FUNCTIONS						/////////
-/////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__tostring()
 	local scope = Scope.types[self:GetType()]
 	if scope.print2 then 

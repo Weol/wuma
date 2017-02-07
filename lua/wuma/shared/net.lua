@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 
 WUMA.NET = WUMA.NET or {}
 WUMA.NET.INTSIZE = 5
@@ -11,7 +13,7 @@ if SERVER then
 
 	util.AddNetworkString("WUMACompressedDataStream")
 	local function doSendData(users,data,id,await) 
-		if not data then return WUMADebug("No data :(") end
+		if not data then return end
 		if not istable(users) then users = {users} end
 		
 		for _, user in pairs(users) do

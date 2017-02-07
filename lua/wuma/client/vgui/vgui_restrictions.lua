@@ -250,7 +250,6 @@ end
 function PANEL:GetSelectedSuggestions()
 	if not self.list_suggestions:GetSelectedLine() then 
 		local typ = self:GetSelectedType()
-		PrintTable(Restriction:GetTypes()[typ])
 		if not Restriction:GetTypes()[typ].items then
 			return {self.textbox_search:GetValue()}
 		else 
@@ -448,12 +447,14 @@ function PANEL:OnDeleteClick()
 		if not table.HasValue(usergroups,v:GetUserGroup()) then
 			table.insert(usergroups,v:GetUserGroup())	
 		end
-		table.insert(strings,v:GetString())
+		
+		if not table.HasValue(strings,v:GetString()) then
+			table.insert(strings,v:GetString())	
+		end
 	end
 	
 	local access = self.Command.Delete
 	local data = {usergroups,type,strings}
-	
 	
 	WUMA.SendCommand(access,data)
 end

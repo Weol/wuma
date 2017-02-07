@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.GUI = {}
 WUMA.GUI.Tabs = {}
 local WGUI = WUMA.GUI
@@ -245,7 +247,6 @@ end
 
 function WUMA.FlushUserData(steamid,typ)
 	if typ and steamid then
-		WUMADebug("Flushing %s data (%s)",steamid,typ)
 		if (typ == Restriction:GetID()) then
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Restriction:GetID()})
 			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Restrictions = nil end

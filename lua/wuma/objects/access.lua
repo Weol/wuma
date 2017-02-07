@@ -2,8 +2,6 @@
 WUMAAccess = {}
 
 WUMAAccess.PLAYER = function(str) 
-	--WUMADebug("%s (%s)",str,"PLAYER")
-	
 	if isentity(str) then return str end
 
 	for _, ply in pairs(player.GetAll()) do
@@ -17,16 +15,12 @@ WUMAAccess.PLAYER = function(str)
 end
 
 WUMAAccess.STRING = function(str) 
-	--WUMADebug("%s (%s)",str,"STRING")
-
 	return str
 end
 
 WUMAAccess.USERGROUP = WUMAAccess.STRING
 
 WUMAAccess.NUMBER = function(str) 
-	--WUMADebug("%s (%s)",str,"NUMBER")
-	
 	if isnumber(str) then return str end
 
 	local num = tonumber(str)
@@ -35,8 +29,6 @@ WUMAAccess.NUMBER = function(str)
 end
 
 WUMAAccess.SCOPE = function(str) 
-	--WUMADebug("%s (%s)",str,"SCOPE")
-
 	if istable(str) then return Scope:new(tbl) end
 	
 	local tbl = util.JSONToTable(str)
@@ -54,7 +46,9 @@ local static = {}
 WUMAAccess._id = "WUMA_Command"
 object._id = "WUMA_Command"
 
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function WUMAAccess:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -81,7 +75,9 @@ function static:GetID()
 	return WUMAAccess._id
 end
 
---																								Object functions
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__tostring()
 	return string.format("WUMAAccess [%s]",self:GetName())
 end
@@ -90,8 +86,8 @@ function object:__call(...)
 	local tbl = {...}
 	self:GetAccessFunction()(self, tbl[1], function(allow)
 		if allow then
-			local log, affected = self.func(unpack(tbl))
-			if self.log_function then self.log_function(log, affected) end
+			local log, affected, caller = self.func(unpack(tbl))
+			if self.log_function then self.log_function(log, affected, caller) end
 		else
 			tbl[1]:ChatPrint("You do not have access to "..self:GetName())
 		end

@@ -1,5 +1,6 @@
 
 WUMA = WUMA or {}
+
 WUMA.Log = {}
 
 function WUMA.Log.ServerLog(msg,...)
@@ -29,19 +30,6 @@ function WUMA.Log.DebugLog(msg,...)
 	Msg(msg.."\n")
 end
 WUMADebug = WUMA.Log.DebugLog
-
-function WUMA.Log.Error(msg)
-	WUMALog("WUMA ERROR!\n")
-	Msg(msg.."\n")
-	debug.Trace()
-end
-WUMAError = WUMA.Log.Error --To save my fingers
-
-function WUMA.ExtractValue(args)
-	local value = args[1]
-	table.remove(args,1)
-	return value,args
-end
 
 function WUMA.SafeFormat(msg,args)
 	if not args then return string.format(msg,"NO_ARGS") end

@@ -1,40 +1,31 @@
 
 local ENT = FindMetaTable("Player")
-local self = ENT
   
 function ENT:CheckLimit(str, WUMA) 
-	
-	WUMADebug("CheckLimit(%s,%s)",str or "_",WUMA or "_")
-	
+
 	if (game.SinglePlayer()) then return true end
 	
-	if WUMA then 
-		if (self:HasLimit(WUMA)) then
-			return self:GetLimit(WUMA):Check()
-		elseif (self:HasLimit(str)) then
-			return self:GetLimit(str):Check()
-		end
-
-		local c = cvars.Number("sbox_max"..str, 0)
-	
-		if (c < 0) then return true end
-		if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
-		return true
+	if (WUMA and self:HasLimit(WUMA)) then
+		return self:GetLimit(WUMA):Check()
+	elseif (self:HasLimit(str)) then
+		return self:GetLimit(str):Check()
 	end
-	
+
+	local c = cvars.Number("sbox_max"..str, 0)
+
+	if (c < 0) then return true end
+	if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
 	return true
 
 end 
   
 function ENT:AddCount(str, ent, WUMA)
- 
-	WUMADebug("AddCount(%s,%s,%s)",str or "_",tostring(ent) or "_",WUMA or "_")
 
 	if (WUMA and self:HasLimit(WUMA)) then 
 		self:GetLimit(WUMA):Add(ent)
 	elseif (self:HasLimit(str)) then
 		self:GetLimit(str):Add(ent)
-	else
+	elseif str then
 
 		if (SERVER) then
 
@@ -59,8 +50,6 @@ function ENT:AddCount(str, ent, WUMA)
 end 
      
 function ENT:GetCount(str, minus, WUMA)
-
-	WUMADebug("GetCount(%s,%s,%s)",str or "_",tostring(minus) or "_",WUMA or "_")
 
 	if (WUMA and self:HasLimit(WUMA)) then 
 		local l = self:GetLimit(WUMA):GetCount()
@@ -112,8 +101,6 @@ end
 
 function ENT:LimitHit(str)
 
-	WUMADebug("LimitHit(%s)",str or "_")
-	
 	if self:HasLimit(str) then
 		self:GetLimit(str):Hit()
 	else
@@ -135,27 +122,29 @@ function ENT:HasWUMAData()
 end   
  
 function ENT:CheckRestriction(type,str)
-	WUMADebug("CheckRestriction(%s,%s)",type,str)
-	 
-	local key = Restriction:GenerateID(type,self:GetUserGroup(),str)
-	local personal_key = Restriction:GenerateID(type,_,str)
+
+	local key = Restriction:GenerateID(type,_,str)
 	
 	if self:GetRestrictions()[key] then 
 		return self:GetRestrictions()[key](type,str)
-	elseif self:GetRestrictions()[personal_key] then 
-		return self:GetRestrictions()[personal_key](type,str)
 	end
 end   
  
 function ENT:AddRestriction(restriction) 
 	if not self.Restrictions then self.Restrictions = {} end
 
-	local key = restriction:GetID() 
-
+	local key = restriction:GetID(true) 
 	restriction:SetParent(self)
 	
-	if not self:GetRestrictions()[key] or not restriction:IsPersonal() then
+	if not self:GetRestrictions()[key] then
 		self:GetRestrictions()[key] = restriction
+	elseif self:GetRestrictions()[key]:IsPersonal() and not restriction:IsPersonal() then
+		restriction:SetOverride(self:GetRestrictions()[key])
+		self:GetRestrictions()[key] = restriction 
+	elseif not self:GetRestrictions()[key]:IsPersonal() and not restriction:IsPersonal() then
+		self:GetRestrictions()[key] = limit
+	elseif self:GetRestrictions()[key]:IsPersonal() and restriction:IsPersonal() then
+		self:GetRestrictions()[key] = limit
 	else
 		self:GetRestrictions()[key]:SetOverride(restriction)
 	end
@@ -169,29 +158,34 @@ end
 
 function ENT:RemoveRestriction(id,personal) 
 	if not id then return end
-	if not self:GetRestrictions()[id] then return end
+	
+	local restriction = self:GetRestrictions()[id]
+	if not restriction then return end
 	
 	if personal then
-		if not self:GetRestrictions()[id]:IsPersonal() and self:GetRestrictions()[id]:GetOverride() then
-			if (self:GetRestrictions()[id]:GetOverride():GetID() == id) then
-				self:GetRestrictions()[id]:RemoveOverride()
-				return
-			end
-		end  
+		if restriction:IsPersonal() then
+			self:GetRestrictions()[id] = nil
+		elseif restriction:GetOverride() then
+			restriction:RemoveOverride()
+		end
+	else
+		if restriction:GetOverride() then
+			local override = self:GetRestrictions()[id]:GetOverride()
+			self:GetRestrictions()[id] = override
+		else
+			self:GetRestrictions()[id] = nil
+		end
 	end
-	
-	self:GetRestrictions()[id] = nil
 end
 
 function ENT:GetRestrictions()
-	return self.Restrictions or {}
+	return self.Restrictions or {} 
 end
  
 function ENT:GetRestriction(type,str)
 	if not str then return end
-	local key = Restriction:GenerateID(type,self:GetUserGroup(),str)
-	
 	if (isstring(str) and type and isstring(type)) then 
+		local key = Restriction:GenerateID(type,_,str)
 		return self:GetRestrictions()[key]
 	end  
 end 
@@ -199,27 +193,44 @@ end
 function ENT:AddLimit(limit)
 	if not self.Limits then self.Limits = {} end
 
+	local key = limit:GetID(true)
 	limit:SetParent(self)
 
-	if not self:GetLimits()[limit:GetID()] or not limit:IsPersonal() then
-		self:GetLimits()[limit:GetID()] = limit
+	if not self:GetLimits()[key] then
+		self:GetLimits()[key] = limit
+	elseif self:GetLimits()[key]:IsPersonal() and not limit:IsPersonal() then
+		limit:SetCount(self:GetLimits()[key]:GetCount())
+		
+		limit:SetOverride(self:GetLimits()[key])
+		self:GetLimits()[key] = limit
+	elseif not self:GetLimits()[key]:IsPersonal() and not limit:IsPersonal() then
+		self:GetLimits()[key] = limit
+	elseif self:GetLimits()[key]:IsPersonal() and limit:IsPersonal() then
+		self:GetLimits()[key] = limit
 	else
-		self:GetLimits()[limit:GetID()]:SetOverride(limit)
+		limit:SetCount(self:GetLimits()[key]:GetCount())
+		self:GetLimits()[key]:SetOverride(limit)
 	end
 end
  
 function ENT:RemoveLimit(id,personal)
-
+	local limit = self:GetLimits()[id]
+	if not limit then return end
+	
 	if personal then
-		if not self:GetLimits()[id]:IsPersonal() and self:GetLimits()[id]:GetOverride() then
-			if (self:GetLimits()[id]:GetOverride():GetID() == id) then
-				self:GetLimits()[id]:RemoveOverride()
-				return
-			end
+		if limit:IsPersonal() then
+			self:GetLimits()[id] = nil
+		elseif limit:GetOverride() then
+			self:GetLimits()[id]:RemoveOverride()
+		end
+	else
+		local override = limit:GetOverride()
+		if override then
+			self:GetLimits()[id] = override
+		else
+			self:GetLimits()[id] = nil
 		end
 	end
-
-	self:GetLimits()[id] = nil
 end
 
 function ENT:GetLimits()
@@ -227,15 +238,13 @@ function ENT:GetLimits()
 end 
 
 function ENT:GetLimit(str)
-	local id = Limit:GenerateID(self:GetUserGroup(),str)
-	local id_personal = Limit:GenerateID(_,str)
-	return self:GetLimits()[id] or self:GetLimits()[id_personal]
+	local id = Limit:GenerateID(_,str)
+	return self:GetLimits()[id]
 end
 
 function ENT:HasLimit(str)
-	local id = Limit:GenerateID(self:GetUserGroup(),str)
-	local id_personal = Limit:GenerateID(_,str)
-	if self:GetLimits()[id] or self:GetLimits()[id_personal] then return true end
+	local id = Limit:GenerateID(_,str)
+	if self:GetLimits()[id] then return true end
 	return false
 end
 

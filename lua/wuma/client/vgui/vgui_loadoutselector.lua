@@ -291,7 +291,6 @@ function ICON:Paint(w, h)
 		local height = 18
 		surface.DrawRect(2,h-height,w-4,height)
 		local text_w, text_h = surface.GetTextSize(self:GetName())
-		WUMADebug(self:GetName()..": "..text_w)
 		surface.SetFont("DermaDefault")
 		surface.SetTextColor( 255, 255, 255, 255 )
 		surface.SetTextPos( w/2-text_w/2, (h-height)+(height/2)-(text_h/2))

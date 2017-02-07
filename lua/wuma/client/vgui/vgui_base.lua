@@ -83,8 +83,6 @@ function PANEL:RemoveViewLine(id)
 		self.DataView:RemoveLine(line:GetID())
 		self.DataRegistry[id] = nil
 		line = nil
-	else
-		WUMADebug("Wrong RemoveLine argument! (%s)",type(id))
 	end
 	
 end

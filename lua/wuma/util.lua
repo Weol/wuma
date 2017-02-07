@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 
 WUMA.WUMALookupTable = "WUMALookup"
 WUMA.Settings = WUMA.Settings or {}

@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 WUMA.ServerGroups = WUMA.ServerGroups or {}
 WUMA.ServerUsers = WUMA.ServerUsers or {}
 WUMA.LookupUsers = WUMA.LookupUsers or {}
@@ -31,8 +33,6 @@ CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to re
 --Data update
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
-	
-	PrintTable(data)
 	
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
@@ -154,9 +154,6 @@ function WUMA.UpdateLoadouts(update)
 end
 
 function WUMA.UpdateUser(id, enum, data)
-
-	WUMADebug("UpdateUser(%s, %s, %s)",tostring(id),tostring(enum),tostring(data))
-
 	WUMA.UserData[id] = WUMA.UserData[id] or {}
 	
 	if (enum == Restriction:GetID()) then
@@ -267,8 +264,6 @@ end
 function WUMA.ProcessInformationUpdate(enum,data)
 	WUMADebug("Process Information Update:")
 
-	PrintTable(data)
-	
 	if WUMA.NET.ENUMS[enum] then
 		WUMA.NET.ENUMS[enum](data)
 	else	

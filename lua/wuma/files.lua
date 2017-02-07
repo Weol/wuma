@@ -1,5 +1,7 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
 
 local Files = {}
 
@@ -33,7 +35,6 @@ function Files.Exists(path)
 end
 
 function Files.Delete(path) 
-	debug.Trace()
 	file.Delete(path)
 end
 

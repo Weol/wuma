@@ -7,7 +7,9 @@ local static = {}
 WUMA_NET_STREAM._id = "WUMA_NET_STREAM"
 object._id = "WUMA_NET_STREAM"
 
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function WUMA_NET_STREAM:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -30,7 +32,9 @@ function WUMA_NET_STREAM:new(tbl)
 	return obj
 end 
 
---																								Object functions
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__tostring()
 	return string.format("NET STREAM [%s]",tostring(self:GetID()))
 end

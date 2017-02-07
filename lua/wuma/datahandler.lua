@@ -1,5 +1,8 @@
 
 WUMA = WUMA or {}
+local WUMADebug = WUMADebug
+local WUMALog = WUMALog
+
 WUMA.DATA = {}
 
 WUMA.DataUpdateCooldown = WUMA.CreateConVar("wuma_data_save_delay", "30", FCVAR_ARCHIVE, "Delay before changes are saved.")
@@ -203,8 +206,6 @@ function WUMA.Update_Global()
 	local restrictions, limits, loadouts = false
 
 	if (tick_global >= WUMA.DataUpdateCooldown:GetInt()) then 
-		WUMADebug("Saved data.\n")
-	
 		for _, tbl in pairs(WUMA.DATA.GlobalSchedule) do
 			if (tbl.enum == Restriction) then
 				restrictions = tbl.func(restrictions or WUMA.GetSavedRestrictions())
@@ -320,9 +321,7 @@ function WUMA.Update_User()
 		for _,user in pairs(users) do
 			WUMA.SaveUserData(user,restrictions[user], limits[user], loadouts[user]) 
 		end 
-		
-		WUMADebug("Saved user data")
-		
+
 		tick_user = -1
 		
 	end

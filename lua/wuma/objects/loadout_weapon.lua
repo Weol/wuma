@@ -7,7 +7,9 @@ local static = {}
 Loadout_Weapon._id = "WUMA_Loadout_Weapon"
 object._id = "WUMA_Loadout_Weapon"
 
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+/////       		 Static functions				/////
+/////////////////////////////////////////////////////////
 function Loadout_Weapon:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
@@ -34,7 +36,9 @@ function static:GetID()
 	return Loadout_Weapon._id
 end
 
---																					Object functions
+/////////////////////////////////////////////////////////
+/////       		 Object functions				/////
+/////////////////////////////////////////////////////////
 function object:__tostring()
 	return string.format("Loadout_Weapon [%s]",self.class)
 end
@@ -139,7 +143,6 @@ function object:Enable()
 end
 
 function object:Shred()
-	PrintTable(self:GetParent())
 	if (self:GetParent():IsPersonal()) then
 		WUMA.RemoveUserLoadoutWeapon(_,self:GetParent():GetParentID(),self:GetClass())
 	else
