@@ -24,6 +24,7 @@ function WUMA.GetSavedLoadouts(user)
 
 		for key,obj in pairs(saved) do
 			if istable(obj) then
+				obj.parent = user
 				tbl[key] = Loadout:new(obj)
 			end
 		end
@@ -89,7 +90,7 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 	end
 	
 	if scope then scope:SetProperty("class",item) end
-	
+
 	WUMA.Loadouts[usergroup]:AddWeapon(item,primary,secondary,respect,scope)
 	
 	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
@@ -97,7 +98,7 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 			user:SetLoadout(WUMA.Loadouts[usergroup]:Clone())
 			user:GetLoadout():Give(item)
 		elseif user:HasLoadout() and not user:GetLoadout():IsPersonal() then
-			user:GetLoadout():AddWeapon(item,primary,secondary, respect,scope)
+			user:GetLoadout():AddWeapon(item,primary,secondary, respect, scope)
 		end
 	end)
 	
@@ -120,8 +121,8 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 end
  
 function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
+	WUMADebug("RemoveLoadoutWeapon(_, %s, %s)",usergroup,item)
 	if not WUMA.Loadouts[usergroup] then return false end
-	
 	WUMA.Loadouts[usergroup]:RemoveWeapon(item)
 		
 	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
@@ -157,7 +158,6 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 	if (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then 
 		WUMA.Loadouts[usergroup] = nil
 	end
-	
 	return affected
 	
 end
@@ -272,6 +272,7 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 	if not WUMA.CheckUserFileExists(user,Loadout) then return false end
 	local loadout = WUMA.ReadUserLoadout(user)
 	
+	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) and user:HasLoadout() and user:GetLoadout():IsPersonal() then
 		user:GetLoadout():RemoveWeapon(item)	
 
@@ -298,6 +299,7 @@ end
 
 function WUMA.ClearUserLoadout(caller,user)
 
+	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:ClearLoadout()
 	end

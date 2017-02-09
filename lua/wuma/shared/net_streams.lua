@@ -11,12 +11,13 @@ WUMA.NET.ENUMS = {}
 /////////////////////////////////////////////////////////
 WUMA.NET.SETTINGS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
 WUMA.NET.SETTINGS:SetServerFunction(function(user,data)
-	return {user, WUMA.NET.SETTINGS, WUMA.ConVars.ToClient}
+	return {user, WUMA.NET.SETTINGS, table.Merge(WUMA.ConVars.ToClient,{wuma_server_time=os.time()})}
 end) 
 WUMA.NET.SETTINGS:SetClientFunction(function(data) 
 	for name, value in pairs(data[1]) do
 		WUMA.ServerSettings[string.sub(name,6)] = value
 	end
+	WUMA.ServerSettings["server_time_offset"] = WUMA.ServerSettings["server_time"] - os.time()
 	hook.Call(WUMA.SETTINGSUPDATE, _,WUMA.ServerSettings)
 end)
 WUMA.NET.SETTINGS:SetAuthenticationFunction(function(user, callback) 

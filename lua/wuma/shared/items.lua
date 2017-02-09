@@ -25,7 +25,9 @@ function WUMA.GetWeapons()
 	}
 	
 	for k, v in pairs(list.Get( "Weapon" )) do
-		table.insert(tbl,k)
+		if v.Spawnable then
+			table.insert(tbl,k)
+		end
 	end
 	
 	return tbl

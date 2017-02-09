@@ -56,6 +56,10 @@ function WUMA.IsSteamID(steamid)
 	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
 end
 
+function WUMA.GetTime()
+	return os.time() + (WUMA.ServerSettings["server_time_offset"] or 0)
+end
+
 WUMA.Initialize()
 	
 WUMA.Loaded = true

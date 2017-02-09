@@ -24,6 +24,7 @@ function WUMA.GetSavedLimits(user)
 
 		for key,obj in pairs(saved) do
 			if istable(obj) then
+				obj.parent = user
 				tbl[key] = Limit:new(obj)
 			end
 		end
@@ -145,6 +146,7 @@ end
 function WUMA.RemoveUserLimit(caller,user,item)
 	local id = Limit:GenerateID(_,item)
 	
+	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:RemoveLimit(id, true)
 		

@@ -81,12 +81,13 @@ function PANEL:Init()
 	self.list_items.OnRowSelected = self.OnItemChange
 	
 	local highlight = function(line,data,datav)
-		if (tonumber(data[3]) == nil) then
-			local id = Limit.GenerateID(Limit,data[1],data[3])
-			if not WUMA.Limits[id] then return Color(255,0,0,120); else return nil end
+		if (tonumber(datav[3]) == nil) then
+			local id = Limit.GenerateID(Limit,datav.usergroup,datav.string)
+			local id_p = Limit.GenerateID(Limit,_,datav.string)
+			if not self:GetDataView():GetDataTable()[id] and not self:GetDataView():GetDataTable()[id_p] then return Color(255,0,0,120); else return nil end
 		end
 	end
-	self.list_items:SetHighlightFunction(highlight)
+	self:GetDataView():SetHighlightFunction(highlight)
 	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 
 	//Scope list
@@ -137,11 +138,13 @@ function PANEL:Init()
 		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
 		
 		local limit_sort = data.limit
-		if isstring(limit_sort) then limit_sort = limit_sort else limit_sort = -limit_sort end
+		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
 		
-		return {data.usergroup, data.print or data.string, data.limit, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,limit_sort}
+		local limit = data.limit
+		if (limit < 0) then limit = "∞" end
+		
+		return {data.usergroup, data.print or data.string, limit, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,limit_sort,0}
 	end
-		
 	self:GetDataView():SetSortFunction(sort)
 	
 	local right_click = function(item)
@@ -154,7 +157,6 @@ function PANEL:Init()
 		
 		return tbl
 	end
-
 	self:GetDataView():SetRightClickFunction(right_click)
 
 	self:PopulateList("list_usergroups",WUMA.ServerGroups,true,true)
@@ -249,11 +251,8 @@ end
 function PANEL:ReloadSuggestions()
 	if not self.list_suggestions then return end
 
-	if not self:GetAdditonalOptionsVisibility() then
-		self:PopulateList("list_suggestions",WUMA.GetAllItems(),true)
-	else
-		self:PopulateList("list_suggestions",WUMA.GetAllItems(),true)
-	end
+	self:PopulateList("list_suggestions",WUMA.GetAllItems(),true)
+	
 	self.list_suggestions.VBar:SetScroll(0)
 end
 

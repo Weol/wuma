@@ -99,14 +99,20 @@ function WUMA.GetUserData(user,typ)
 end
 
 function WUMA.GetUsers(group)
-	if not group then return player.GetAll() end	
+	if not group then 
+		local tbl = {}
+		for _,ply in pairs(player.GetAll()) do 
+			tbl[ply:SteamID()] = ply
+		end
+		return tbl
+	end	
 
 	--Check for normal usergroup
 	if isstring(group) then
 		local tbl = {}
 		for _,ply in pairs(player.GetAll()) do 
 			if (string.lower(ply:GetUserGroup()) == string.lower(group)) then 
-				table.insert(tbl,ply) 
+				tbl[ply:SteamID()] = ply
 			end
 		end
 		return tbl

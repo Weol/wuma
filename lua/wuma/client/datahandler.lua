@@ -278,9 +278,11 @@ end
 local DisregardSettingsChange = false
 function WUMA.UpdateSettings(settings)
 	DisregardSettingsChange = true
+	
 	if (WUMA.GUI.Tabs.Settings) then
 		WUMA.GUI.Tabs.Settings:UpdateSettings(settings)
 	end
+	
 	DisregardSettingsChange = false
 end
 hook.Add(WUMA.SETTINGSUPDATE,"WUMAGUISettings",function(settings) WUMA.UpdateSettings(settings) end)

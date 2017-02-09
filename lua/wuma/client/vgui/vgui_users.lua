@@ -114,9 +114,12 @@ function PANEL:Init()
 		if WUMA.LookupUsers[data.parent] then nick = WUMA.LookupUsers[data.parent].nick elseif WUMA.ServerUsers[data.parent] then nick = WUMA.ServerUsers[data.parent]:Nick() end
 		
 		local sort_limit = data.limit
-		if isnumber(sort_limit) then sort_limit = -sort_limit end
+		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
 		
-		return {nick, data.print or data.string, data.limit, scope},{_,_,sort_limit}
+		local limit = data.limit
+		if (limit < 0) then limit = "∞" end
+		
+		return {nick, data.print or data.string, limit, scope},{_,_,sort_limit,0}
 	end
 	self.limits:GetDataView():SetSortFunction(sort2)
 	
@@ -158,10 +161,10 @@ function PANEL:Init()
 	
 		if WUMA.ServerUsers[user.steamid] then
 			data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
-			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((os.time()-user.t) or "1")}
+			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
 		else 
 			data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
-			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((os.time()-user.t) or "1")}
+			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
 		end
 		
 		local text = string.lower(self.textbox_search:GetValue())

@@ -176,21 +176,21 @@ end
 function WUMA.SaveData(restrictions,limits,loadouts) 
 	
 	if (restrictions and restrictions ~= WUMA.DELETE) then
-		local str = util.TableToJSON(restrictions,true)
+		local str = util.TableToJSON(restrictions)
 		WUMA.Files.Write(WUMA.DataDirectory.."restrictions.txt",str)	
 	elseif (restrictions == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."restrictions.txt")
 	end
 
 	if (limits and limits ~= WUMA.DELETE) then
-		local str = util.TableToJSON(limits,true)
+		local str = util.TableToJSON(limits)
 		WUMA.Files.Write(WUMA.DataDirectory.."limits.txt",str)
 	elseif (limits == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."limits.txt")
 	end
 
 	if (loadouts and loadouts ~= WUMA.DELETE) then
-		local str = util.TableToJSON(loadouts,true)
+		local str = util.TableToJSON(loadouts)
 		WUMA.Files.Write(WUMA.DataDirectory.."loadouts.txt",str)
 	elseif (loadouts == WUMA.DELETE) then
 		WUMA.Files.Delete(WUMA.DataDirectory.."loadouts.txt")
@@ -322,7 +322,7 @@ function WUMA.Update_User()
 			WUMA.SaveUserData(user,restrictions[user], limits[user], loadouts[user]) 
 		end 
 
-		tick_user = -1
+		tick_user = -10
 		
 	end
 end

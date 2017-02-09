@@ -112,6 +112,10 @@ function WUMA.CreateConVar(...)
 	return convar
 end
 
+function WUMA.GetTime()
+	return os.time()
+end
+
 function WUMA.LoadFolder(dir)
 	local files, directories = file.Find(dir.."*", "LUA")
 	

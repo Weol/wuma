@@ -32,19 +32,21 @@ function Restriction:new(tbl)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
-	obj.usergroup = tbl.usergroup or false
-	obj.type = tbl.type or false
-	obj.string = tbl.string or false
-	obj.parent = tbl.parent or false 
+	obj.usergroup = tbl.usergroup or nil
+	obj.type = tbl.type or nil
+	obj.string = tbl.string or nil
 	obj.print = tbl.print or tbl.string
-	obj.allow = tbl.allow or false 
-	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
+	obj.allow = tbl.allow or nil 
 	
 	obj.m._id = Restriction._id
 	
-	obj.m.override = tbl.override or false
+	obj.m.origin = tbl.origin or nil
+	obj.m.origin = tbl.origin or nil
+obj.m.parent = tbl.parent or nil 
+	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
 	obj.m.exceptions = {} 
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
   
 	return obj
 end 
@@ -106,13 +108,9 @@ function object:__call(type,str)
 		return
 	end
 
-	if self.override then 
-		return self.override(type,str)
-	else
-		if not self.allow then
-			self:Hit()
-			return false
-		end
+	if not self.allow then
+		self:Hit()
+		return false
 	end
 end
 
@@ -161,10 +159,10 @@ function object:Hit()
 
 	local str = self.print or self.string
 
-	self.parent:SendLua(string.format([[
+	self:GetParent():SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
 		]],self:GetType(),str))
-	self.parent:SendLua([[surface.PlaySound("buttons/button10.wav")]])
+	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
 function object:GetUniqueID()
@@ -172,21 +170,24 @@ function object:GetUniqueID()
 end
 
 function object:IsPersonal()
-	if self.usergroup then return false else return true end
+	if self.usergroup then return nil else return true end
 end
 
 function object:Clone()
-	local obj = Restriction:new(table.Copy(self))
+	local copy = table.Copy(self)
+	local origin
 	
 	if self.origin then
-		obj.m.origin = self.origin
+		origin = self.origin
 	else
-		obj.m.orign = self
+		origin = self
 	end
+	
+	copy.origin = origin
+	local obj = Restriction:new(copy)
 
 	return obj
 end
-
 function object:GetBarebones()
 	local tbl = {}
 	for k,v in pairs(self) do
@@ -239,11 +240,14 @@ function object:GetScope()
 end
 
 function object:SetScope(scope)	
-	self.scope = Scope:new(scope)
-	
-	self.scope:SetParent(self)
-	
-	self.scope:AllowThink()
+	if not self:GetOrigin() then
+		WUMADebug("Setting scope for %s",tostring(self:GetUniqueID()))
+		self.scope = Scope:new(scope)
+		
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
+	end
 end
 
 function object:DeleteScope()
@@ -260,33 +264,28 @@ function object:SetString(str)
 end
 
 function object:SetParent(ply)
-	self.parent = ply
+	self.m.parent = ply
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
 end
 
 function object:GetParent()
-	return self.parent
+	return self.m.parent
 end
 
 function object:GetParentID()
-	if isstring(self:GetParent()) then return self:GetParent() end
-	return self:GetParent():SteamID()
+	return self.m.parentid
 end
 
 function object:GetOrigin()
-	return self.origin
+	return self.m.origin
 end
 
-function object:SetOverride(restriction)
-	restriction:RemoveOverride(restriction)
-	self.override = restriction
+function object:SetAncestor(ancestor)
+	self.m.ancestor = ancestor
 end
 
-function object:GetOverride()
-	return self.override 
-end
-
-function object:RemoveOverride()
-	self.override = nil
+function object:GetAncestor()
+	return self.m.ancestor
 end
 
 function object:SetAllow(boolean)

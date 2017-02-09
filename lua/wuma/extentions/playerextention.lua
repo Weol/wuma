@@ -9,13 +9,15 @@ function ENT:CheckLimit(str, WUMA)
 		return self:GetLimit(WUMA):Check()
 	elseif (self:HasLimit(str)) then
 		return self:GetLimit(str):Check()
+	else
+
+		local c = cvars.Number("sbox_max"..str, 0)
+
+		if (c < 0) then return true end
+		if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
+		return true
+	
 	end
-
-	local c = cvars.Number("sbox_max"..str, 0)
-
-	if (c < 0) then return true end
-	if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
-	return true
 
 end 
   
@@ -125,28 +127,29 @@ function ENT:CheckRestriction(type,str)
 
 	local key = Restriction:GenerateID(type,_,str)
 	
-	if self:GetRestrictions()[key] then 
+	if self:GetRestriction(key) then 
 		return self:GetRestrictions()[key](type,str)
 	end
 end   
- 
+   
 function ENT:AddRestriction(restriction) 
-	if not self.Restrictions then self.Restrictions = {} end
+	if not self:GetRestrictions() then self.Restrictions = {} end
 
-	local key = restriction:GetID(true) 
+	local id = restriction:GetID(true)
 	restriction:SetParent(self)
 	
-	if not self:GetRestrictions()[key] then
-		self:GetRestrictions()[key] = restriction
-	elseif self:GetRestrictions()[key]:IsPersonal() and not restriction:IsPersonal() then
-		restriction:SetOverride(self:GetRestrictions()[key])
-		self:GetRestrictions()[key] = restriction 
-	elseif not self:GetRestrictions()[key]:IsPersonal() and not restriction:IsPersonal() then
-		self:GetRestrictions()[key] = limit
-	elseif self:GetRestrictions()[key]:IsPersonal() and restriction:IsPersonal() then
-		self:GetRestrictions()[key] = limit
+	local old = self:GetRestriction(id)
+	local new = restriction
+
+	if (not old) or (new:IsPersonal() == old:IsPersonal()) then
+		self:GetRestrictions()[id] = new
+	elseif new:IsPersonal() then
+		new:SetAncestor(old)
+		self:GetRestrictions()[id] = new
+	elseif old:IsPersonal() then
+		old:SetAncestor(new)
 	else
-		self:GetRestrictions()[key]:SetOverride(restriction)
+		self:GetRestrictions()[id] = new
 	end
 end 
 
@@ -157,84 +160,78 @@ function ENT:AddRestrictions(tbl)
 end
 
 function ENT:RemoveRestriction(id,personal) 
-	if not id then return end
-	
-	local restriction = self:GetRestrictions()[id]
+	local restriction = self:GetRestriction(id)
 	if not restriction then return end
 	
-	if personal then
-		if restriction:IsPersonal() then
-			self:GetRestrictions()[id] = nil
-		elseif restriction:GetOverride() then
-			restriction:RemoveOverride()
-		end
-	else
-		if restriction:GetOverride() then
-			local override = self:GetRestrictions()[id]:GetOverride()
-			self:GetRestrictions()[id] = override
-		else
-			self:GetRestrictions()[id] = nil
-		end
+	if (restriction:IsPersonal() == personal) then
+		local ancestor = restriction:GetAncestor()
+		self:GetRestrictions()[id] = ancestor
+	elseif (restriction:IsPersonal()) then
+		restriction:SetAncestor(nil)
+	elseif (personal) then
+		local ancestor = restriction:GetAncestor()
+		self:GetRestrictions()[id] = ancestor
 	end
 end
 
 function ENT:GetRestrictions()
-	return self.Restrictions or {} 
+	return self.Restrictions 
 end
  
 function ENT:GetRestriction(type,str)
-	if not str then return end
-	if (isstring(str) and type and isstring(type)) then 
+	if not self:GetRestrictions() then return nil end
+	if str then
 		local key = Restriction:GenerateID(type,_,str)
 		return self:GetRestrictions()[key]
-	end  
+	else
+		return self:GetRestrictions()[type]
+	end
 end 
 
 function ENT:AddLimit(limit)
-	if not self.Limits then self.Limits = {} end
+	if not self:GetLimits() then self.Limits = {} end
 
-	local key = limit:GetID(true)
+	local id = limit:GetID(true)
 	limit:SetParent(self)
-
-	if not self:GetLimits()[key] then
-		self:GetLimits()[key] = limit
-	elseif self:GetLimits()[key]:IsPersonal() and not limit:IsPersonal() then
-		limit:SetCount(self:GetLimits()[key]:GetCount())
+	
+	local old = self:GetLimit(id)
+	local new = limit
+	
+	if (not old) or (new:IsPersonal() == old:IsPersonal()) then
+		self:GetLimits()[id] = new
+	elseif new:IsPersonal() then
+		new:SetAncestor(old)
+		new:InheritEntities(old)
 		
-		limit:SetOverride(self:GetLimits()[key])
-		self:GetLimits()[key] = limit
-	elseif not self:GetLimits()[key]:IsPersonal() and not limit:IsPersonal() then
-		self:GetLimits()[key] = limit
-	elseif self:GetLimits()[key]:IsPersonal() and limit:IsPersonal() then
-		self:GetLimits()[key] = limit
+		self:GetLimits()[id] = new
+	elseif old:IsPersonal() then
+		old:SetAncestor(new)
 	else
-		limit:SetCount(self:GetLimits()[key]:GetCount())
-		self:GetLimits()[key]:SetOverride(limit)
+		self:GetLimits()[id] = new
 	end
 end
  
 function ENT:RemoveLimit(id,personal)
-	local limit = self:GetLimits()[id]
+	local limit = self:GetLimit(id)
 	if not limit then return end
 	
-	if personal then
-		if limit:IsPersonal() then
-			self:GetLimits()[id] = nil
-		elseif limit:GetOverride() then
-			self:GetLimits()[id]:RemoveOverride()
-		end
-	else
-		local override = limit:GetOverride()
-		if override then
-			self:GetLimits()[id] = override
-		else
-			self:GetLimits()[id] = nil
-		end
+	if (limit:IsPersonal() == personal) then
+		local ancestor = limit:GetAncestor()
+		if ancestor then ancestor:InheritEntities(limit) end
+		
+		self:GetLimits()[id] = ancestor
+	elseif (limit:IsPersonal()) then
+		limit:SetAncestor(nil) 
+	elseif (personal) then
+		local ancestor = limit:GetAncestor()
+		if ancestor then ancestor:InheritEntities(limit) end
+		
+		self:GetLimits()[id] = ancestor
 	end
 end
 
 function ENT:GetLimits()
-	return self.Limits or {}
+	return self.Limits
 end 
 
 function ENT:GetLimit(str)

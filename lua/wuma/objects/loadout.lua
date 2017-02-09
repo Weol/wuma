@@ -19,11 +19,10 @@ function Loadout:new(tbl)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
-	obj.parent = tbl.parent or false
-	obj.usergroup = tbl.usergroup or false
-	obj.primary = tbl.primary or false
-	obj.inherit = tbl.inherit or false
-	obj.respect_restrictions = tbl.respect_restrictions or false
+	obj.usergroup = tbl.usergroup or nil
+	obj.primary = tbl.primary or nil
+	obj.inherit = tbl.inherit or nil
+	obj.respect_restrictions = tbl.respect_restrictions or nil
 	obj.weapons = {}
 	
 	if tbl.weapons then
@@ -35,8 +34,11 @@ function Loadout:new(tbl)
 	
 	obj.m._id = Loadout._id
 	
-	obj.m.ancestor = tbl.ancestor or false
-	obj.m.child = tbl.child or false
+	obj.m.origin = tbl.origin or nil
+	obj.m.parent = tbl.parent or nil
+	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
+	obj.m.ancestor = tbl.ancestor or nil
+	obj.m.child = tbl.child or nil
 
 	return obj
 end 
@@ -49,7 +51,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("Loadout [%s]",self.parent or self.usergroup)
+	return string.format("Loadout [%s]",self:GetParent() or self.usergroup)
 end
 
 function object:__eq(v1,v2)
@@ -58,13 +60,17 @@ function object:__eq(v1,v2)
 end
 
 function object:Clone()
-	local obj = Loadout:new(table.Copy(self))
-
+	local copy = table.Copy(self)
+	local origin
+	
 	if self.origin then
-		obj.m.origin = self.origin
+		origin = self.origin
 	else
-		obj.m.orign = self
+		origin = self
 	end
+	
+	copy.origin = origin
+	local obj = Loadout:new(copy)
 
 	return obj
 end
@@ -189,7 +195,7 @@ function object:HasWeapon(weapon)
 end
 
 function object:IsPersonal()
-	if self.usergroup then return false else return true end
+	if self.usergroup then return nil else return true end
 end
 
 function object:ParseWeapon(weapon)
@@ -253,15 +259,16 @@ function object:GetWeapons()
 end
 
 function object:SetParent(parent)
-	self.parent = parent
+	self.m.parent = parent
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
 end
 
 function object:GetParent()
-	return self.parent
+	return self.m.parent
 end
 
 function object:GetOrigin()
-	return self.origin
+	return self.m.origin
 end
 
 function object:Disable()

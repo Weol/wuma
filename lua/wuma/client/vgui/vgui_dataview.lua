@@ -105,11 +105,11 @@ function PANEL:SortData()
 		if isstring(data) then 
 			data = nil 
 		else
-			local sort = self:SortItem(data)
+			local sort, sortv = self:SortItem(data)
 			
 			if sort then
 				if not self.DataRegistry[id] then
-					self:AddViewLine(id,sort)
+					self:AddViewLine(id,sort,sortv)
 				end
 			else
 				if self.DataRegistry[id] then

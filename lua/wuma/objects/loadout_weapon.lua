@@ -19,15 +19,17 @@ function Loadout_Weapon:new(tbl)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
-	obj.m.parent = tbl.parent or false
-	obj.class = tbl.class or false
+	obj.m.origin = tbl.origin or nil
+	obj.m.origin = tbl.origin or nil
+obj.m.parent = tbl.parent or nil
+	obj.class = tbl.class or nil
 	obj.primary = tbl.primary or 0
 	obj.secondary = tbl.secondary or 0
-	obj.respect_restrictions = tbl.respect_restrictions or false
-	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permenant" end
+	obj.respect_restrictions = tbl.respect_restrictions or nil
 	
 	obj.m._id = Loadout_Weapon._id
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permenant" end
 
 	return obj
 end 
@@ -49,13 +51,17 @@ function object:__eq(v1,v2)
 end
 
 function object:Clone()
-	local obj = Loadout_Weapon:new(table.Copy(self))
-
+	local copy = table.Copy(self)
+	local origin
+	
 	if self.origin then
-		obj.m.origin = self.origin
+		origin = self.origin
 	else
-		obj.m.orign = self
+		origin = self
 	end
+	
+	copy.origin = origin
+	local obj = Loadout_Weapon:new(copy)
 
 	return obj
 end
@@ -123,15 +129,13 @@ function object:GetOrigin()
 end
 
 function object:SetScope(scope)	
-	if not (scope.m) then
+	if not self:GetOrigin() then
 		self.scope = Scope:new(scope)
-	else
-		self.scope = scope
+		
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
 	end
-	
-	self.scope:SetParent(self)
-	
-	self.scope:AllowThink()
 end
 
 function object:Disable()
@@ -142,8 +146,12 @@ function object:Enable()
 	self.m.disabled = false
 end
 
+function object:IsPersonal()
+	return self:GetParent():IsPersonal()
+end
+
 function object:Shred()
-	if (self:GetParent():IsPersonal()) then
+	if (self:IsPersonal()) then
 		WUMA.RemoveUserLoadoutWeapon(_,self:GetParent():GetParentID(),self:GetClass())
 	else
 		WUMA.RemoveLoadoutWeapon(_,self:GetParent():GetUserGroup(),self:GetClass())

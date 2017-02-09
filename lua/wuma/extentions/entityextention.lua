@@ -4,8 +4,13 @@ local self = ENT
 
 function ENT:AddWUMAParent(limit)
 	self.WUMAParents = self.WUMAParents or {}
-	table.insert(self.WUMAParents,limit)
+	
+	self.WUMAParents[limit:GetUniqueID()] = limit
 	self:CallOnRemove("NotifyWUMAParents", function(ent) ent:NotifyWUMAParents() end)
+end
+
+function ENT:RemoveWUMAParent(limit)
+	self.WUMAParents[limit:GetUniqueID()] = ni
 end
 
 function ENT:GetWUMAParents()
@@ -14,6 +19,6 @@ end
 
 function ENT:NotifyWUMAParents() 
 	for _,parent in pairs(self:GetWUMAParents()) do 
-		parent:Subtract()
+		parent:DeleteEntity(self:GetCreationID())
 	end
 end

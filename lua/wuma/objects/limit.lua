@@ -21,16 +21,16 @@ function Limit:new(tbl)
 	
 	obj.string = tbl.string or nil
 	obj.limit = tbl.limit or 0
-	obj.parent = tbl.parent or nil
 	obj.usergroup = tbl.usergroup or nil
 	obj.exclusive = tbl.exclusive or nil
 	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-	
 	obj._id = Limit._id
 	
-	obj.m.override = tbl.overrive or nil
+	obj.m.origin = tbl.origin or nil
+	obj.m.parent = tbl.parent or nil
+	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
 	obj.m.count = tbl.count or 0
+	obj.m.entities = tbl.entities or {}
 	
 	--No numeric adv. limits
 	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
@@ -40,6 +40,8 @@ function Limit:new(tbl)
 	
 	--Parse limit
 	if (tonumber(obj.limit) != nil) then obj.limit = tonumber(obj.limit) end
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
   
 	return obj
 end 
@@ -102,27 +104,30 @@ function object:__le(that)
 end
 
 function object:Clone()
-	local obj = Limit:new(table.Copy(self))
-
+	local copy = table.Copy(self)
+	local origin
+	
 	if self.origin then
-		obj.m.origin = self.origin
+		origin = self.origin
 	else
-		obj.m.orign = self
+		origin = self
 	end
+	
+	copy.origin = origin
+	local obj = Limit:new(copy)
 
 	return obj
 end
 
 function object:GetUniqueID()
-	return obj.m._uniqueid or false
+	return self.m._uniqueid or false
 end
 
 function object:Delete()
-	if self:GetParent() then
-		self:GetParent():RemoveLimit(self:GetID(),self:IsPersonal()) 
+	--So that no entities point here, thereby preventing garbage collection
+	for id, entity in pairs(self.m.entities)  do
+		entity:RemoveWUMAParent(entity)
 	end
-	
-	self = nil
 end
 
 function object:Shred()
@@ -134,7 +139,7 @@ function object:Shred()
 end
 
 function object:IsPersonal()
-	if self.usergroup then return false else return true end
+	if self.usergroup then return nil else return true end
 end
 	
 function object:GetBarebones()
@@ -157,29 +162,15 @@ function object:Set(c)
 end
 
 function object:GetID(short)
-	if self:GetUserGroup() and not short then
-		return string.lower(string.format("%s_%s",self.usergroup,self.string))
-	else
+	if (not self:GetUserGroup()) or short then
 		return string.lower(self.string)
+	else
+		return string.lower(string.format("%s_%s",self:GetUserGroup(),self:GetString()))
 	end
 end
 
 function object:GetStatic()
 	return Limit
-end
-
-function object:SetOverride(limit)
-	self:RemoveOverride(limit)
-	
-	self.override = limit
-end
-
-function object:GetOverride()
-	return self.override 
-end
-
-function object:RemoveOverride()
-	self.override = nil
 end
 
 function object:GetCount()
@@ -192,11 +183,12 @@ function object:SetCount(c)
 end
 
 function object:GetParent()
-	return self.parent
+	return self.m.parent
 end
 
 function object:SetParent(user)
-	self.parent = user
+	self.m.parent = user
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
 end
 
 function object:GetUserGroup()
@@ -204,7 +196,7 @@ function object:GetUserGroup()
 end
 
 function object:GetOrigin()
-	return self.origin
+	return self.m.origin
 end
 
 function object:GetString()
@@ -224,8 +216,7 @@ function object:SetExclusive(bool)
 end
 
 function object:GetParentID()
-	if isstring(self:GetParent()) then return self:GetParent() end
-	return self:GetParent():SteamID()
+	return self.m.parentid
 end
 
 function object:GetScope()
@@ -233,15 +224,13 @@ function object:GetScope()
 end
 
 function object:SetScope(scope)	
-	if (scope.m) then
-		self.scope = scope
-	else
+	if not self:GetOrigin() then
 		self.scope = Scope:new(scope)
+		
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
 	end
-	
-	self:GetScope():SetParent(self)
-	
-	self:GetScope():AllowThink()
 end
 
 function object:DeleteScope()
@@ -262,60 +251,77 @@ function object:IsDisabled()
 	return false
 end
 
-function object:Check(int)
-	if self.override then 
-		return self:GetOverride():Check(int)
-	else
-		local limit = int or self:Get()
-		
-		if istable(limit) then 
-			if not limit:IsExclusive() then
-				return limit:Check()
-			else
-				return self:Check(limit:Get()) 
-			end
-		elseif isstring(limit) and self:GetParent():HasLimit(limit) then
-			self:Set(self:GetParent():GetLimit(limit))
-			return self:Check(self:Get())
-		elseif isstring(limit) then
-			return nil
-		end
-		
-		if (limit < 0) then return end
-		if (limit <= self:GetCount()) then
-			self:Hit()
-			return false
-		end
+function object:SetAncestor(ancestor)
+	self.m.ancestor = ancestor
+end
+
+function object:GetAncestor()
+	return self.m.ancestor
+end
+
+function object:InheritEntities(limit)
+	self.m.entities = limit.m.entities
+	self:SetCount(limit:GetCount())
+	
+	for id, entity in pairs(self.m.entities) do
+		entity:AddWUMAParent(self) 
 	end
+end
+
+function object:Check(int)
+	if self:IsDisabled() then return nil end
+
+	local limit = int or self:Get()
+	
+	if istable(limit) then 
+		if not limit:IsExclusive() then
+			return limit:Check()
+		else
+			return self:Check(limit:Get()) 
+		end
+	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
+		self:Set(self:GetParent():GetLimit(limit))
+		return self:Check(self:Get())
+	elseif isstring(limit) then
+		return nil
+	end
+	
+	if (limit < 0) then return end
+	if (limit <= self:GetCount()) then
+		self:Hit()
+		return false
+	end
+
 	return true
 end
 
 function object:Hit()
-	if self:GetOverride() then self:GetOverride():Hit(); return end
 	local str = self.print or self.string
 	
-	self.parent:SendLua(string.format([[
+	self:GetParent():SendLua(string.format([[
 			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
 		]],str))
-	self.parent:SendLua([[surface.PlaySound("buttons/button10.wav")]])
+	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
+
+function object:DeleteEntity(id)
+	self.m.entities[id] = nil
+	self:Subtract()
+end 
 
 function object:Subtract(c)
 	c = tonumber(c) or 1
 	self:SetCount(self:GetCount() - c)
-	if self:GetOverride() then self:GetOverride():Subtract(c) end
 end 
 
 function object:Add(entity)
 	self:SetCount(self:GetCount() + 1)
+	
 	local limit = self:Get()
-	
-	if istable(self:Get()) and not self:Get():IsExclusive() then limit:Add(entity) end
-	
-	if self:GetOverride() then self:GetOverride():SetCount(self:GetOverride():GetCount() + 1) end
+	if istable(limit) and not self:Get():IsExclusive() then limit:Add(entity) end
 	
 	entity:AddWUMAParent(self) 
-	if self:GetOverride() then entity:AddWUMAParent(self:GetOverride()) end
+	self.m.entities[entity:GetCreationID()] = entity
 end
 
 object.__index = object

@@ -39,11 +39,11 @@ Scope.types.UNTIL = Scope.UNTIL
 
 Scope.DURATION = {
 	print="Duration",
-	print2=function(obj) return string.format("%s seconds",obj:GetData()-os.time()) end,
+	print2=function(obj) return string.format("%s seconds",obj:GetData()-WUMA.GetTime()) end,
 	log_prefix="for",
 	parts={"time_chooser"},
 	save=true,
-	processdata=function(data) return tonumber(data)+os.time() end,
+	processdata=function(data) return tonumber(data)+WUMA.GetTime() end,
 	checkfunction=function(obj) 
 		if (os.time() > obj:GetData()) then return false else return true end 
 	end,
@@ -53,7 +53,7 @@ Scope.types.DURATION = Scope.DURATION
 
 Scope.MAP = {
 	print="Map",
-	print2=function(obj) return string.format("Map %s",obj:GetData()) end,
+	print2=function(obj) return string.format("%s",obj:GetData()) end,
 	log_prefix="on",
 	parts={"map_chooser"},
 	save=true,
@@ -105,12 +105,15 @@ function Scope:new(tbl)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
-	obj.m.parent = tbl.parent or false
 	obj.type = tbl.type or "Permanent"
 	obj.data = tbl.data or false
 	obj.class = tbl.class or false
-
-	hook.Add("WUMAScopeThink","WUMAScopeThink"..tostring(obj:GetUniqueID()),function() obj:Think() end)
+	
+	obj.m.parent = tbl.parent or false
+	
+	if (obj:GetType() != "MAP") then 
+		hook.Add("WUMAScopeThink","WUMAScopeThink_"..tostring(obj:GetUniqueID()),function() obj:Think() end)
+	end
   
 	return obj
 end 
@@ -149,7 +152,9 @@ function static:__eq(v1, v2)
 end
 
 function static:Think()
-	hook.Call("WUMAScopeThink")
+	if SERVER then
+		hook.Call("WUMAScopeThink")
+	end
 end
 
 
@@ -174,18 +179,24 @@ function object:GetStatic()
 end
 
 function object:Delete()
-	hook.Remove("WUMAScopeThink","WUMAScopeThink"..tostring(self:GetUniqueID()))
-	self = nil
+	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
 end	
 
+function object:Shred()
+	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
+	self:GetParent():Shred()
+end
+
 function object:Think()
+	if CLIENT then return end
+
 	if self:CanThink() then
 		if not self:GetParent() then return self:Delete() end
-	
+
 		local typ = Scope.types[self:GetType()]
 		local checkdata = nil
 		if typ.checkdata then checkdata = typ.checkdata() end
-			
+		
 		if not typ.checkfunction(self,checkdata) then
 			if not self:GetParent():IsDisabled() then
 				if typ.keep then
@@ -195,8 +206,8 @@ function object:Think()
 						WUMADebug("Warning! Scope has no parent!")
 					end
 				else
-					self:Delete()
-					self:GetParent():Shred()
+					WUMADebug("Shredding: %s",tostring(self:GetUniqueID()))
+					self:Shred()
 				end
 			end
 		else
@@ -217,7 +228,7 @@ function object:Clone()
 	if self.origin then
 		obj.m.origin = self.origin
 	else
-		obj.m.orign = self
+		obj.m.origin = self
 	end
 
 	return obj
@@ -279,7 +290,7 @@ function object:GetType()
 end
 
 function object:GetOrigin()
-	return self.origin
+	return self.m.origin
 end
 
 object.__index = object

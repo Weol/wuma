@@ -109,7 +109,7 @@ function object:Clone()
 	if self.origin then
 		obj.m.origin = self.origin
 	else
-		obj.m.orign = self
+		obj.m.origin = self
 	end
 
 	return obj

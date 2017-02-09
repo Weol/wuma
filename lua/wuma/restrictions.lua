@@ -136,6 +136,7 @@ end
 function WUMA.RemoveUserRestriction(caller,user,type,item)
 	local id = Restriction:GenerateID(type,_,item)
 	
+	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:RemoveRestriction(id,true)
 		
