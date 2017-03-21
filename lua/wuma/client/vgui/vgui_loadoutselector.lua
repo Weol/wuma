@@ -58,18 +58,28 @@ function PANEL:Init()
 	
 	self.properties = vgui.Create("DPanel",self.sidebar)
 	
-	self.loadout = vgui.Create("DScrollPanel",self)
-	self.loadout.Paint = function(panel, w, h)
+	self.loadout_title = vgui.Create("DPanel",self)
+	self.loadout_title.Paint = function(panel, w, h)
 		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
 		draw.RoundedBox(0, 0, 33, w, 3, Color(159, 163, 167, 255))
 		draw.DrawText("Loadout","DermaLarge",5,2,Color(0, 0, 0, 255))
 	end
+	
+	self.loadout = vgui.Create("DScrollPanel",self)
+	self.loadout.Paint = function(panel, w, h)
+		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
+	end
+	
+	self.selection_title = vgui.Create("DPanel",self)
+	self.selection_title.Paint = function(panel, w, h)
+		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
+		draw.RoundedBox(0, 0, 33, w, 3, Color(159, 163, 167, 255))
+		draw.DrawText("Weapons","DermaLarge",5,2,Color(0, 0, 0, 255))
+	end
 		
 	self.selection = vgui.Create("DScrollPanel",self)
 	self.selection.Paint = function(panel, w, h)
-		draw.RoundedBox( 3, 0, 0, w, h, Color( 234, 234, 234, 255 ) )
-		draw.RoundedBox(0, 0, 33, w, 3, Color(159, 163, 167, 255))
-		draw.DrawText("Weapons","DermaLarge",5,2,Color(0, 0, 0, 255))
+		draw.RoundedBox(3, 0, 0, w, h, Color( 234, 234, 234, 255 ) )
 	end
 
 end
@@ -140,14 +150,17 @@ function PANEL:PerformLayout()
 	self.properties:DockMargin(0,5,0,5)
 	self.properties:Dock(FILL)
 	
+	self.loadout_title:SetTall(36)
+	self.loadout_title:DockMargin(5,0,0,0)
+	self.loadout_title:Dock(TOP)
+	
 	self.loadout:SetTall(self:GetTall()/3)
 	self.loadout:DockMargin(5,0,0,0)
 	self.loadout:Dock(TOP)
 
-	local first = true
 	for _, category in pairs(self.categories) do
 		category:SetWide(self:GetWide())
-		if first then category:DockMargin(0,36,0,0); first = nil else category:DockMargin(0,2,0,0) end
+		category:DockMargin(0,2,0,0)
 		category:Dock(TOP)
 		
 		for i, icon in pairs(category:GetContents():GetChildren()) do
@@ -161,8 +174,12 @@ function PANEL:PerformLayout()
 		icon:SetSize(self:GetIconSize(),self:GetIconSize())
 		icon:SetPos(self:GetIconPos(i))
 	end
+		
+	self.selection_title:SetTall(36)
+	self.selection_title:DockMargin(5,5,0,0)
+	self.selection_title:Dock(TOP)
 
-	self.selection:DockMargin(5,5,0,0)
+	self.selection:DockMargin(5,0,0,0)
 	self.selection:Dock(TOP)
 	self.selection:SetTall(self.sidebar:GetTall()-self.loadout:GetTall()-5)
 
@@ -191,16 +208,14 @@ function PANEL:AddWeapon(weapon)
 	if not weapon.Spawnable then return end
 
 	local index = table.insert(self.weapons,weapon)
-		
-	if not self:GetCategory(weapon.Category) then
-		self:AddCategory(weapon.Category)
+
+	local category = weapon.Category or "Other"
+	if not self:GetCategory(category) then
+		self:AddCategory(category)
 	end
-	
-	local icon = vgui.Create("WUMA_WeaponIcon",self:GetCategory(weapon.Category):GetContents())
-	icon:SetImage("entities/"..weapon.ClassName..".png")
-	icon:SetName(weapon.PrintName or weapon.ClassName)
-	icon:SetClass(weapon.ClassName)
-	icon:SetCategory(weapon.Category)	
+
+	local icon = vgui.Create("SpawnIcon",self:GetCategory(category):GetContents())
+	icon:SetModel(weapon.WorldModel)
 
 	local self_panel = self
 end
@@ -218,7 +233,8 @@ function PANEL:AddCategory(name)
 	category:SetPos(25, 50)											 
 	category:SetSize(250, 100)										 
 	category:SetExpanded(0)											 
-	category:SetLabel(name)							
+	category:SetLabel(name)		
+	category.index = #self.categories	
 
 	local listpanel = vgui.Create("DPanelList", category)
 	listpanel:SetSpacing(5)							
@@ -290,8 +306,9 @@ function ICON:Paint(w, h)
 	if not self.highlight and not self:IsSelected() then
 		local height = 18
 		surface.DrawRect(2,h-height,w-4,height)
-		local text_w, text_h = surface.GetTextSize(self:GetName())
 		surface.SetFont("DermaDefault")
+		local text_w, text_h = surface.GetTextSize(self:GetName())
+		if (self:GetName() == "SMG") then WUMADebug(text_w) end
 		surface.SetTextColor( 255, 255, 255, 255 )
 		surface.SetTextPos( w/2-text_w/2, (h-height)+(height/2)-(text_h/2))
 		surface.DrawText(self:GetName())	
@@ -320,15 +337,26 @@ function ICON:SetName(name)
 end
 
 function ICON:GetName()
-	return self.name or ""
+	return self.name
 end
 
 function ICON:SetImage(img)
 	self.image = Material(img,"smooth noclamp")
+	if (self.image:IsError()) then 
+	
+	end
 end
 
 function ICON:GetImage()
 	return self.image
+end
+
+function ICON:SetWeapon(weapon)
+	self.weapon = weapon
+end
+
+function ICON:GetWeapon()
+	return self.weapon
 end
 
 function ICON:SetSelected(bool)
@@ -354,4 +382,4 @@ function ICON:OnMousePressed()
 	self:SetSelected(not self:IsSelected())
 end
 
-vgui.Register("WUMA_WeaponIcon", ICON, "DPanel")
+vgui.Register("WUMA_WeaponIcon", ICON, "SpawnIcon")

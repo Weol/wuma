@@ -172,6 +172,8 @@ function ENT:RemoveRestriction(id,personal)
 		local ancestor = restriction:GetAncestor()
 		self:GetRestrictions()[id] = ancestor
 	end
+	
+	if (#self:GetRestrictions() < 1) then self.Restrictions = nil end
 end
 
 function ENT:GetRestrictions()
@@ -187,6 +189,10 @@ function ENT:GetRestriction(type,str)
 		return self:GetRestrictions()[type]
 	end
 end 
+
+function ENT:SetLimits(limits) 
+	self.Limits = limits
+end
 
 function ENT:AddLimit(limit)
 	if not self:GetLimits() then self.Limits = {} end
@@ -228,6 +234,8 @@ function ENT:RemoveLimit(id,personal)
 		
 		self:GetLimits()[id] = ancestor
 	end
+	
+	if (#self:GetLimits() < 1) then self.Limits = nil end
 end
 
 function ENT:GetLimits()
@@ -235,11 +243,13 @@ function ENT:GetLimits()
 end 
 
 function ENT:GetLimit(str)
+	if not self:GetLimits() then return false end
 	local id = Limit:GenerateID(_,str)
 	return self:GetLimits()[id]
 end
 
 function ENT:HasLimit(str)
+	if not self:GetLimits() then return false end
 	local id = Limit:GenerateID(_,str)
 	if self:GetLimits()[id] then return true end
 	return false

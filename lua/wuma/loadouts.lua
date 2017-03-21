@@ -332,12 +332,6 @@ function WUMA.GiveLoadout(user)
 	end
 end
 
-function WUMA.AssignLoadout(user, usergroup)
-	if not(WUMA.Loadouts[(usergroup or user:GetUserGroup())]) then return end
-	
-	user:SetLoadout(WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone())
-end
-
 function WUMA.RefreshLoadout(user)
 	user:ClearLoadout()
 	WUMA.AssignLoadout(user)

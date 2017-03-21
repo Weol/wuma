@@ -31,16 +31,16 @@ if AdvDupe2 then
 		if user then
 			for _,entity in pairs(data[1].CreatedEntities) do 
 	
-				if (string.lower(entity:GetClass()) == "prop_physics" or string.lower(entity:GetClass()) == "prop_ragdoll") then
+				str = entity:GetClass()
+	
+				if (string.lower(entity:GetClass()) == "prop_ragdoll") then
 					str = entity:GetModel()
-				elseif (string.lower(entity:GetClass()) == "prop_effect") then  
-					str = entity:GetTable()[7]
 				elseif (entity:GetTable().VehicleName) then  
 					str = entity:GetTable().VehicleName
 				end
 				
 				if user:HasLimit(str) then
-					if (user:CheckLimit(str,true) == false) then
+					if (user:CheckLimit(_,str) == false) then
 						entity:Remove()
 					else
 						user:AddCount(_,entity,str)

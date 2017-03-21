@@ -1,20 +1,16 @@
 
-if not SERVER then return end
-
 WUMA = WUMA or {}
 
 WUMA.ConVars = WUMA.ConVars or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
---Definitions
 WUMA.VERSION = "1.0 Beta"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
 WUMA.DELETE = "WUMA_delete"
 WUMA.EMPTY = "WUMA_empty" 
-WUMA.ERROR = "WUMA_error" 
 
 --Paths
 WUMA.DataDirectory = "WUMA/"
@@ -24,22 +20,19 @@ WUMA.ObjectsDirectory = "WUMA/objects/"
 WUMA.UserDataDirectory = "users/"
 WUMA.HomeDirectory = "WUMA/"
 
---Settings
 WUMA.WUMAGUI = "wuma gui"
-WUMA.RegisterSize = 200
 
 function WUMA.Initialize()
    
 	Msg("WUMA.Initialize()\n")
  
-	--Bootstrap
 	include(WUMA.HomeDirectory.."files.lua")
 	include(WUMA.HomeDirectory.."log.lua")
 	  
 	--Initialize data files  
 	WUMA.Files.Initialize()
 
-	--Loading objects
+	--Load objects
 	WUMA.LoadFolder(WUMA.ObjectsDirectory)
 	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
 
@@ -61,9 +54,9 @@ function WUMA.Initialize()
 	CAMI.RegisterPrivilege{Name=WUMA.WUMAGUI,MinAccess="superadmin",Description="Access to WUMA GUI"}
 	   
 	--Who am I writing these for?
-	WUMALog("User Management Addon version %s",WUMA.VERSION)
+	WUMALog("Weol's User Management Addon version %s",WUMA.VERSION)
 	
-	--Initialize SQL
+	--Initialize database
 	WUMA.SQL.Initialize()
 	
 	--Load data 
@@ -71,12 +64,12 @@ function WUMA.Initialize()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
 	
-	--Loading shared files
+	--Load shared files
 	WUMALog("Loading shared files")
 	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
 	WUMA.LoadFolder(WUMA.SharedDirectroy) 
 	
-	--Loading client files
+	--Load client files
 	WUMALog("Loading client files")
 	WUMA.LoadCLFolder(WUMA.ClientDirectory)
 	
@@ -144,5 +137,3 @@ function WUMA.LoadCLFolder(dir)
 	end
 end
 WUMA.Initialize()
-
-WUMA.Loaded = trueW

@@ -31,6 +31,7 @@ function Limit:new(tbl)
 	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
 	obj.m.count = tbl.count or 0
 	obj.m.entities = tbl.entities or {}
+	obj.m.callonempty = tbl.callonempty or {}
 	
 	--No numeric adv. limits
 	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
@@ -59,9 +60,7 @@ function static:GenerateID(usergroup,str)
 end
 
 function static:GenerateHit(str,ply)
-	ply:SendLua(string.format([[
-			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
-		]],str))
+	ply:SendLua(string.format([[notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)]],str))
 	ply:SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
@@ -150,6 +149,14 @@ function object:GetBarebones()
 		end
 	end
 	return tbl
+end
+	
+function object:CallOnEmpty(id, f)
+	self.m.callonempty[id] = f
+end
+	
+function object:NotifyEmpty()
+	for _, f in pairs(self.m.callonempty) do f(self) end 
 end
 	
 function object:Get()
@@ -312,6 +319,7 @@ end
 function object:Subtract(c)
 	c = tonumber(c) or 1
 	self:SetCount(self:GetCount() - c)
+	if (self:GetCount() == 0) then self:NotifyEmpty() end
 end 
 
 function object:Add(entity)

@@ -300,7 +300,7 @@ concommand.Add( "loadout", function()
 	WUMA.Selfout = vgui.Create("WUMA_UserLoadout")
 	WUMA.Selfout:SetSize(700,700)
 	WUMA.Selfout:SetPos(400,100)
-	WUMA.Selfout:AddWeapons(list.Get( "Weapon" ))
+	WUMA.Selfout:AddWeapons(weapons.GetList())
 	
 	WUMA.Selfout:SetVisible(true)
 	WUMA.Selfout:MakePopup()

@@ -141,7 +141,7 @@ function PANEL:Init()
 		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
 		
 		local limit = data.limit
-		if (limit < 0) then limit = "∞" end
+		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
 		
 		return {data.usergroup, data.print or data.string, limit, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,limit_sort,0}
 	end

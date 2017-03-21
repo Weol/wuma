@@ -71,7 +71,7 @@ end
 
 function object:IsAuthorized(user, callback)
 	if not self.auth then 
-		WUMAError("WARNING! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION!!")
+		WUMAError("FATAL SECURITY RISK! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION!")
 		callback(false)
 	else
 		self.auth(user, callback)

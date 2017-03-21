@@ -157,14 +157,6 @@ function WUMA.RemoveUserRestriction(caller,user,type,item)
 
 end
 
-function WUMA.AssignRestrictions(user,usergroup)	
-	for _,object in pairs(WUMA.Restrictions) do
-		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
-			user:AddRestriction(object:Clone())
-		end
-	end
-end
-
 function WUMA.RefreshGroupRestrictions(user,usergroup)
 	for k,v in pairs(user:GetRestrictions()) do
 		if v:GetUserGroup() then

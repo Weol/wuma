@@ -33,6 +33,7 @@ function WUMA.GetSavedLimits(user)
 	return tbl
 end
 
+WUMA.UserLimitsCache = {}
 function WUMA.ReadUserLimits(user)
 	local tbl = {}
 	
@@ -42,6 +43,8 @@ function WUMA.ReadUserLimits(user)
 		obj.parent = user
 		tbl[key] = Limit:new(obj)
 	end 
+	
+	if not isstring(user) then user = user:SteamID() end
 	
 	return tbl
 end
@@ -164,14 +167,6 @@ function WUMA.RemoveUserLimit(caller,user,item)
 			
 		return tbl
 	end)
-end
-
-function WUMA.AssignLimits(user, usergroup)
-	for _,object in pairs(WUMA.Limits) do
-		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
-			user:AddLimit(object:Clone())
-		end
-	end
 end
 
 function WUMA.RefreshGroupLimits(user, usergroup)

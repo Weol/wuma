@@ -2,17 +2,17 @@
 WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
+
 WUMA.Users = {}
 
+WUMA.UserLimitsCache = {}
 WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
 
 function WUMA.InitializeUser(user)
 	WUMA.AssignRestrictions(user)
 	WUMA.AssignLimits(user)
 	WUMA.AssignLoadout(user)
-	
-	WUMA.AssignUserRegulations(user)
-	
+
 	if user:HasWUMAData() then
 		WUMA.AddLookup(user)
 	end
@@ -29,6 +29,19 @@ function WUMA.AssignUserRegulations(user)
 	WUMA.AssignUserLoadout(user)
 end
 
+function WUMA.AssignRestrictions(user)	
+	WUMA.AssignUsergroupRestrictions(user)
+	WUMA.AssignUserRestrictions(user)
+end
+
+function WUMA.AssignUsergroupRestrictions(user,usergroup)	
+	for _,object in pairs(WUMA.Restrictions) do
+		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
+			user:AddRestriction(object:Clone())
+		end
+	end
+end
+
 function WUMA.AssignUserRestrictions(user)
 	if WUMA.CheckUserFileExists(user,Restriction) then
 		local tbl = WUMA.GetSavedRestrictions(user)
@@ -38,13 +51,47 @@ function WUMA.AssignUserRestrictions(user)
 	end
 end
 
+function WUMA.AssignLimits(user)
+	WUMA.AssignUsergroupLimits(user)
+	WUMA.AssignUserLimits(user)
+	
+	local cache = WUMA.UserLimitsCache[user:SteamID()]
+	if cache then
+		for _, object in pairs(cache) do
+			object:CallOnEmpty("WUMADeleteCache", nil)
+			user:AddLimit(object)
+		end
+		WUMA.UserLimitsCache[user:SteamID()] = nil
+	end
+end
+
+
+function WUMA.AssignUsergroupLimits(user, usergroup)
+	for id, object in pairs(WUMA.Limits) do
+		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
+			user:AddLimit(object:Clone())
+		end
+	end
+end
+
 function WUMA.AssignUserLimits(user)
 	if WUMA.CheckUserFileExists(user,Limit) then
 		local tbl = WUMA.GetSavedLimits(user)
-		for _,obj in pairs(tbl) do
+		for id, obj in pairs(tbl) do
 			user:AddLimit(obj)
 		end
 	end
+end
+
+function WUMA.AssignLoadout(user, usergroup)
+	WUMA.AssignUsergroupLoadout(user)
+	WUMA.AssignUserLoadout(user)
+end
+
+function WUMA.AssignUsergroupLoadout(user, usergroup)
+	if not(WUMA.Loadouts[(usergroup or user:GetUserGroup())]) then return end
+	
+	user:SetLoadout(WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone())
 end
 
 function WUMA.AssignUserLoadout(user)
@@ -150,6 +197,17 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.UserDisconnect(user)
+	//Cache users limit data so they cant rejoin to reset limits
+	if (user:GetLimits()) then
+		WUMA.UserLimitsCache[user:SteamID()] = user:GetLimits()
+		for _, limit in pairs(user:GetLimits()) do 
+			limit:CallOnEmpty("WUMADeleteCache",function(limit) 
+				WUMA.UserLimitsCache[limit:GetParentID()][limit:GetID()] = nil
+				if (#WUMA.UserLimitsCache[limit:GetParentID()] < 1) then WUMA.UserLimitsCache[limit:GetParentID()] = nil end
+			end)
+		end
+	end
+
 	if user:HasWUMAData() then
 		WUMA.AddLookup(user)
 	end

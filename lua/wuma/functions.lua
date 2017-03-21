@@ -260,7 +260,6 @@ SetLimit:SetFunction(function(caller, usergroup, item, limit, exclusive, scope)
 	if not usergroup or not item or not limit then return WUMADebug("Invalid access arguments (setlimit)!") end
 	
 	usergroup = string.lower(usergroup)
-	limit = string.lower(limit)
 	item = string.lower(item)
 	
 	if (exclusive == 1) then exclusive = true else exclusive = false end
@@ -274,6 +273,8 @@ SetLimit:SetFunction(function(caller, usergroup, item, limit, exclusive, scope)
 			scope_str = string.lower(scope:GetPrint2())
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
+		WUMADebug(limit)
+		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
 		
 		return {"%s set %s limit to %s for %s"..prefix,item,limit,usergroup,scope_str}, sucess, caller
 	end
@@ -281,7 +282,7 @@ end)
 SetLimit:AddArgument(WUMAAccess.PLAYER)
 SetLimit:AddArgument(WUMAAccess.USERGROUP)
 SetLimit:AddArgument(WUMAAccess.STRING)
-SetLimit:AddArgument(WUMAAccess.STRING)
+SetLimit:AddArgument(WUMAAccess.NUMBER)
 SetLimit:AddArgument(WUMAAccess.NUMBER,true)
 SetLimit:AddArgument(WUMAAccess.SCOPE,true)
 SetLimit:SetLogFunction(WUMA.EchoFunction)
@@ -309,6 +310,7 @@ SetUserLimit:SetFunction(function(caller, target, item, limit, exclusive, scope)
 			scope_str = string.lower(scope:GetPrint2())
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
+		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
 		
 		return {"%s set %s limit to %s for %s"..prefix,item,limit,nick,scope_str}, sucess, caller
 	end
@@ -316,7 +318,7 @@ end)
 SetUserLimit:AddArgument(WUMAAccess.PLAYER)
 SetUserLimit:AddArgument(WUMAAccess.PLAYER)
 SetUserLimit:AddArgument(WUMAAccess.STRING)
-SetUserLimit:AddArgument(WUMAAccess.STRING)
+SetUserLimit:AddArgument(WUMAAccess.NUMBER)
 SetUserLimit:AddArgument(WUMAAccess.NUMBER,true)
 SetUserLimit:AddArgument(WUMAAccess.SCOPE,true)
 SetUserLimit:SetLogFunction(WUMA.EchoFunction)

@@ -133,7 +133,7 @@ function PANEL:Init()
 	
 	self.loadouts.Command.Add = "adduserloadout"
 	self.loadouts.Command.Delete = "removeuserloadout"
-	self.loadouts.Command.Edit = "adduserload"
+	self.loadouts.Command.Edit = "adduserloadout"
 	self.loadouts.Command.Clear = "clearuserloadout"
 	self.loadouts.Command.Primary = "setuserprimaryweapon"
 	
