@@ -171,8 +171,8 @@ function WUMA.GetAuthorizedUsers(callback)
 	CAMI.GetPlayersWithAccess(WUMA.WUMAGUI, callback)
 end
 
-function WUMA.HasAccess(user,callback)
-	CAMI.PlayerHasAccess(user, WUMA.WUMAGUI, callback)
+function WUMA.HasAccess(user, callback, access)
+	CAMI.PlayerHasAccess(user, access or WUMA.WUMAGUI, callback)
 end
 
 function WUMA.UserToTable(user)
@@ -203,7 +203,7 @@ function WUMA.UserDisconnect(user)
 		for _, limit in pairs(user:GetLimits()) do 
 			limit:CallOnEmpty("WUMADeleteCache",function(limit) 
 				WUMA.UserLimitsCache[limit:GetParentID()][limit:GetID()] = nil
-				if (#WUMA.UserLimitsCache[limit:GetParentID()] < 1) then WUMA.UserLimitsCache[limit:GetParentID()] = nil end
+				if (table.Count(WUMA.UserLimitsCache[limit:GetParentID()]) < 1) then WUMA.UserLimitsCache[limit:GetParentID()] = nil end
 			end)
 		end
 	end

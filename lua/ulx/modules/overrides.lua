@@ -17,11 +17,9 @@ local function echoFunction(args, affected, caller)
 			ulx.fancyLogAdmin(caller, msg, unpack(args))
 		elseif (EchoChanges:GetInt() == 2) then
 			--To all
-			Msg("2\n")
 			ulx.fancyLogAdmin(caller, msg, unpack(args))
 		elseif (EchoChanges:GetInt() == 3) then
 			--To affected
-			Msg("3\n")
 			ulx.fancyLogAdmin(caller, msg, unpack(args))
 		end
 	end

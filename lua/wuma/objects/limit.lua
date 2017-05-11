@@ -152,11 +152,15 @@ function object:GetBarebones()
 end
 	
 function object:CallOnEmpty(id, f)
-	self.m.callonempty[id] = f
+	if SERVER then
+		self.m.callonempty[id] = f
+	end
 end
 	
 function object:NotifyEmpty()
-	for _, f in pairs(self.m.callonempty) do f(self) end 
+	if SERVER then
+		for _, f in pairs(self.m.callonempty) do f(self) end
+	end	
 end
 	
 function object:Get()

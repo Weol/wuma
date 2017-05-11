@@ -17,8 +17,8 @@ WUMA.NET.SETTINGS:SetClientFunction(function(data)
 	for name, value in pairs(data[1]) do
 		WUMA.ServerSettings[string.sub(name,6)] = value
 	end
-	WUMA.ServerSettings["server_time_offset"] = WUMA.ServerSettings["server_time"] - os.time()
 	hook.Call(WUMA.SETTINGSUPDATE, _,WUMA.ServerSettings)
+	WUMA.ServerSettings["server_time_offset"] = WUMA.ServerSettings["server_time"] - os.time()
 end)
 WUMA.NET.SETTINGS:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
@@ -185,7 +185,7 @@ WUMA.NET.RESTRICTION:SetServerFunction(function(user,data)
 			return {user, tbl, Restriction:GetID()..":::"..data[1]}
 		end
 	else
-		if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
+		if WUMA.RestrictionsExist() then
 			return {user, WUMA.GetSavedRestrictions(), Restriction:GetID()}
 		end
 	end
@@ -207,7 +207,7 @@ WUMA.NET.LIMIT:SetServerFunction(function(user,data)
 			return {user, tbl, Limit:GetID()..":::"..data[1]}
 		end
 	else
-		if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
+		if WUMA.LimitsExist() then
 			return {user, WUMA.GetSavedLimits(), Limit:GetID()}
 		end
 	end
@@ -229,7 +229,7 @@ WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
 			return {user, tbl, Loadout:GetID()..":::"..data[1]}
 		end
 	else
-		if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
+		if WUMA.LoadoutsExist() then
 			return {user, WUMA.GetSavedLoadouts(), Loadout:GetID()}
 		end
 	end
@@ -238,3 +238,25 @@ WUMA.NET.LOADOUT:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 WUMA.NET.LOADOUT:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
+///// 	   PERSONAL | Returns personal request		/////
+/////////////////////////////////////////////////////////
+WUMA.NET.PERSONAL = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
+WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
+	if (data[1] == "subscribe") then
+		WUMA.AddDataSubscription(user,user:SteamID(),user:SteamID()) //Subscibe user to their own data
+	elseif (data[1] == "unsubscribe") then
+		WUMA.RemoveDataSubscription(user,user:SteamID(),user:SteamID()) //Unsubscibe user to their own data
+	elseif (data[1] == "restrictions") then
+		return {user, user:GetRestrictions(), Restriction:GetID()..":::"..user:SteamID()}
+	elseif (data[1] == "loadout") then
+		if user:HasLoadout() then
+			return {user, user:GetLoadout():GetBarebones(), Loadout:GetID()..":::"..user:SteamID()}
+		end
+	end
+end) 
+WUMA.NET.PERSONAL:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback, "wuma personalloadout")
+end)
+WUMA.NET.PERSONAL:AddInto(WUMA.NET.ENUMS)

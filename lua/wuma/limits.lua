@@ -33,7 +33,6 @@ function WUMA.GetSavedLimits(user)
 	return tbl
 end
 
-WUMA.UserLimitsCache = {}
 function WUMA.ReadUserLimits(user)
 	local tbl = {}
 	
@@ -57,6 +56,10 @@ function WUMA.GetLimits(user)
 	else
 		return WUMA.Limits
 	end
+end
+
+function WUMA.LimitsExist() 
+	if (table.Count(WUMA.Limits) > 0) then return true end
 end
 
 function WUMA.HasLimit(usergroup,item)
@@ -170,7 +173,7 @@ function WUMA.RemoveUserLimit(caller,user,item)
 end
 
 function WUMA.RefreshGroupLimits(user, usergroup)
-	for k,v in pairs(user:GetLimits()) do
+	for k,v in pairs(user:GetLimits() or {}) do
 		if not v:IsPersonal() then
 			user:RemoveLimit(v:GetID(true))
 	 	end

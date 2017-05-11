@@ -69,9 +69,11 @@ function WUMA.ProcessAccess(cmd,data)
 			
 			for _, args in pairs(arguments) do
 				access(unpack(args))
+				PrintTable(args)
 			end
 		else
 			access(unpack(static))
+			PrintTable(static)
 		end
 
 	else
@@ -84,7 +86,7 @@ function WUMA.CheckAccess(access, user, callback)
 end
 
 function WUMA.CheckSelfAccess(access, user, callback)
-	CAMI.PlayerHasAccess(user, "wuma "..WUMA.AccessRegister["selfloadout"]:GetName(), callback)
+	CAMI.PlayerHasAccess(user, "wuma "..WUMA.AccessRegister["personalloadout"]:GetName(), callback)
 end
  
 function WUMA.EchoFunction(args, affected, caller)
@@ -273,7 +275,7 @@ SetLimit:SetFunction(function(caller, usergroup, item, limit, exclusive, scope)
 			scope_str = string.lower(scope:GetPrint2())
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
-		WUMADebug(limit)
+
 		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
 		
 		return {"%s set %s limit to %s for %s"..prefix,item,limit,usergroup,scope_str}, sucess, caller
@@ -390,7 +392,7 @@ AddLoadout:SetFunction(function(caller, usergroup, item, primary, secondary, res
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
 		
-		return {"%s added %s to %s loadout"..prefix,item,usergroup,scope_str}, sucess, caller
+		return {"%s added %s to %ss loadout"..prefix,item,usergroup,scope_str}, sucess, caller
 	end
 end)
 AddLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -413,7 +415,6 @@ AddUserLoadout:SetFunction(function(caller, target, item, primary, secondary, re
 	
 	if (primary < 0) then primary = 0 end
 	if (secondary < 0) then secondary = 0 end
-	
 	if (respect == 1) then respect = true else respect = false end
 
 	local sucess = WUMA.AddUserLoadoutWeapon(caller,target, item, primary, secondary, respect, scope)
@@ -428,7 +429,7 @@ AddUserLoadout:SetFunction(function(caller, target, item, primary, secondary, re
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
 		
-		return {"%s added %s to %s loadout"..prefix,item,nick,scope_str}, sucess, caller
+		return {"%s added %s to %ss loadout"..prefix,item,nick,scope_str}, sucess, caller
 	end
 end)
 AddUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -453,7 +454,7 @@ RemoveLoadout:SetFunction(function(caller, usergroup, item)
 	local sucess = WUMA.RemoveLoadoutWeapon(caller, usergroup, item)
 	
 	if not (sucess == false) then
-		return {"%s removed %s from %s loadout",item,usergroup}, sucess, caller
+		return {"%s removed %s from %ss loadout",item,usergroup}, sucess, caller
 	end
 end)
 RemoveLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -474,7 +475,7 @@ RemoveUserLoadout:SetFunction(function(caller, target, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s removed %s from %s loadout",item,nick}, sucess, caller
+		return {"%s removed %s from %ss loadout",item,nick}, sucess, caller
 	end
 end)
 RemoveUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -494,7 +495,7 @@ ClearLoadout:SetFunction(function(caller, usergroup)
 	local sucess = WUMA.ClearLoadout(caller,usergroup)
 	
 	if not (sucess == false) then
-		return {"%s cleared %s loadout",usergroup}, sucess, caller
+		return {"%s cleared %ss loadout",usergroup}, sucess, caller
 	end
 end)
 ClearLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -512,7 +513,7 @@ ClearUserLoadout:SetFunction(function(caller, target)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s cleared %s loadout",nick}, sucess, caller
+		return {"%s cleared %ss loadout",nick}, sucess, caller
 	end
 end)
 ClearUserLoadout:AddArgument(WUMAAccess.PLAYER)
@@ -587,57 +588,70 @@ ChangeSettings:SetAccessFunction(WUMA.CheckAccess)
 ChangeSettings:SetAccess("superadmin")
 
 --Add self loadout
-local AddSelfLoadout = WUMA.RegisterAccess{name="addselfloadout",help="Adds a weapon to a users self loadout.",strict=true}
-AddSelfLoadout:SetFunction(function(caller, item, primary, secondary)
-	if not item or not primary or not secondary then return WUMADebug("Invalid access arguments (addselfloadout)!") end
+local AddPersonalLoadout = WUMA.RegisterAccess{name="addpersonalloadout",help="Adds a weapon to a users personal loadout.",strict=true}
+AddPersonalLoadout:SetFunction(function(caller, item, primary, secondary)
+	if not item or not primary or not secondary then return WUMADebug("Invalid access arguments (addpersonalloadout)!") end
 
 	item = string.lower(item)
 	
 	if (primary < 0) then primary = 0 end
 	if (secondary < 0) then secondary = 0 end
 
-	WUMA.AddUserLoadoutWeapon(caller, caller, item, primary, secondary)
+	WUMA.AddUserLoadoutWeapon(caller, caller, item, primary, secondary, true)
 end)
-AddSelfLoadout:AddArgument(WUMAAccess.PLAYER)
-AddSelfLoadout:AddArgument(WUMAAccess.STRING)
-AddSelfLoadout:AddArgument(WUMAAccess.NUMBER)
-AddSelfLoadout:AddArgument(WUMAAccess.NUMBER)
-AddSelfLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
-AddSelfLoadout:SetAccess("superadmin")
+AddPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
+AddPersonalLoadout:AddArgument(WUMAAccess.STRING)
+AddPersonalLoadout:AddArgument(WUMAAccess.NUMBER)
+AddPersonalLoadout:AddArgument(WUMAAccess.NUMBER)
+AddPersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
+AddPersonalLoadout:SetAccess("superadmin")
 
 --Delete self loadout
-local RemoveSelfLoadout = WUMA.RegisterAccess{name="removeselfloadout",help="Removes a weapon from users own loadout.",strict=true}
-RemoveSelfLoadout:SetFunction(function(caller, item)
-	if not item then return WUMADebug("Invalid access arguments (removeselfloadout)!") end
+local RemovePersonalLoadout = WUMA.RegisterAccess{name="removepersonalloadout",help="Removes a weapon from users personal loadout.",strict=true}
+RemovePersonalLoadout:SetFunction(function(caller, item)
+	if not item then return WUMADebug("Invalid access arguments (removepersonalloadout)!") end
 
 	item = string.lower(item)
 
 	WUMA.RemoveUserLoadoutWeapon(caller, caller, item)
 end)
-RemoveSelfLoadout:AddArgument(WUMAAccess.PLAYER)
-RemoveSelfLoadout:AddArgument(WUMAAccess.STRING)
-RemoveSelfLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
-RemoveSelfLoadout:SetAccess("superadmin")
+RemovePersonalLoadout:AddArgument(WUMAAccess.PLAYER)
+RemovePersonalLoadout:AddArgument(WUMAAccess.STRING)
+RemovePersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
+RemovePersonalLoadout:SetAccess("superadmin")
+
+--Clear personal loadout
+local ClearPersonalLoadout = WUMA.RegisterAccess{name="clearpersonalloadout",help="Clear personal loadout."}
+ClearPersonalLoadout:SetFunction(function(caller)
+
+	local sucess = WUMA.ClearUserLoadout(caller,caller)
+
+end)
+ClearPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
+ClearPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
+ClearPersonalLoadout:SetLogFunction(WUMA.EchoFunction)
+ClearPersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
+ClearPersonalLoadout:SetAccess("superadmin")
 
 --Set user primary weapon
-local SetSelfPrimaryWeapon = WUMA.RegisterAccess{name="setselfprimaryweapon",help="Sets a users own primary weapon.",strict=true}
-SetSelfPrimaryWeapon:SetFunction(function(caller, item)
-	if not item then return WUMADebug("Invalid access arguments (setselfprimaryweapon)!") end
+local SetPersonalPrimaryWeapon = WUMA.RegisterAccess{name="setpersonalprimaryweapon",help="Sets a users own primary weapon.",strict=true}
+SetPersonalPrimaryWeapon:SetFunction(function(caller, item)
+	if not item then return WUMADebug("Invalid access arguments (setpersonalprimaryweapon)!") end
 
 	item = string.lower(item)
 	
 	WUMA.SetUserLoadoutPrimaryWeapon(caller, caller, item)
 end)
-SetSelfPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
-SetSelfPrimaryWeapon:AddArgument(WUMAAccess.STRING)
-SetSelfPrimaryWeapon:SetAccessFunction(WUMA.CheckSelfAccess)
-SetSelfPrimaryWeapon:SetAccess("superadmin")
+SetPersonalPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
+SetPersonalPrimaryWeapon:AddArgument(WUMAAccess.STRING)
+SetPersonalPrimaryWeapon:SetAccessFunction(WUMA.CheckSelfAccess)
+SetPersonalPrimaryWeapon:SetAccess("superadmin")
 
---Self loadout access
-local SelfLoadout = WUMA.RegisterAccess{name="selfloadout",help="Allows users to set their own loadout."}
-SelfLoadout:SetFunction(function() end)
-SelfLoadout:SetAccessFunction(WUMA.CheckAccess)
-SelfLoadout:SetAccess("superadmin")
+--Personal loadout access
+local PersonalLoadout = WUMA.RegisterAccess{name="personalloadout",help="Allows users to set their own loadout."}
+PersonalLoadout:SetFunction(function() end)
+PersonalLoadout:SetAccessFunction(WUMA.CheckAccess)
+PersonalLoadout:SetAccess("superadmin")
 
---Register CAMI privliges after all accesses are done
+--Register CAMI privliges after all accesses are registered
 WUMA.RegisterCAMIAccessPriviliges()

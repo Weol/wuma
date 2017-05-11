@@ -33,7 +33,7 @@ CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to re
 --Data update
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
-	
+
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
 	end
@@ -89,7 +89,7 @@ function WUMA.UpdateRestrictions(update)
 		end
 	end
 	
-	hook.Call(WUMA.RESTRICTIONUPDATE, update)
+	hook.Call(WUMA.RESTRICTIONUPDATE, _, update)
 end
 
 function WUMA.UpdateLimits(update)
@@ -111,7 +111,7 @@ function WUMA.UpdateLimits(update)
 		end
 	end
 	
-	hook.Call(WUMA.LIMITUPDATE, update)
+	hook.Call(WUMA.LIMITUPDATE, _, update)
 
 end
 
@@ -149,7 +149,7 @@ function WUMA.UpdateLoadouts(update)
 		end
 	end
 	
-	hook.Call(WUMA.LOADOUTUPDATE, update)
+	hook.Call(WUMA.LOADOUTUPDATE, _, update)
 
 end
 
@@ -168,8 +168,6 @@ function WUMA.UpdateUser(id, enum, data)
 		WUMA.UpdateUserLoadouts(id,data)
 	end
 	
-	hook.Call(WUMA.USERDATAUPDATE, update, id, enum)
-	
 end
 
 function WUMA.UpdateUserRestrictions(user, update)
@@ -185,7 +183,7 @@ function WUMA.UpdateUserRestrictions(user, update)
 		WUMA.UserData[user].Restrictions[id] = tbl	
 	end
 
-	if WUMA.GUI.Tabs.Users.restrictions then
+	if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.restrictions then
 		if (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
 			WUMA.GUI.Tabs.Users.restrictions:GetDataView():UpdateDataTable(WUMA.UserData[user].Restrictions)
 		end
@@ -196,6 +194,9 @@ function WUMA.UpdateUserRestrictions(user, update)
 			WUMA.UserData[user].Restrictions[k] = nil
 		end
 	end
+	
+	hook.Call(WUMA.USERDATAUPDATE, _, user, Restriction:GetID(), update)
+	
 end
 
 function WUMA.UpdateUserLimits(user, update)
@@ -211,7 +212,7 @@ function WUMA.UpdateUserLimits(user, update)
 		WUMA.UserData[user].Limits[id] = tbl	
 	end
 	
-	if WUMA.GUI.Tabs.Users.limits then
+	if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.limits then
 		if (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
 			WUMA.GUI.Tabs.Users.limits:GetDataView():UpdateDataTable(WUMA.UserData[user].Limits)
 		end
@@ -223,16 +224,20 @@ function WUMA.UpdateUserLimits(user, update)
 		end
 	end
 
+	hook.Call(WUMA.USERDATAUPDATE, _, user, Limit:GetID(), update)
+	
 end
 
 function WUMA.UpdateUserLoadouts(user, update)
 	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
+	
+	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
 
 	if istable(update) and (update[1] ~= WUMA.DELETE) then
 		update = Loadout:new(update)
 		WUMA.UserData[user].Loadouts = update
 		
-		if WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
+		if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
 			local tbl = {}
 			for class, weapon in pairs(update:GetWeapons()) do
 				tbl[class] = {}
@@ -250,7 +255,7 @@ function WUMA.UpdateUserLoadouts(user, update)
 			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable(tbl)
 		end
 	else
-		if WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
+		if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
 			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable({})
 		end
 	

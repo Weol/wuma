@@ -95,6 +95,9 @@ if SERVER then
 		local tbl = net.ReadTable()
 		local cmd = tbl[1]
 		
+		WUMADebug(cmd)
+		PrintTable(tbl)
+		
 		local data = {user}
 		table.Add(data,tbl[2])
 		

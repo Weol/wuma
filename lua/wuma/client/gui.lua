@@ -1,9 +1,8 @@
 
 WUMA = WUMA or {}
-local WUMADebug = WUMADebug
-local WUMALog = WUMALog
 WUMA.GUI = {}
 WUMA.GUI.Tabs = {}
+
 local WGUI = WUMA.GUI
 
 if not WUMA.HasCreatedFonts then
@@ -56,20 +55,22 @@ function WUMA.GUI.Initialize()
 	WGUI.Base:SetSize(ScrW()*0.40,ScrH()*0.44)
 	WGUI.Base:SetPos(ScrW()/2-WGUI.Base:GetWide()/2,ScrH()/2-WGUI.Base:GetTall()/2)
 	WGUI.Base:SetVisible(false)
+	WUMADebug("Base created")
 	
 	--Create propertysheet
 	WGUI.PropertySheet = vgui.Create("WPropertySheet",WGUI.Base)
 	WGUI.PropertySheet:SetSize(WGUI.Base:GetSize())
 	WGUI.PropertySheet:SetPos(0,0)
 	WGUI.PropertySheet:SetShowExitButton(true)
-	WGUI.PropertySheet.OnTabChange = WUMA.OnTabChange
 
 	--Request panels
 	WGUI.Tabs.Settings = vgui.Create("WUMA_Settings", WGUI.PropertySheet) --Settings
 	WGUI.Tabs.Restrictions = vgui.Create("WUMA_Restrictions", WGUI.PropertySheet) --Restriction	
 	WGUI.Tabs.Limits = vgui.Create("WUMA_Limits", WGUI.PropertySheet) --Limit	
 	WGUI.Tabs.Loadouts = vgui.Create("WUMA_Loadouts", WGUI.PropertySheet) --Loadouts
-	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.PropertySheet) --Player
+	WGUI.Tabs.Users = vgui.Create("WUMA_Users", WGUI.PropertySheet) --Users
+	
+	WGUI.PropertySheet.OnTabChange = WUMA.OnTabChange
 
 	--Adding panels to PropertySheet
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Settings.TabName, WGUI.Tabs.Settings, WGUI.Tabs.Settings.TabIcon) --Settings
@@ -83,14 +84,14 @@ function WUMA.GUI.Initialize()
 	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
 	
 end
-hook.Add( "InitPostEntity", "WUMAGuiInitialize", WUMA.GUI.Initialize)
+hook.Add("InitPostEntity", "WUMAGuiInitialize", WUMA.GUI.Initialize)
 
 function WUMA.GUI.Show()
 	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
 		WUMA.GUI.Base:SetVisible(true)
 		WUMA.GUI.Base:MakePopup()
 	else
-		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE,"You do not have access to this command.\n")
+		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE,"You do not have access to this command\n")
 	end
 end
 
@@ -297,10 +298,45 @@ concommand.Add( "wuma", function()
 end)
 
 concommand.Add( "loadout", function() 
-	WUMA.Selfout = vgui.Create("WUMA_UserLoadout")
+	WUMA.Selfout = vgui.Create("DFrame")
 	WUMA.Selfout:SetSize(700,700)
 	WUMA.Selfout:SetPos(400,100)
-	WUMA.Selfout:AddWeapons(weapons.GetList())
+	
+	local loadout = vgui.Create("WUMA_PersonalLoadout",WUMA.Selfout)
+	loadout:Dock(TOP)
+	loadout:SetWide(WUMA.Selfout:GetWide())
+	loadout:SetTall(WUMA.Selfout:GetTall()-100)
+	loadout.OnClose = function() 
+		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
+		hook.Remove("WUMAPersonalLoadoutUpdate")
+	end
+	
+	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
+		if (enum == Loadout:GetID()) then
+			if update.primary then
+				for k, v in pairs(update.weapons) do
+					if (k == update.primary) then update.weapons[k].isprimary = true end
+				end
+			end
+			
+			loadout:GetDataView():SetDataTable(update.weapons)
+		elseif (enum == Restriction:GetID()) then
+			weps = WUMA.GetWeapons()
+
+			for key, restriction in pairs(update) do
+				table.RemoveByValue(weps, restriction.string)
+			end
+			WUMADebug(".........................")
+			PrintTable(weps)
+			WUMADebug(".........................")
+			loadout.weapons = weps
+			loadout:ReloadSuggestions()
+		end
+	end)
+	
+	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")
+	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"loadout")
+	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"restrictions")
 	
 	WUMA.Selfout:SetVisible(true)
 	WUMA.Selfout:MakePopup()

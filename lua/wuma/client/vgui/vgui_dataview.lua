@@ -124,7 +124,7 @@ function PANEL:SortData()
 end
 
 function PANEL:SetDataTable(tbl)
-	self.DataTable = tbl
+	self.DataTable = tbl or {}
 	self.DataRegistry = {}
 	self:Clear()
 

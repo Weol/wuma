@@ -55,6 +55,10 @@ function WUMA.GetRestrictions(user)
 	end
 end
 
+function WUMA.RestrictionsExist() 
+	if (table.Count(WUMA.Restrictions) > 0) then return true end
+end
+
 function WUMA.HasRestriction(usergroup,type,item)
 	if isstring(usergroup) then
 		if WUMA.GetSavedRestrictions()[Restriction:GenerateID(type,usergroup,item)] then return true end
@@ -158,7 +162,7 @@ function WUMA.RemoveUserRestriction(caller,user,type,item)
 end
 
 function WUMA.RefreshGroupRestrictions(user,usergroup)
-	for k,v in pairs(user:GetRestrictions()) do
+	for k,v in pairs(user:GetRestrictions() or {}) do
 		if v:GetUserGroup() then
 			user:RemoveRestriction(v:GetID(true))
 	 	end

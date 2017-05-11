@@ -292,7 +292,9 @@ function PANEL:PopulateList(key,tbl,clear,select)
 end 
 
 function PANEL:GetSelectedUser()
-	return self:GetDataView():GetLine(self:GetDataView():GetSelectedLine()):GetColumnText(3)
+	if self:GetDataView():GetLine(self:GetDataView():GetSelectedLine()) then
+		return self:GetDataView():GetLine(self:GetDataView():GetSelectedLine()):GetColumnText(3)
+	end
 end
 
 function PANEL:IsExtraVisible()

@@ -53,6 +53,10 @@ function WUMA.GetLoadouts(user)
 		return WUMA.Loadouts
 	end
 end
+
+function WUMA.LoadoutsExist() 
+	if (table.Count(WUMA.Loadouts > 0)) then return true end
+end
  
 function WUMA.HasPersonalLoadout(user)
 	return WUMA.Files.Exists(WUMA.GetUserFile(user,Loadout))

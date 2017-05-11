@@ -2,384 +2,277 @@
 local PANEL = {}
 
 PANEL.HelpText = [[
-	You can set your own 
-	loadout in this window.
-	Any weapons you can spawn 
-	with are shown here,
-	any missing weapons are 
-	either weapons that the
-	server does not have or 
-	weapons that the server 
-	hasrestricted from you 
-	or your usergroup.
+	You can set your own loadout in this window. Any weapons you can spawn with are shown here, any missing weapons are either weapons that the server does not have or weapons that the server has restricted from you or your usergroup.
 ]]
 
 function PANEL:Init()
-	
-	self.lblTitle:SetTextColor(Color(0,0,0))
-	
-	self.WeaponsPerLine = 5
-	
-	self.weapons = {}
-	self.categories = {}
-	
-	self.sidebar = vgui.Create("DPanel",self)
-	self.sidebar.Paint = function() end
-	
-	self.sliders = vgui.Create("DPanel",self.sidebar)
 
-	self.slider_primary = vgui.Create("WSlider",self.sliders)
+	self.weapons = WUMA.GetWeapons()
+
+	self.Command = {}
+	self.Command.Add = "addpersonalloadout"
+	self.Command.Delete = "removepersonalloadout"
+	self.Command.Edit = "addpersonalloadout"
+	self.Command.Clear = "clearpersonalloadout"
+	self.Command.Primary = "setpersonalprimaryweapon"
+
+	//Primary ammo chooser
+	self.slider_primary = vgui.Create("WSlider",self)
 	self.slider_primary:SetMinMax(1,1000)
-	self.slider_primary:SetText("Primary ammo")
+	self.slider_primary:SetText("Primary")
 	self.slider_primary:SetDecimals(0)
-
-	self.slider_secondary = vgui.Create("WSlider",self.sliders)
+	
+	//Secondary ammo chooser
+	self.slider_secondary = vgui.Create("WSlider",self)
 	self.slider_secondary:SetMinMax(1,1000)
-	self.slider_secondary:SetText("Secondary ammo")
+	self.slider_secondary:SetText("Secondary")
 	self.slider_secondary:SetDecimals(0)
 	
-	self.buttons = vgui.Create("DPanel",self.sidebar)
+	//HelpText Label
+	self.helptext_label = vgui.Create("DLabel", self)
+	self.helptext_label:SetText(self.HelpText)
+	self.helptext_label:SetTextColor(Color(0,0,0))
+	self.helptext_label:SizeToContents(true)
+	
+	//Search bar
+	self.textbox_search = vgui.Create("WTextbox",self)
+	self.textbox_search:SetDefault("Search..")
+	self.textbox_search.OnChange = self.OnSearch
+	--{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
+	
+	//Primary button
+	self.button_primary = vgui.Create("DButton",self)
+	self.button_primary:SetText("Set Primary")
+	self.button_primary.DoClick = self.OnPrimaryClick
+	
+	--{parent=self,text="Set Primary",onclick=self.OnPrimaryClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
+	
+	//Edit button
+	self.button_edit = vgui.Create("DButton",self)
+	self.button_edit:SetText("Edit")
+	self.button_edit.DoClick = self.OnEditClick
+	--{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
+	
+	//Delete button
+	self.button_delete = vgui.Create("DButton",self)
+	self.button_delete:SetText("Delete")
+	self.button_delete.DoClick = self.OnDeleteClick
+	
+	--{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
+
+	//Add button
+	self.button_add = vgui.Create("DButton",self)
+	self.button_add:SetText("Add")
+	self.button_add.DoClick = self.OnAddClick
+	
+	--{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
+	
+	//Suggestion list
+	self.list_suggestions = vgui.Create("DListView",self)
+	self.list_suggestions:SetMultiSelect(true)
+	self.list_suggestions:AddColumn("Items")
+	self.list_suggestions:SetSortable(true)
+	--{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
+
+	//Items list
+	self.list_items = vgui.Create("WDataView",self)
+	self.list_items:AddColumn("Weapon")
+	self.list_items:AddColumn("Primary")
+	self.list_items:AddColumn("Secondary")
+	self.list_items.OnRowSelected = self.OnItemChange
+	
+	local highlight = function(line,data,datav)
+		if datav.isprimary then return Color(0,255,0,120) else return nil end
+	end
+	self.list_items:SetHighlightFunction(highlight)
+	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
+	
+	local sort = function(data)	
+		return {data.class, data.primary, data.secondary},{_,-data.primary,-data.secondary}
+	end
 		
-	self.button_remove = vgui.Create("DButton",self.buttons)
-	self.button_remove:SetText("Remove weapons")
-	self.button_remove.DoClick = function(button) self:OnRemoveClick() end 
+	self:GetDataView():SetSortFunction(sort)
 	
-	self.button_add = vgui.Create("DButton",self.buttons)
-	self.button_add:SetText("Add weapons")
-	self.button_add.DoClick = function(button) self:OnAddClick() end 
-	
-	self.help = vgui.Create("DPanel",self.sidebar)
-	
-	self.helplabel = vgui.Create("DLabel",self.help)
-	self.helplabel:SetMultiline(true) 
-	self.helplabel:SetTextColor(Color(0,0,0))
-	self.helplabel:SetText(self.HelpText)
-	self.helplabel:SetContentAlignment(5)
-	
-	self.properties = vgui.Create("DPanel",self.sidebar)
-	
-	self.loadout_title = vgui.Create("DPanel",self)
-	self.loadout_title.Paint = function(panel, w, h)
-		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
-		draw.RoundedBox(0, 0, 33, w, 3, Color(159, 163, 167, 255))
-		draw.DrawText("Loadout","DermaLarge",5,2,Color(0, 0, 0, 255))
-	end
-	
-	self.loadout = vgui.Create("DScrollPanel",self)
-	self.loadout.Paint = function(panel, w, h)
-		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
-	end
-	
-	self.selection_title = vgui.Create("DPanel",self)
-	self.selection_title.Paint = function(panel, w, h)
-		draw.RoundedBox(3, 0, 0, w, h, Color(234, 234, 234, 255))
-		draw.RoundedBox(0, 0, 33, w, 3, Color(159, 163, 167, 255))
-		draw.DrawText("Weapons","DermaLarge",5,2,Color(0, 0, 0, 255))
-	end
+	local right_click = function(item)
+		local tbl = {}
+		tbl[1] = {"Item",item.class}
+		tbl[2] = {"Primary",item.primary}
+		tbl[3] = {"Secondary",item.secondary}
 		
-	self.selection = vgui.Create("DScrollPanel",self)
-	self.selection.Paint = function(panel, w, h)
-		draw.RoundedBox(3, 0, 0, w, h, Color( 234, 234, 234, 255 ) )
+		return tbl
 	end
 
+	self:GetDataView():SetRightClickFunction(right_click)
+	
+	self:ReloadSuggestions()
+	
 end
 
 function PANEL:PerformLayout()
 
-	local titlePush = 0
+	self.slider_primary:SetPos(5,5)
+	self.slider_primary:SetSize(100,40)
+	
+	self.slider_secondary:SetPos(5,self.slider_primary.y+self.slider_primary:GetTall()+5)
+	self.slider_secondary:SetSize(self.slider_primary:GetWide(),40)
+	
+	self.textbox_search:SetSize(130,20)
+	self.textbox_search:SetPos((self:GetWide()-5)-self.textbox_search:GetWide(),5)
 
-	if ( IsValid( self.imgIcon ) ) then
+	self.button_primary:SetSize(self.textbox_search:GetWide(),25)
+	self.button_primary:SetPos(self.textbox_search.x,self:GetTall()-self.button_primary:GetTall()-5)
+	
+	self.button_edit:SetSize(self.textbox_search:GetWide(),25)
+	self.button_edit:SetPos(self.button_primary.x,(self.button_primary.y-5)-self.button_delete:GetTall())
 
-		self.imgIcon:SetPos( 5, 5 )
-		self.imgIcon:SetSize( 16, 16 )
-		titlePush = 16
+	self.button_add:SetSize(self.textbox_search:GetWide()/2-3,25)
+	self.button_add:SetPos(self.button_edit.x,(self.button_edit.y-5)-self.button_edit:GetTall())
+	
+	self.button_delete:SetSize(self.textbox_search:GetWide()/2-3,25)
+	self.button_delete:SetPos(self.button_add.x+self.button_add:GetWide()+6,(self.button_edit.y-5)-self.button_edit:GetTall())
 
+	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
+	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
+	
+	self.list_items:SetPos(self.slider_primary.x+5+self.slider_primary:GetWide(),5)
+	self.list_items:SetSize(self:GetWide()-20-self.textbox_search:GetWide()-self.slider_primary:GetWide(),self:GetTall()-10)
+	
+	self.helptext_label:SetSize(self.slider_primary:GetWide(),190)
+	self.helptext_label:SetPos(5,self:GetTall()-self.helptext_label:GetTall())
+
+end
+
+function PANEL:GetDataView()
+	return self.list_items
+end
+
+function PANEL:PopulateList(key,tbl,clear,select)
+	local listview = self[key]
+
+	if clear then
+		listview:Clear()
 	end
+	
+	for k, v in pairs(tbl) do
+		listview:AddLine(v)
+	end
+	
+	if select then
+		listview:SelectFirstItem()
+	end
+end
 
-	self.btnClose:SetPos( self:GetWide() - 31 - 4, 0 )
-	self.btnClose:SetSize( 31, 31 )
+function PANEL:ReloadSuggestions()
+	if not self.list_suggestions then return end
 
-	self.btnMaxim:SetPos( self:GetWide() - 31 * 2 - 4, 0 )
-	self.btnMaxim:SetSize( 31, 31 )
-
-	self.btnMinim:SetPos( self:GetWide() - 31 * 3 - 4, 0 )
-	self.btnMinim:SetSize( 31, 31 )
-
-	self.lblTitle:SetPos( 8 + titlePush, 2 )
-	self.lblTitle:SetSize( self:GetWide() - 25 - titlePush, 20 )
-
-	////////////////////////////////////////////////////////
-	/////		 		   Custom stuff		 		   /////
-	////////////////////////////////////////////////////////
-	
-	self.sidebar:SetWide(150)
-	self.sidebar:DockMargin(0,0,0,0)
-	self.sidebar:Dock(LEFT)
-	
-	self.slider_primary:SetSize(self.sidebar:GetWide(),40)
-	self.slider_primary:DockMargin(5,5,5,0)
-	self.slider_primary:Dock(TOP)
-	
-	self.slider_secondary:SetSize(self.sidebar:GetWide(),40)
-	self.slider_secondary:DockMargin(5,5,5,0)
-	self.slider_secondary:Dock(TOP)
-	
-	self.sliders:SizeToContents()
-	self.sliders:SetTall(95)
-	self.sliders:Dock(TOP)
-	
-	self.button_add:SetWide(self.sidebar:GetWide())
-	self.button_add:DockMargin(5,0,5,5)
-	self.button_add:Dock(BOTTOM)
-	
-	self.button_remove:SetWide(self.sidebar:GetWide())
-	self.button_remove:DockMargin(5,0,5,5)
-	self.button_remove:Dock(BOTTOM)
-	
-	self.buttons:SizeToContents()
-	self.buttons:SetTall(59)
-	self.buttons:Dock(BOTTOM)
-
-	self.helplabel:DockMargin(5,5,5,5)
-	self.helplabel:Dock(FILL)
-	
-	self.help:SetSize(w,150)
-	self.help:DockMargin(0,0,0,5)
-	self.help:Dock(BOTTOM)
-	
-	self.properties:DockMargin(0,5,0,5)
-	self.properties:Dock(FILL)
-	
-	self.loadout_title:SetTall(36)
-	self.loadout_title:DockMargin(5,0,0,0)
-	self.loadout_title:Dock(TOP)
-	
-	self.loadout:SetTall(self:GetTall()/3)
-	self.loadout:DockMargin(5,0,0,0)
-	self.loadout:Dock(TOP)
-
-	for _, category in pairs(self.categories) do
-		category:SetWide(self:GetWide())
-		category:DockMargin(0,2,0,0)
-		category:Dock(TOP)
+	self:PopulateList("list_suggestions",self.weapons,true)
 		
-		for i, icon in pairs(category:GetContents():GetChildren()) do
-			i = i - 2
-			icon:SetSize(self:GetIconSize(),self:GetIconSize())
-			icon:SetPos(self:GetIconPos(i))
+	self.list_suggestions.VBar:SetScroll(0)
+end
+
+function PANEL:GetSelectedSuggestions()
+	local tbl = {}
+	for _,v in pairs(self.list_suggestions:GetSelected()) do
+		table.insert(tbl,v:GetColumnText(1))
+	end		
+	return tbl
+end
+
+function PANEL:GetSelectedUsergroups()
+	return LocalPlayer():SteamID()
+end
+
+function PANEL:GetPrimaryAmmo()
+	if not self.slider_primary then return nil end
+	
+	return self.slider_primary.wang:GetValue()
+end
+
+function PANEL:GetSecondaryAmmo()
+	if not self.slider_secondary then return nil end
+	
+	return self.slider_secondary.wang:GetValue()
+end
+
+function PANEL:OnSearch()
+
+	local self = self:GetParent()
+	local text = self.textbox_search:GetValue()
+	
+	self:ReloadSuggestions()
+	
+	for k, line in pairs(self.list_suggestions:GetLines()) do
+		local item = line:GetValue(1)
+		if not string.match(string.lower(item),string.lower(text)) then
+			self.list_suggestions:RemoveLine(k)
 		end
 	end
 	
-	for i, icon in pairs(self.loadout.pnlCanvas:GetChildren()) do
-		icon:SetSize(self:GetIconSize(),self:GetIconSize())
-		icon:SetPos(self:GetIconPos(i))
-	end
-		
-	self.selection_title:SetTall(36)
-	self.selection_title:DockMargin(5,5,0,0)
-	self.selection_title:Dock(TOP)
+end
 
-	self.selection:DockMargin(5,0,0,0)
-	self.selection:Dock(TOP)
-	self.selection:SetTall(self.sidebar:GetTall()-self.loadout:GetTall()-5)
+function PANEL:OnItemChange(lineid,line)
 
-	--[[
-	for i, icon in pairs(self.selection:GetCanvas():GetChildren()) do
-		icon:SetSize(self:GetIconSize(),self:GetIconSize())
-		icon:SetPos(self:GetIconPos(i))
-	end
-	--]]	
+end
+
+function PANEL:OnPrimaryClick()
+	self = self:GetParent()
 	
-end
-
-function PANEL:Paint(w, h)
-	draw.RoundedBox( 8, 0, 0, w, h, Color( 159, 163, 167, 255 ) )
-end
-
-function PANEL:GetIconSize()
-	return ((self.loadout:GetCanvas():GetWide()-self.loadout:GetVBar():GetWide())-(self.WeaponsPerLine-1)*5)/self.WeaponsPerLine
-end
-
-function PANEL:GetIconPos(i)
-	return ((((i-1)/self.WeaponsPerLine)-math.floor((i-1)/self.WeaponsPerLine))*self.WeaponsPerLine)*(self:GetIconSize()+5),math.floor((i-1)/self.WeaponsPerLine)*(self:GetIconSize()+5)
-end
-
-function PANEL:AddWeapon(weapon)
-	if not weapon.Spawnable then return end
-
-	local index = table.insert(self.weapons,weapon)
-
-	local category = weapon.Category or "Other"
-	if not self:GetCategory(category) then
-		self:AddCategory(category)
-	end
-
-	local icon = vgui.Create("SpawnIcon",self:GetCategory(category):GetContents())
-	icon:SetModel(weapon.WorldModel)
-
-	local self_panel = self
-end
-
-function PANEL:GetCategory(category)
-	return self.categories[category]
-end
-
-function PANEL:GetCategories()
-	return self.categories
-end
-
-function PANEL:AddCategory(name)
-	local category = vgui.Create("DCollapsibleCategory", self.selection)	
-	category:SetPos(25, 50)											 
-	category:SetSize(250, 100)										 
-	category:SetExpanded(0)											 
-	category:SetLabel(name)		
-	category.index = #self.categories	
-
-	local listpanel = vgui.Create("DPanelList", category)
-	listpanel:SetSpacing(5)							
-	listpanel:EnableHorizontal(false)				
-	listpanel:EnableVerticalScrollbar(true)
-	category:SetContents(listpanel)	
+	local items = self:GetDataView():GetSelectedItems()
+	if (table.Count(items) ~= 1) then return end
 	
-	category.GetContents = function(panel) return panel.Contents end
+	local str = {items[1].class}
 
-	self.categories[name] = category
+	local access = self.Command.Primary
+	local data = {str}
 	
-	return category
-end
-
-function PANEL:AddWeapons(weapons)
-	for _, weapon in pairs(weapons) do 
-		self:AddWeapon(weapon)
-	end
-end
-
-function PANEL:OnRemoveClick()
-	for _, icon in pairs(self.loadout:GetCanvas():GetChildren()) do
-		if (icon:GetName() != "DPanel" and icon:IsSelected()) then
-			icon:SetParent(self:GetCategory(icon:GetCategory()):GetContents())
-			icon:SetSelected(false)
-		end
-	end
-	self:InvalidateLayout()
+	WUMA.SendCommand(access,data)
 end
 
 function PANEL:OnAddClick()
-	for _, category in pairs(self:GetCategories()) do
-		for _, icon in pairs(category:GetContents():GetChildren()) do
-			if icon:IsSelected() then
-				icon:SetParent(self.loadout)
-				icon:SetSelected(false)
-			end
+	self = self:GetParent()
+	if not self:GetSelectedSuggestions() then return end
+	
+	local suggestions = self:GetSelectedSuggestions()
+	if table.Count(suggestions) == 1 then suggestions = suggestions[1] end
+	
+	local access = self.Command.Add
+	local data = {suggestions,self:GetPrimaryAmmo(),self:GetSecondaryAmmo()}
+	
+	WUMA.SendCommand(access,data)
+end
+
+function PANEL:OnDeleteClick()
+	self = self:GetParent()
+	
+	local items = self:GetDataView():GetSelectedItems()
+	if (table.Count(items) < 1) then return end
+	
+	local strings = {}
+	
+	for _, v in pairs(items) do
+		if not table.HasValue(strings,v.class) then
+			table.insert(strings,v.class)	
 		end
 	end
-	self:InvalidateLayout()
-end
-
-vgui.Register("WUMA_UserLoadout", PANEL, 'DFrame');
-
-local ICON = {}
-
-function ICON:Init()
 	
-end
-
-function ICON:PerformLayout(w, h) 
+	local access = self.Command.Delete
+	local data = {strings}
 	
+	WUMA.SendCommand(access,data)
 end
 
-function ICON:Paint(w, h)
-
-	if not self:IsSelected() then
-		draw.RoundedBox(4, 0, 0, w, h, Color(0,0,0))
-	else
-		draw.RoundedBox(4, 0, 0, w, h, Color(0,200,0))
-	end
-
-	surface.SetDrawColor(Color(255,255,255))
-	surface.SetMaterial(self:GetImage())
-	surface.DrawTexturedRectUV(2, 2, w-4, h-4, 0, 0, 1, 1)
+function PANEL:OnEditClick()
+	self = self:GetParent()
 	
-	surface.SetDrawColor(Color(0,0,0,220))
-
-	if not self.highlight and not self:IsSelected() then
-		local height = 18
-		surface.DrawRect(2,h-height,w-4,height)
-		surface.SetFont("DermaDefault")
-		local text_w, text_h = surface.GetTextSize(self:GetName())
-		if (self:GetName() == "SMG") then WUMADebug(text_w) end
-		surface.SetTextColor( 255, 255, 255, 255 )
-		surface.SetTextPos( w/2-text_w/2, (h-height)+(height/2)-(text_h/2))
-		surface.DrawText(self:GetName())	
-	end
+	local items = self:GetDataView():GetSelectedItems()
+	if (table.Count(items) ~= 1) then return end
 	
-end
+	local str = {items[1].class}
 
-function ICON:SetCategory(category)
-	self.category = category
-end
-
-function ICON:GetCategory()
-	return self.category or ""
-end
-
-function ICON:SetClass(class)
-	self.class = class
-end
-
-function ICON:GetClass()
-	return self.class or ""
-end
-
-function ICON:SetName(name)
-	self.name = name
-end
-
-function ICON:GetName()
-	return self.name
-end
-
-function ICON:SetImage(img)
-	self.image = Material(img,"smooth noclamp")
-	if (self.image:IsError()) then 
+	local access = self.Command.Edit
+	local data = {str,self:GetPrimaryAmmo(),self:GetSecondaryAmmo()}
 	
-	end
+	WUMA.SendCommand(access,data)
 end
 
-function ICON:GetImage()
-	return self.image
-end
-
-function ICON:SetWeapon(weapon)
-	self.weapon = weapon
-end
-
-function ICON:GetWeapon()
-	return self.weapon
-end
-
-function ICON:SetSelected(bool)
-	self.selected = bool
-	self:Paint(self:GetSize())
-end
-
-function ICON:IsSelected()
-	return self.selected
-end
-
-function ICON:OnCursorExited()
-	self.highlight = false
-	self:Paint(self:GetSize())
-end
-
-function ICON:OnCursorEntered()
-	self.highlight = true
-	self:Paint(self:GetSize())
-end
-
-function ICON:OnMousePressed()
-	self:SetSelected(not self:IsSelected())
-end
-
-vgui.Register("WUMA_WeaponIcon", ICON, "SpawnIcon")
+vgui.Register("WUMA_PersonalLoadout", PANEL, 'DPanel');
