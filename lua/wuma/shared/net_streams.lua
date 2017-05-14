@@ -251,7 +251,10 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 			if (user == hook_user) and not restriction:IsPersonal() then
 				local tbl = {}
 				tbl[restriction:GetID()] = restriction
-				WUMA.SendCompressedData(user, tbl, Restriction:GetID() .. ":::" .. user:SteamID()) 
+				
+				local id = Restriction:GetID() .. ":::" .. user:SteamID()
+				
+				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData", data, {user, "_DATA", id}, 1)
 			end
 		end)
 		
@@ -259,8 +262,10 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 			if (user == hook_user) and not restriction:IsPersonal() then
 				local tbl = {}
 				tbl[restriction:GetID()] = WUMA.DELETE
-			
-				WUMA.SendCompressedData(user, tbl, Restriction:GetID() .. ":::" .. user:SteamID()) 
+				
+				local id = Restriction:GetID() .. ":::" .. user:SteamID()
+				
+				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData", data, {user, "_DATA", id}, 1)			
 			end
 		end)
 	elseif (data[1] == "unsubscribe") then 

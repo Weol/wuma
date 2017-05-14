@@ -22,6 +22,49 @@ local function isTableEmpty(tbl)
 	if (table.Count(tbl) < 1) then return true else return false end
 end
 
+--Pooling
+WUMA.FunctionPool = {}
+function WUMA.PopFunctionPool(id)
+	if (WUMA.FunctionPool[id]) then
+		local data = {}
+		for k, tbl in pairs(WUMA.FunctionPool[id].data) do
+			table.Merge(data, tbl)
+		end
+		
+		local args = WUMA.FunctionPool[id].args
+		args[table.KeyFromValue(args, "_DATA")] = data
+		
+		WUMA.FunctionPool[id].func(unpack(args))
+		WUMA.FunctionPool[id] = nil
+		
+		if (table.Count(WUMA.FunctionPool) < 1) then
+			timer.Remove("FunctionPoolTimer")
+		end
+	end
+end
+
+function WUMA.PoolFunction(id, func, data, args, timeout) 
+	if not timer.Exists("FunctionPoolTimer") then
+		timer.Create(FunctionPoolTimer, 0.1, 0, WUMA.CheckFunctionPool)
+	end
+
+	if WUMA.FunctionPool[id] then 
+		table.insert(WUMA.FunctionPool[id].data, data)
+	else
+		WUMA.FunctionPool[id] = {func=func, data=data, args=args, timeout=timeout, cur_time=0}
+	end
+end
+
+function WUMA.CheckFunctionPool() 
+	for id, tbl in pairs(WUMA.FunctionPool) do 
+		if (tbl.cur_time > tbl.timeout) then
+			WUMA.PopFunctionPool(id)
+		else
+			tbl.cur_time = tbl.cur_time + 0.1
+		end
+	end
+end
+
 --Update Clients
 WUMA.DATA.Subscriptions = {}
 WUMA.DATA.Subscriptions.users = {} 
