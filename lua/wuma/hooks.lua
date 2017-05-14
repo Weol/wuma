@@ -3,6 +3,10 @@ WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
+//Hooks
+WUMA.USERRESTRICTIONADDED = "WUMAUserRestrictionAdded"
+WUMA.USERRESTRICTIONREMOVED = "WUMAUserRestrictionRemoved"
+
 function WUMA.PlayerSpawnSENT(ply, sent)
 	if (ply:CheckRestriction("entity",sent) == false) then return false end
 	if (ply:CheckLimit("sents",sent) == false) then return false end

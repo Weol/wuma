@@ -151,6 +151,8 @@ function ENT:AddRestriction(restriction)
 	else
 		self:GetRestrictions()[id] = new
 	end
+	
+	hook.Call(WUMA.USERRESTRICTIONADDED, _, restriction)
 end 
 
 function ENT:AddRestrictions(tbl)
@@ -174,6 +176,8 @@ function ENT:RemoveRestriction(id,personal)
 	end
 	
 	if (#self:GetRestrictions() < 1) then self.Restrictions = nil end
+	
+	hook.Call(WUMA.USERRESTRICTIONREMOVED, _, restriction)
 end
 
 function ENT:GetRestrictions()

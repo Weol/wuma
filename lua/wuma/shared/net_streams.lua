@@ -245,9 +245,24 @@ WUMA.NET.LOADOUT:AddInto(WUMA.NET.ENUMS)
 WUMA.NET.PERSONAL = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 	if (data[1] == "subscribe") then
-		WUMA.AddDataSubscription(user,user:SteamID(),user:SteamID()) //Subscibe user to their own data
+		WUMA.AddDataSubscription(user,user:SteamID(),user:SteamID())
+	
+		hook.Add(WUMA.USERRESTRICTIONADDED, string.match(user:SteamID(), "\d+") .. WUMA.USERRESTRICTIONADDED, function(restriction) 
+			if not restriction:IsPersonal() then
+				WUMA.NET.Send(user, {restriction:GetID() = restriction}, Restriction:GetID() .. ":::" .. user:SteamID()) 
+			end
+		end)
+		
+		hook.Add(WUMA.USERRESTRICTIONREMOVED, string.match(user:SteamID(), "\d+") .. WUMA.USERRESTRICTIONREMOVED, function(restriction) 
+			if not restriction:IsPersonal() then
+				WUMA.NET.Send(user, {restriction:GetID() = nil}, Restriction:GetID() .. ":::" .. user:SteamID()) 
+			end
+		end)
 	elseif (data[1] == "unsubscribe") then
-		WUMA.RemoveDataSubscription(user,user:SteamID(),user:SteamID()) //Unsubscibe user to their own data
+		WUMA.RemoveDataSubscription(user,user:SteamID(),user:SteamID())
+	
+		hook.Remove(WUMA.USERRESTRICTIONADDED, string.match(user:SteamID(), "\d+") .. WUMA.USERRESTRICTIONADDED)
+		hook.Remove(WUMA.USERRESTRICTIONREMOVED, string.match(user:SteamID(), "\d+") .. WUMA.USERRESTRICTIONREMOVED)
 	elseif (data[1] == "restrictions") then
 		return {user, user:GetRestrictions(), Restriction:GetID()..":::"..user:SteamID()}
 	elseif (data[1] == "loadout") then

@@ -27,9 +27,11 @@ WUMA.DATA.Subscriptions = {}
 WUMA.DATA.Subscriptions.users = {} 
 
 function WUMA.AddDataSubscription(user,target,extra)
-	if WUMA.IsSteamID(target) then
-		if not WUMA.DATA.Subscriptions.users[target] then WUMA.DATA.Subscriptions.users[target] = {} end
-		if not WUMA.DATA.Subscriptions.users[target][extra] then WUMA.DATA.Subscriptions.users[target][extra] = {} end
+	if not target then
+		WUMA.DATA.Subscriptions.personal[user:SteamID()] = user
+	elseif WUMA.IsSteamID(target) then
+		WUMA.DATA.Subscriptions.users[target] = WUMA.DATA.Subscriptions.users[target] or {}
+		WUMA.DATA.Subscriptions.users[target][extra] = WUMA.DATA.Subscriptions.users[target][extra] or {}
 		WUMA.DATA.Subscriptions.users[target][extra][user:SteamID()] = user
 	else
 		if not (WUMA.DATA.Subscriptions[target]) then WUMA.DATA.Subscriptions[target] = {} end
@@ -40,8 +42,10 @@ end
 function WUMA.RemoveDataSubscription(user,target,extra)
 
 	user = user:SteamID()
-
-	if WUMA.IsSteamID(target) and WUMA.DATA.Subscriptions.users[target] then
+	
+	if not target then
+		WUMA.DATA.Subscriptions.personal[user] = nil
+	elseif WUMA.IsSteamID(target) and WUMA.DATA.Subscriptions.users[target] then
 		for k, v in pairs(WUMA.DATA.Subscriptions.users[target]) do
 			if not extra then
 				if v[user] then v[user] = nil end
