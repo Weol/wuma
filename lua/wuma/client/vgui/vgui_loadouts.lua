@@ -15,15 +15,17 @@ function PANEL:Init()
 
 	//Primary ammo chooser
 	self.slider_primary = vgui.Create("WSlider",self)
-	self.slider_primary:SetMinMax(1,1000)
+	self.slider_primary:SetMinMax(-1,400)
 	self.slider_primary:SetText("Primary")
 	self.slider_primary:SetDecimals(0)
+	self.slider_primary:SetMinOverride(-1, "def")
 	
 	//Secondary ammo chooser
 	self.slider_secondary = vgui.Create("WSlider",self)
-	self.slider_secondary:SetMinMax(1,1000)
+	self.slider_secondary:SetMinMax(-1,400)
 	self.slider_secondary:SetText("Secondary")
 	self.slider_secondary:SetDecimals(0)
+	self.slider_secondary:SetMinOverride(-1, "def")
 	
 	//Set as button
 	self.button_setas = vgui.Create("DButton",self)
@@ -138,8 +140,14 @@ function PANEL:Init()
 		
 		scope = "Permanent"
 		if data.scope then scope = data.scope end
+		
+		local primary = data.primary
+		if (tonumber(primary) < 0) then primary = "def" end
+		
+		local secondary = data.secondary
+		if (tonumber(secondary) < 0) then secondary = "def" end
 
-		return {data.usergroup, data.class, data.primary, data.secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-data.primary,-data.secondary}
+		return {data.usergroup, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-data.primary,-data.secondary}
 	end
 		
 	self:GetDataView():SetSortFunction(sort)
@@ -308,13 +316,13 @@ end
 function PANEL:GetPrimaryAmmo()
 	if not self.slider_primary then return nil end
 	
-	return self.slider_primary.wang:GetValue()
+	return self.slider_primary:GetValue()
 end
 
 function PANEL:GetSecondaryAmmo()
 	if not self.slider_secondary then return nil end
 	
-	return self.slider_secondary.wang:GetValue()
+	return self.slider_secondary:GetValue()
 end
 
 function PANEL:GetRespectsRestrictions()

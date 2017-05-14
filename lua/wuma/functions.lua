@@ -69,11 +69,9 @@ function WUMA.ProcessAccess(cmd,data)
 			
 			for _, args in pairs(arguments) do
 				access(unpack(args))
-				PrintTable(args)
 			end
 		else
 			access(unpack(static))
-			PrintTable(static)
 		end
 
 	else
@@ -377,9 +375,6 @@ AddLoadout:SetFunction(function(caller, usergroup, item, primary, secondary, res
 	usergroup = string.lower(usergroup)
 	item = string.lower(item)
 	
-	if (primary < 0) then primary = 0 end
-	if (secondary < 0) then secondary = 0 end
-	
 	if (respect == 1) then respect = true else respect = false end
 
 	local sucess = WUMA.AddLoadoutWeapon(caller,usergroup, item, primary, secondary, respect, scope)
@@ -413,8 +408,6 @@ AddUserLoadout:SetFunction(function(caller, target, item, primary, secondary, re
 
 	item = string.lower(item)
 	
-	if (primary < 0) then primary = 0 end
-	if (secondary < 0) then secondary = 0 end
 	if (respect == 1) then respect = true else respect = false end
 
 	local sucess = WUMA.AddUserLoadoutWeapon(caller,target, item, primary, secondary, respect, scope)
@@ -587,15 +580,15 @@ ChangeSettings:AddArgument(WUMAAccess.STRING)
 ChangeSettings:SetAccessFunction(WUMA.CheckAccess)
 ChangeSettings:SetAccess("superadmin")
 
---Add self loadout
+--Add personal loadout
 local AddPersonalLoadout = WUMA.RegisterAccess{name="addpersonalloadout",help="Adds a weapon to a users personal loadout.",strict=true}
 AddPersonalLoadout:SetFunction(function(caller, item, primary, secondary)
 	if not item or not primary or not secondary then return WUMADebug("Invalid access arguments (addpersonalloadout)!") end
 
 	item = string.lower(item)
 	
-	if (primary < 0) then primary = 0 end
-	if (secondary < 0) then secondary = 0 end
+	primary = -1
+	secondary = -1
 
 	WUMA.AddUserLoadoutWeapon(caller, caller, item, primary, secondary, true)
 end)
@@ -606,7 +599,7 @@ AddPersonalLoadout:AddArgument(WUMAAccess.NUMBER)
 AddPersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
 AddPersonalLoadout:SetAccess("superadmin")
 
---Delete self loadout
+--Delete personal loadout
 local RemovePersonalLoadout = WUMA.RegisterAccess{name="removepersonalloadout",help="Removes a weapon from users personal loadout.",strict=true}
 RemovePersonalLoadout:SetFunction(function(caller, item)
 	if not item then return WUMADebug("Invalid access arguments (removepersonalloadout)!") end

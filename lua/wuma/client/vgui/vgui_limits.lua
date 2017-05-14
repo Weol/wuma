@@ -15,6 +15,7 @@ function PANEL:Init()
 	self.slider_limit = vgui.Create("WSlider",self)
 	self.slider_limit:SetMinMax(1,300)
 	self.slider_limit:SetText("Limit")
+	self.slider_limit:SetMaxOverride(-1, "∞")
 	--{parent=self,decimals=0,min=1,max=1000,x=5,y=5,w=100,h=37,text="Limit"}
 	
 	//Adv. Limit textbox
@@ -320,7 +321,7 @@ end
 function PANEL:GetLimit()
 	if not self.slider_limit or not self.textbox_advlimit then return nil end
 	
-	local limit = self.slider_limit.wang:GetValue()
+	local limit = self.slider_limit:GetValue()
 	if (self.slider_limit:GetDisabled()) then
 		limit = self.textbox_advlimit:GetValue()
 	end

@@ -145,26 +145,34 @@ function object:GiveWeapon(class)
 	local swep = self:GetParent():GetWeapon(class)
 	if not IsValid(swep) then return end
 	
+	local primary_ammo = weapon:GetPrimaryAmmo()
+	if (primary_ammo < 0) then primary_ammo = swep:GetMaxClip1() * 4 end
+	if (primary_ammo < 0) then primary_ammo = 3 end
+	
+	local secondary_ammo = weapon:GetSecondaryAmmo()
+	if (secondary_ammo < 0) then secondary_ammo = swep:GetMaxClip2() * 4 end
+	if (secondary_ammo < 0) then secondary_ammo = 3 end
+	
 	swep:SetClip1(0)
 	swep:SetClip2(0)
 		
 	if (swep:GetMaxClip1() <= 0) then
-		self:GetParent():SetAmmo(weapon:GetPrimaryAmmo(),swep:GetPrimaryAmmoType())
-	elseif (swep:GetMaxClip1() > weapon:GetPrimaryAmmo()) then
-		swep:SetClip1(weapon:GetPrimaryAmmo())
+		self:GetParent():SetAmmo(primary_ammo,swep:GetPrimaryAmmoType())
+	elseif (swep:GetMaxClip1() > primary_ammo) then
+		swep:SetClip1(primary_ammo)
 		self:GetParent():SetAmmo(0,swep:GetPrimaryAmmoType())
 	else
-		self:GetParent():SetAmmo(weapon:GetPrimaryAmmo()-swep:GetMaxClip1(),swep:GetPrimaryAmmoType())
+		self:GetParent():SetAmmo(primary_ammo-swep:GetMaxClip1(),swep:GetPrimaryAmmoType())
 		swep:SetClip1(swep:GetMaxClip1())
 	end
 	
 	if (swep:GetMaxClip2() <= 0) then
-		self:GetParent():SetAmmo(weapon:GetSecondaryAmmo(),swep:GetSecondaryAmmoType())
-	elseif (swep:GetMaxClip2() > weapon:GetSecondaryAmmo()) then
-		swep:SetClip2(weapon:GetSecondaryAmmo())
+		self:GetParent():SetAmmo(secondary_ammo,swep:GetSecondaryAmmoType())
+	elseif (swep:GetMaxClip2() > secondary_ammo) then
+		swep:SetClip2(secondary_ammo)
 		self:GetParent():SetAmmo(0,swep:GetSecondaryAmmoType())
 	else
-		self:GetParent():SetAmmo(weapon:GetSecondaryAmmo()-swep:GetMaxClip2(),swep:GetSecondaryAmmoType())
+		self:GetParent():SetAmmo(secondary_ammo-swep:GetMaxClip2(),swep:GetSecondaryAmmoType())
 		swep:SetClip2(swep:GetMaxClip2())
 	end
 	
@@ -319,7 +327,6 @@ function object:SetAncestor(ancestor)
 		ancestor.ancestor = nil
 	end
 	
-	ancestor.child = self
 	self.ancestor = ancestor
 end
 

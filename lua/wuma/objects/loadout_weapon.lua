@@ -21,10 +21,10 @@ function Loadout_Weapon:new(tbl)
 	
 	obj.m.origin = tbl.origin or nil
 	obj.m.origin = tbl.origin or nil
-obj.m.parent = tbl.parent or nil
+	obj.m.parent = tbl.parent or nil
 	obj.class = tbl.class or nil
-	obj.primary = tbl.primary or 0
-	obj.secondary = tbl.secondary or 0
+	obj.primary = tbl.primary or -1
+	obj.secondary = tbl.secondary or -1
 	obj.respect_restrictions = tbl.respect_restrictions or nil
 	
 	obj.m._id = Loadout_Weapon._id

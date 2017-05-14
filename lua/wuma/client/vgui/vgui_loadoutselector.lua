@@ -1,9 +1,7 @@
 
 local PANEL = {}
 
-PANEL.HelpText = [[
-	You can set your own loadout in this window. Any weapons you can spawn with are shown here, any missing weapons are either weapons that the server does not have or weapons that the server has restricted from you or your usergroup.
-]]
+PANEL.HelpText = [[You can set your own loadout in this window. Any weapons you can spawn with are shown here, any missing weapons are either weapons that the server does not have or weapons that the server has restricted from you or your usergroup.]]
 
 function PANEL:Init()
 
@@ -16,23 +14,11 @@ function PANEL:Init()
 	self.Command.Clear = "clearpersonalloadout"
 	self.Command.Primary = "setpersonalprimaryweapon"
 
-	//Primary ammo chooser
-	self.slider_primary = vgui.Create("WSlider",self)
-	self.slider_primary:SetMinMax(1,1000)
-	self.slider_primary:SetText("Primary")
-	self.slider_primary:SetDecimals(0)
-	
-	//Secondary ammo chooser
-	self.slider_secondary = vgui.Create("WSlider",self)
-	self.slider_secondary:SetMinMax(1,1000)
-	self.slider_secondary:SetText("Secondary")
-	self.slider_secondary:SetDecimals(0)
-	
 	//HelpText Label
 	self.helptext_label = vgui.Create("DLabel", self)
 	self.helptext_label:SetText(self.HelpText)
 	self.helptext_label:SetTextColor(Color(0,0,0))
-	self.helptext_label:SizeToContents(true)
+	self.helptext_label:SetAutoStretchVertical( true )
 	
 	//Search bar
 	self.textbox_search = vgui.Create("WTextbox",self)
@@ -46,13 +32,7 @@ function PANEL:Init()
 	self.button_primary.DoClick = self.OnPrimaryClick
 	
 	--{parent=self,text="Set Primary",onclick=self.OnPrimaryClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
-	
-	//Edit button
-	self.button_edit = vgui.Create("DButton",self)
-	self.button_edit:SetText("Edit")
-	self.button_edit.DoClick = self.OnEditClick
-	--{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
-	
+
 	//Delete button
 	self.button_delete = vgui.Create("DButton",self)
 	self.button_delete:SetText("Delete")
@@ -77,8 +57,6 @@ function PANEL:Init()
 	//Items list
 	self.list_items = vgui.Create("WDataView",self)
 	self.list_items:AddColumn("Weapon")
-	self.list_items:AddColumn("Primary")
-	self.list_items:AddColumn("Secondary")
 	self.list_items.OnRowSelected = self.OnItemChange
 	
 	local highlight = function(line,data,datav)
@@ -88,7 +66,13 @@ function PANEL:Init()
 	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 	
 	local sort = function(data)	
-		return {data.class, data.primary, data.secondary},{_,-data.primary,-data.secondary}
+		local primary = data.primary
+		if (tonumber(primary) < 0) then primary = "def" end
+		
+		local secondary = data.secondary
+		if (tonumber(secondary) < 0) then secondary = "def" end
+	
+		return {data.class},{_}
 	end
 		
 	self:GetDataView():SetSortFunction(sort)
@@ -110,35 +94,45 @@ end
 
 function PANEL:PerformLayout()
 
-	self.slider_primary:SetPos(5,5)
-	self.slider_primary:SetSize(100,40)
-	
-	self.slider_secondary:SetPos(5,self.slider_primary.y+self.slider_primary:GetTall()+5)
-	self.slider_secondary:SetSize(self.slider_primary:GetWide(),40)
-	
 	self.textbox_search:SetSize(130,20)
 	self.textbox_search:SetPos((self:GetWide()-5)-self.textbox_search:GetWide(),5)
 
 	self.button_primary:SetSize(self.textbox_search:GetWide(),25)
 	self.button_primary:SetPos(self.textbox_search.x,self:GetTall()-self.button_primary:GetTall()-5)
-	
-	self.button_edit:SetSize(self.textbox_search:GetWide(),25)
-	self.button_edit:SetPos(self.button_primary.x,(self.button_primary.y-5)-self.button_delete:GetTall())
 
 	self.button_add:SetSize(self.textbox_search:GetWide()/2-3,25)
-	self.button_add:SetPos(self.button_edit.x,(self.button_edit.y-5)-self.button_edit:GetTall())
+	self.button_add:SetPos(self.button_primary.x,(self.button_primary.y-5)-self.button_primary:GetTall())
 	
 	self.button_delete:SetSize(self.textbox_search:GetWide()/2-3,25)
-	self.button_delete:SetPos(self.button_add.x+self.button_add:GetWide()+6,(self.button_edit.y-5)-self.button_edit:GetTall())
+	self.button_delete:SetPos(self.button_add.x+self.button_add:GetWide()+6,(self.button_primary.y-5)-self.button_primary:GetTall())
 
 	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
 	
-	self.list_items:SetPos(self.slider_primary.x+5+self.slider_primary:GetWide(),5)
-	self.list_items:SetSize(self:GetWide()-20-self.textbox_search:GetWide()-self.slider_primary:GetWide(),self:GetTall()-10)
+	self.list_items:SetPos(5,5)
+	self.list_items:SetSize(self:GetWide()-20-self.textbox_search:GetWide(),self:GetTall()-100)
 	
-	self.helptext_label:SetSize(self.slider_primary:GetWide(),190)
-	self.helptext_label:SetPos(5,self:GetTall()-self.helptext_label:GetTall())
+	self.helptext_label:SetWide(self.list_items:GetWide())
+	self.helptext_label:SetPos(5,self.list_items:GetTall() + 5)
+	
+	self.helptext_label:SetText("")
+	local words = string.Explode(" ", self.HelpText)
+	local current_line = ""
+	for _, word in pairs(words) do
+		self.helptext_label:SetText(self.helptext_label:GetText() .. " " .. word)
+		current_line = current_line .. " " .. word
+		
+		surface.SetFont(self.helptext_label:GetFont())
+		local w, h = surface.GetTextSize(current_line .. " " .. word)
+		
+		if (w > self.list_items:GetWide()-10) then
+			self.helptext_label:SetText(self.helptext_label:GetText() .. "\n")
+			current_line = ""
+		end
+	end
+	
+	self.list_items:SetTall(self:GetTall() - self.helptext_label:GetTall() - 15)
+	self.helptext_label:SetPos(5, self.list_items:GetTall() + 10)
 
 end
 
@@ -185,13 +179,13 @@ end
 function PANEL:GetPrimaryAmmo()
 	if not self.slider_primary then return nil end
 	
-	return self.slider_primary.wang:GetValue()
+	return self.slider_primary:GetValue()
 end
 
 function PANEL:GetSecondaryAmmo()
 	if not self.slider_secondary then return nil end
 	
-	return self.slider_secondary.wang:GetValue()
+	return self.slider_secondary:GetValue()
 end
 
 function PANEL:OnSearch()
@@ -236,7 +230,7 @@ function PANEL:OnAddClick()
 	if table.Count(suggestions) == 1 then suggestions = suggestions[1] end
 	
 	local access = self.Command.Add
-	local data = {suggestions,self:GetPrimaryAmmo(),self:GetSecondaryAmmo()}
+	local data = {suggestions,self:GetPrimaryAmmo() or -1,self:GetSecondaryAmmo() or -1}
 	
 	WUMA.SendCommand(access,data)
 end
@@ -257,20 +251,6 @@ function PANEL:OnDeleteClick()
 	
 	local access = self.Command.Delete
 	local data = {strings}
-	
-	WUMA.SendCommand(access,data)
-end
-
-function PANEL:OnEditClick()
-	self = self:GetParent()
-	
-	local items = self:GetDataView():GetSelectedItems()
-	if (table.Count(items) ~= 1) then return end
-	
-	local str = {items[1].class}
-
-	local access = self.Command.Edit
-	local data = {str,self:GetPrimaryAmmo(),self:GetSecondaryAmmo()}
 	
 	WUMA.SendCommand(access,data)
 end

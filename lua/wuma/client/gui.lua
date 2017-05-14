@@ -55,7 +55,6 @@ function WUMA.GUI.Initialize()
 	WGUI.Base:SetSize(ScrW()*0.40,ScrH()*0.44)
 	WGUI.Base:SetPos(ScrW()/2-WGUI.Base:GetWide()/2,ScrH()/2-WGUI.Base:GetTall()/2)
 	WGUI.Base:SetVisible(false)
-	WUMADebug("Base created")
 	
 	--Create propertysheet
 	WGUI.PropertySheet = vgui.Create("WPropertySheet",WGUI.Base)
@@ -299,19 +298,30 @@ end)
 
 concommand.Add( "loadout", function() 
 	WUMA.Selfout = vgui.Create("DFrame")
-	WUMA.Selfout:SetSize(700,700)
-	WUMA.Selfout:SetPos(400,100)
-	
+	WUMA.Selfout:SetSize(ScrW()*0.40,ScrH()*0.44)
+	WUMA.Selfout:SetPos(ScrW()/2-WUMA.Selfout:GetWide()/2,ScrH()/2-WUMA.Selfout:GetTall()/2)
+	WUMA.Selfout:SetTitle("Select your loadout")
+	WUMA.Selfout.Paint = function()
+		draw.RoundedBox(5, 0, 0, WUMA.Selfout:GetWide(), WUMA.Selfout:GetTall(), Color(59, 59, 59, 255))
+		draw.RoundedBox(5, 1, 1, WUMA.Selfout:GetWide() - 2, WUMA.Selfout:GetTall() - 2, Color(226, 226, 226, 255))
+		
+		draw.RoundedBox(5, 1, 1, WUMA.Selfout:GetWide()-2, 25-1, Color(163, 165, 169, 255))
+		surface.SetDrawColor(Color(163, 165, 169, 255))
+		surface.DrawRect(1, 10, WUMA.Selfout:GetWide()- 2, 15)
+	end
+		
 	local loadout = vgui.Create("WUMA_PersonalLoadout",WUMA.Selfout)
 	loadout:Dock(TOP)
 	loadout:SetWide(WUMA.Selfout:GetWide())
-	loadout:SetTall(WUMA.Selfout:GetTall()-100)
+	loadout:SetTall(WUMA.Selfout:GetTall()-35)
 	loadout.OnClose = function() 
 		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
-		hook.Remove("WUMAPersonalLoadoutUpdate")
+		hook.Remove(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate")
 	end
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
+		if not loadout then return end
+		
 		if (enum == Loadout:GetID()) then
 			if update.primary then
 				for k, v in pairs(update.weapons) do
@@ -321,23 +331,25 @@ concommand.Add( "loadout", function()
 			
 			loadout:GetDataView():SetDataTable(update.weapons)
 		elseif (enum == Restriction:GetID()) then
-			weps = WUMA.GetWeapons()
-
+			PrintTable(update)
 			for key, restriction in pairs(update) do
-				table.RemoveByValue(weps, restriction.string)
+				if istable(restriction) and (restriction.type == "swep") then
+					table.RemoveByValue(loadout.weapons, restriction.string)
+				else 
+					table.insert(loadout.weapons,string.sub(key, 6))
+				end
 			end
-			WUMADebug(".........................")
-			PrintTable(weps)
-			WUMADebug(".........................")
-			loadout.weapons = weps
+			
 			loadout:ReloadSuggestions()
 		end
+		
 	end)
 	
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"loadout")
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"restrictions")
-	
-	WUMA.Selfout:SetVisible(true)
+
 	WUMA.Selfout:MakePopup()
+	WUMA.Selfout:SetVisible(true)
+	
 end)

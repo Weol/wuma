@@ -14,11 +14,19 @@ function PANEL:Init()
 	
 	wang.OnValueChanged = function(panel,val)
 		val = math.Clamp(tonumber(val),wang:GetMin(),wang:GetMax())
+	
+		if self.min_override and (val == wang:GetMin()) then 
+			wang:SetText(self.min_override[2])
+		elseif self.max_override and (val == wang:GetMax()) then
+			wang:SetText(self.max_override[2])
+		end
+		
 		slider:SetSlideX(val/wang:GetMax())
 	end
 	
 	slider.TranslateValues = function(panel,x,y) 
 		wang:SetFraction(x)
+		
 		return x, y
 	end
 	
@@ -33,7 +41,17 @@ function PANEL:Paint()
 end
 
 function PANEL:GetValue()
-	return self.wang:GetValue()
+	local value = self.wang:GetValue()
+
+	if self.max_override then
+		if (self.wang:GetText() == self.max_override[2]) then value = self.max_override[1] end
+	end
+	
+	if self.min_override then
+		if (self.wang:GetText() == self.min_override[2]) then value = self.min_override[1] end
+	end
+	
+	return value
 end
 
 function PANEL:SetDecimals(decimals)
@@ -46,6 +64,19 @@ end
 
 function PANEL:SetMinMax(min, max)
 	self.wang:SetMinMax(min,max)
+end
+
+function PANEL:SetMinOverride(min, text) 
+	self.min_override = {min, text}
+end
+
+function PANEL:SetMaxOverride(max, text) 
+	self.max_override = {max, text}
+end
+
+function PANEL:SetMinMaxOverride(min, max) 
+	self:SetMaxOverride(max)
+	self:SetMinOverride(min)
 end
 
 function PANEL:GetSlider()
