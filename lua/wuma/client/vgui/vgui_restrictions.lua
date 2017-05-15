@@ -71,6 +71,7 @@ function PANEL:Init()
 	self.list_items:AddColumn("Item")
 	self.list_items:AddColumn("Scope")
 	self.list_items.OnRowSelected = self.OnItemChange
+	self.list_items.OnViewChanged = self.OnDataViewChanged
 	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 
 	//Scope list
@@ -107,6 +108,14 @@ function PANEL:Init()
 	self.checkbox_allow:SetTextColor(Color(0,0,0))
 	self.checkbox_allow:SetValue(false)
 	self.checkbox_allow:SetVisible(false)
+	
+	//All checkbox
+	self.checkbox_all = vgui.Create("DCheckBoxLabel",self)
+	self.checkbox_all:SetText("Restrict type")
+	self.checkbox_all:SetTextColor(Color(0,0,0))
+	self.checkbox_all:SetValue(false)
+	self.checkbox_all:SetVisible(false)
+	self.checkbox_all.OnChange = self.OnRestrictAllCheckboxChanged
 	
 	--{parent=self,text="Anti Restriction",checked=0,align=3,relative=self.list_scopes,x=0,y=-5,visible=false} 
 	
@@ -189,6 +198,8 @@ function PANEL:PerformLayout()
 
 	self.checkbox_allow:SetPos(self.list_scopes.x,self.list_items.y+self.list_items:GetTall()+5)
 	
+	self.checkbox_all:SetPos(self.checkbox_allow.x + self.checkbox_allow:GetWide() + 5,self.list_items.y+self.list_items:GetTall()+5)
+	
 	self.list_scopes:SetPos(self.list_items.x,self.checkbox_allow.y+self.checkbox_allow:GetTall()+5)
 	self.list_scopes:SizeToContents()
 	self.list_scopes:SetWide(120)
@@ -236,6 +247,25 @@ function PANEL:ReloadSuggestions(type)
 		
 		self:PopulateList("list_suggestions",items(),true)
 	end
+end
+
+function PANEL:OnDataViewChanged() 
+	self = self:GetParent()
+
+	if not self:GetDataView() then return end
+	local disable = false
+	for id, _ in pairs(self:GetDataView().DataRegistry) do
+		if (self:GetDataView():GetDataTable()[id] and istable(self:GetDataView():GetDataTable()[id]) and self:GetDataView():GetDataTable()[id]:IsGeneral()) then 
+			disable = true 
+		end
+	end
+	
+	local onchange = self.checkbox_all.OnChange
+	self.checkbox_all.OnChange = function() end
+	self.checkbox_all:SetValue(disable)
+	self.checkbox_all.OnChange = onchange
+	
+	self.list_items:SetDisabled(disable)
 end
 
 function PANEL:GetSelectedType()
@@ -320,11 +350,13 @@ function PANEL:ToggleAdditionalOptionsVisiblility()
 		
 		self.list_scopes:SetVisible(false)
 		self.checkbox_allow:SetVisible(false)
+		self.checkbox_all:SetVisible(false)
 	else
 		self.additionaloptionsvisibility = true
 		
 		self.list_scopes:SetVisible(true)
 		self.checkbox_allow:SetVisible(true)
+		self.checkbox_all:SetVisible(true)
 	end
 end
 
@@ -412,6 +444,26 @@ function PANEL:OnScopeChange(lineid, line)
 	scope.previous_line = lineid
 end
 
+function PANEL:OnRestrictAllCheckboxChanged(checked)
+	self = self:GetParent()
+	
+	local access = self.Command.Delete
+	if checked then 
+		access = self.Command.Add
+	end
+	
+	if not self:GetSelectedUsergroups() then return end
+	if not self:GetSelectedType() then return end
+	
+	local usergroups = self:GetSelectedUsergroups()
+	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
+	
+	local type = self:GetSelectedType()
+	
+	local data = {usergroups, type, 0, self:GetAntiSelected(), self:GetSelectedScope()}
+	
+	WUMA.SendCommand(access,data)
+end
 
 function PANEL:OnAddClick()
 	self = self:GetParent()

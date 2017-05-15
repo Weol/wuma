@@ -123,7 +123,7 @@ function object:GetUniqueID()
 end
 
 function object:Delete()
-	--So that no entities point here, thereby preventing garbage collection
+	--So that no entities point here
 	for id, entity in pairs(self.m.entities)  do
 		entity:RemoveWUMAParent(entity)
 	end
@@ -280,10 +280,11 @@ function object:InheritEntities(limit)
 end
 
 function object:Check(int)
+WUMADebug(1)
 	if self:IsDisabled() then return nil end
-
+WUMADebug(2)
 	local limit = int or self:Get()
-	
+	WUMADebug(3)
 	if istable(limit) then 
 		if not limit:IsExclusive() then
 			return limit:Check()
@@ -296,14 +297,15 @@ function object:Check(int)
 	elseif isstring(limit) then
 		return nil
 	end
+	WUMADebug(4)
+	
 	
 	if (limit < 0) then return end
+	WUMADebug(5)
 	if (limit <= self:GetCount()) then
 		self:Hit()
 		return false
 	end
-
-	return true
 end
 
 function object:Hit()

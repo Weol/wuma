@@ -45,7 +45,7 @@ end
 function WUMA.PoolFunction(id, func, data, args, datai) 
 	if not WUMA.FunctionTimers[id] then
 		timer.Simple(1, function() WUMA.PopFunctionPool(id) end)
-		WUMA.FunctionTimers = true
+		WUMA.FunctionTimers[id] = true
 	end
 
 	if WUMA.FunctionPool[id] then 

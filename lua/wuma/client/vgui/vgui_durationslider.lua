@@ -65,7 +65,7 @@ function PANEL:GetArgument()
 
 	local text, data = self.combobox:GetSelected()
 
-	return math.Round(data.time*self:GetValue())
+	return math.Round(data.time*self.wang:GetValue())
 end
 
 vgui.Register("WDurationSlider", PANEL, 'DPanel');

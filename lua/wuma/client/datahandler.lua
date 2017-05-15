@@ -71,6 +71,7 @@ function WUMA.ProcessCompressedData(id,data)
 end
 
 function WUMA.UpdateRestrictions(update)
+
 	for id, tbl in pairs(update) do
 		if istable(tbl) then 
 			tbl = Restriction:new(tbl)	

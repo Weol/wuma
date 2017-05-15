@@ -254,7 +254,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 				
 				local id = Restriction:GetID() .. ":::" .. user:SteamID()
 				
-				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData" .. "_" .. user:AccountID(), data, {user, _, id}, 2)
+				WUMA.PoolFunction("SendPersonalCompressedData" .. "_" .. user:AccountID(), WUMA.SendCompressedData, tbl, {user, _, id}, 2)
 			end
 		end)
 		
@@ -265,7 +265,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 				
 				local id = Restriction:GetID() .. ":::" .. user:SteamID()
 				
-				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData" .. "_" .. user:AccountID(), data, {user, _, id}, 2)			
+				WUMA.PoolFunction("SendPersonalCompressedData" .. "_" .. user:AccountID(), WUMA.SendCompressedData, tbl, {user, _, id}, 2)			
 			end
 		end)
 	elseif (data[1] == "unsubscribe") then 

@@ -6,6 +6,7 @@ function ENT:CheckLimit(str, WUMA)
 	if (game.SinglePlayer()) then return true end
 	
 	if (WUMA and self:HasLimit(WUMA)) then
+		WUMADebug(0)
 		return self:GetLimit(WUMA):Check()
 	elseif (self:HasLimit(str)) then
 		return self:GetLimit(str):Check()
@@ -124,11 +125,10 @@ function ENT:HasWUMAData()
 end   
  
 function ENT:CheckRestriction(type,str)
-
-	local key = Restriction:GenerateID(type,_,str)
+	local restriction = self:GetRestriction(type, str)
 	
-	if self:GetRestriction(key) then 
-		return self:GetRestrictions()[key](type,str)
+	if restriction then 
+		return restriction(type,str)
 	end
 end   
    
@@ -187,6 +187,10 @@ end
 function ENT:GetRestriction(type,str)
 	if not self:GetRestrictions() then return nil end
 	if str then
+		if self:GetRestrictions()[type] then
+			return self:GetRestrictions()[type]
+		end
+	
 		local key = Restriction:GenerateID(type,_,str)
 		return self:GetRestrictions()[key]
 	else

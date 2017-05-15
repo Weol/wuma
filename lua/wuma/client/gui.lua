@@ -329,18 +329,31 @@ concommand.Add( "loadout", function()
 				end
 			end
 			
-			loadout:GetDataView():SetDataTable(update.weapons)
+			if loadout:GetDataView() then
+				loadout:GetDataView():SetDataTable(update.weapons)
+			end
 		elseif (enum == Restriction:GetID()) then
-			PrintTable(update)
 			for key, restriction in pairs(update) do
 				if istable(restriction) and (restriction.type == "swep") then
-					table.RemoveByValue(loadout.weapons, restriction.string)
+					table.RemoveByValue(loadout.weapons or {}, restriction.string)
 				else 
-					table.insert(loadout.weapons,string.sub(key, 6))
+					local exploded = string.Explode("_", key)
+
+					local wep = key
+					for _, shrapnel in pairs(exploded) do
+						if (table.HasValue(WUMA.GetWeapons(),wep)) then
+							table.insert(loadout.weapons or {}, wep)
+							break
+						end
+						
+						wep = string.sub(wep, string.len(shrapnel) + 2)
+					end
 				end
 			end
 			
-			loadout:ReloadSuggestions()
+			if loadout then
+				loadout:ReloadSuggestions()
+			end
 		end
 		
 	end)

@@ -206,7 +206,6 @@ function object:Think()
 						WUMADebug("Warning! Scope has no parent!")
 					end
 				else
-					WUMADebug("Shredding: %s",tostring(self:GetUniqueID()))
 					self:Shred()
 				end
 			end

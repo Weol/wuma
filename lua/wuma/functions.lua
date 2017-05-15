@@ -136,11 +136,11 @@ end
 ///////////////////////////////////////////////
 local Restrict = WUMA.RegisterAccess{name="restrict",help="Restrict something from a usergroup."}
 Restrict:SetFunction(function(caller, usergroup, typ, item, anti, scope)
-	if not usergroup or not typ or not item then return WUMADebug("Invalid access arguments (restrict)!") end
+	if not usergroup or not typ then return WUMADebug("Invalid access arguments (restrict)!") end
 
 	usergroup = string.lower(usergroup)
 	typ = string.lower(typ)
-	item = string.lower(item)
+	if isstring(item) then item  = string.lower(item) else item = nil end
 	if (anti == 1) then anti = true else anti = false end
 	
 	local sucess = WUMA.AddRestriction(caller,usergroup,typ,item,anti,scope)
@@ -153,17 +153,25 @@ Restrict:SetFunction(function(caller, usergroup, typ, item, anti, scope)
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
 		
+		if item then 
+			item = " " .. item
+			typ = string.lower(Restriction:GetTypes()[typ].print)
+		else 
+			item = "" 
+			typ = string.lower(Restriction:GetTypes()[typ].print2)
+		end
+		
 		if anti then
-			return {"%s derestricted %s %s from %s"..prefix,typ,item,usergroup,scope_str}, sucess, caller
+			return {"%s derestricted %s%s from %s"..prefix,typ,item or "",usergroup,scope_str}, sucess, caller
 		else
-			return {"%s restricted %s %s from %s"..prefix,typ,item,usergroup,scope_str}, sucess, caller 
+			return {"%s restricted %s%s from %s"..prefix,typ,item  or "",usergroup,scope_str}, sucess, caller 
 		end
 	end
 end)
 Restrict:AddArgument(WUMAAccess.PLAYER)
 Restrict:AddArgument(WUMAAccess.USERGROUP)
 Restrict:AddArgument(WUMAAccess.STRING,_,table.GetKeys(Restriction:GetTypes()))
-Restrict:AddArgument(WUMAAccess.STRING)
+Restrict:AddArgument(WUMAAccess.STRING, true)
 Restrict:AddArgument(WUMAAccess.NUMBER,true)
 Restrict:AddArgument(WUMAAccess.SCOPE,true)
 Restrict:SetLogFunction(WUMA.EchoFunction)
@@ -172,10 +180,10 @@ Restrict:SetAccess("superadmin")
 
 local RestrictUser = WUMA.RegisterAccess{name="restrictuser",help="Restrict something from a player"}
 RestrictUser:SetFunction(function(caller, target, typ, item, anti, scope)
-	if not target or not typ or not item then return WUMADebug("Invalid access arguments (restrictuser)!") end
+	if not target or not typ then return WUMADebug("Invalid access arguments (restrictuser)!") end
 
 	typ = string.lower(typ)
-	item = string.lower(item)
+	if isstring(item) then item  = string.lower(item) else item = nil end
 	
 	if (anti == 1) then anti = true else anti = false end
 
@@ -191,17 +199,25 @@ RestrictUser:SetFunction(function(caller, target, typ, item, anti, scope)
 			prefix = " "..scope:GetScopeType().log_prefix.." %s"
 		end
 		
+		if item then 
+			item = " " .. item
+			typ = string.lower(Restriction:GetTypes()[typ].print)
+		else 
+			item = "" 
+			typ = string.lower(Restriction:GetTypes()[typ].print2)
+		end
+		
 		if anti then
-			return {"%s derestricted %s %s from %s"..prefix,typ,item,nick,scope_str}, sucess, caller
+			return {"%s derestricted %s%s from %s"..prefix,typ,item or "",nick,scope_str}, sucess, caller
 		else
-			return {"%s restricted %s %s from %s"..prefix,typ,item,nick,scope_str}, sucess, caller
+			return {"%s restricted %s%s from %s"..prefix,typ,item or "",nick,scope_str}, sucess, caller
 		end
 	end
 end)
 RestrictUser:AddArgument(WUMAAccess.PLAYER)
 RestrictUser:AddArgument(WUMAAccess.PLAYER)
 RestrictUser:AddArgument(WUMAAccess.STRING,_,table.GetKeys(Restriction:GetTypes()))
-RestrictUser:AddArgument(WUMAAccess.STRING)
+RestrictUser:AddArgument(WUMAAccess.STRING, true)
 RestrictUser:AddArgument(WUMAAccess.NUMBER,true)
 RestrictUser:AddArgument(WUMAAccess.SCOPE,true)
 RestrictUser:SetLogFunction(WUMA.EchoFunction)
@@ -211,22 +227,30 @@ RestrictUser:SetAccess("superadmin")
 --Unrestrict
 local Unrestrict = WUMA.RegisterAccess{name="unrestrict",help="Unrestrict something from a usergroup"}
 Unrestrict:SetFunction(function(caller, usergroup, typ, item)
-	if not usergroup or not typ or not item then return WUMADebug("Invalid access arguments (unrestrict)!") end
+	if not usergroup or not typ then return WUMADebug("Invalid access arguments (unrestrict)!") end
 
 	usergroup = string.lower(usergroup)
 	typ = string.lower(typ)
-	item = string.lower(item)
+	if isstring(item) then item  = string.lower(item) else item = nil end
 	
 	local sucess = WUMA.RemoveRestriction(caller,usergroup,typ,item)
 	
 	if not (sucess == false) then
-		return {"%s unrestricted %s %s from %s",typ,item,usergroup}, sucess, caller
+		if item then 
+			item = " " .. item
+			typ = string.lower(Restriction:GetTypes()[typ].print)
+		else 
+			item = "" 
+			typ = string.lower(Restriction:GetTypes()[typ].print2)
+		end
+		
+		return {"%s unrestricted %s%s from %s",typ,item or "",usergroup}, sucess, caller
 	end
 end)
 Unrestrict:AddArgument(WUMAAccess.PLAYER)
 Unrestrict:AddArgument(WUMAAccess.USERGROUP)
 Unrestrict:AddArgument(WUMAAccess.STRING,_,table.GetKeys(Restriction:GetTypes()))
-Unrestrict:AddArgument(WUMAAccess.STRING)
+Unrestrict:AddArgument(WUMAAccess.STRING, true)
 Unrestrict:SetLogFunction(WUMA.EchoFunction)
 Unrestrict:SetAccessFunction(WUMA.CheckAccess)
 Unrestrict:SetAccess("superadmin")
@@ -234,22 +258,31 @@ Unrestrict:SetAccess("superadmin")
 --Unrestrict user
 local UnrestrictUser = WUMA.RegisterAccess{name="unrestrictuser",help="Unrestrict something from a player"}
 UnrestrictUser:SetFunction(function(caller, target, typ, item)
-	if not target or not typ or not item then return WUMADebug("Invalid access arguments (unrestrictuser)!") end
+	if not target or not typ then return WUMADebug("Invalid access arguments (unrestrictuser)!") end
 
 	typ = string.lower(typ)
-	item = string.lower(item)
+	if isstring(item) then item  = string.lower(item) else item = nil end
 
 	local sucess = WUMA.RemoveUserRestriction(caller,target,typ,item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s unrestricted %s %s from %s",typ,item,nick}, sucess, caller
+		
+		if item then 
+			item = " " .. item
+			typ = string.lower(Restriction:GetTypes()[typ].print)
+		else 
+			item = "" 
+			typ = string.lower(Restriction:GetTypes()[typ].print2)
+		end
+		
+		return {"%s unrestricted %s%s from %s",typ,item or "",nick}, sucess, caller
 	end
 end)
 UnrestrictUser:AddArgument(WUMAAccess.PLAYER)
 UnrestrictUser:AddArgument(WUMAAccess.PLAYER)
 UnrestrictUser:AddArgument(WUMAAccess.STRING,_,table.GetKeys(Restriction:GetTypes()))
-UnrestrictUser:AddArgument(WUMAAccess.STRING)
+UnrestrictUser:AddArgument(WUMAAccess.STRING, true)
 UnrestrictUser:SetLogFunction(WUMA.EchoFunction)
 UnrestrictUser:SetAccessFunction(WUMA.CheckAccess)
 UnrestrictUser:SetAccess("superadmin")

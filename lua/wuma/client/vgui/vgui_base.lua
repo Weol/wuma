@@ -84,7 +84,6 @@ function PANEL:RemoveViewLine(id)
 		self.DataRegistry[id] = nil
 		line = nil
 	end
-	
 end
 
 function PANEL:SetSortFunction(func)

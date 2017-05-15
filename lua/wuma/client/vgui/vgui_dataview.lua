@@ -75,6 +75,8 @@ function PANEL:AddViewLine(id,data,datav)
 	
 	if datav then line.Data = datav end
 	self.DataRegistry[id] = line
+	
+	self:OnViewChanged()
 end
 
 function PANEL:RemoveViewLine(id)
@@ -84,6 +86,12 @@ function PANEL:RemoveViewLine(id)
 		self.DataRegistry[id] = nil
 		line = nil
 	end
+	
+	self:OnViewChanged()
+end
+
+function PANEL:OnViewChanged() 
+
 end
 
 function PANEL:SetSortFunction(func)

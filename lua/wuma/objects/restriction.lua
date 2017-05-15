@@ -8,16 +8,16 @@ Restriction._id = "WUMA_Restriction"
 object._id = "WUMA_Restriction"
 
 Restriction.types = {
-	entity = {print="Entity",search="Search..",items=function() return WUMA.GetEntities() end},
-	prop = {print="Prop",search="Model"},
-	npc = {print="NPC",search="Search..",items=function() return WUMA.GetNPCs() end},
-	vehicle = {print="Vehicle",search="Search..",items=function() return WUMA.GetVehicles() end},
-	swep = {print="Weapon",search="Search..",items=function() return WUMA.GetWeapons() end},
-	pickup = {print="Pickup",search="Search..",items=function() return WUMA.GetWeapons() end},
-	effect = {print="Effect",search="Model"},
-	tool = {print="Tool",search="Search..",items=function() return WUMA.GetTools() end},
-	ragdoll = {print="Ragdoll",search="Model"},
-	use = {print="Use",search="Search..",items=function() return table.Merge(table.Merge(WUMA.GetEntities(),WUMA.GetVehicles()),WUMA.GetNPCs()) end}  
+	entity = {print="Entity",print2="Entities",search="Search..",items=function() return WUMA.GetEntities() end},
+	prop = {print="Prop",print2="Props",search="Model"},
+	npc = {print="NPC",print2="NPCs",search="Search..",items=function() return WUMA.GetNPCs() end},
+	vehicle = {print="Vehicle",print2="Vehicles",search="Search..",items=function() return WUMA.GetVehicles() end},
+	swep = {print="Weapon",print2="Weapons",search="Search..",items=function() return WUMA.GetWeapons() end},
+	pickup = {print="Pickup",print2="Pickups",search="Search..",items=function() return WUMA.GetWeapons() end},
+	effect = {print="Effect",print2="Effects",search="Model"},
+	tool = {print="Tool",print2="Tools",search="Search..",items=function() return WUMA.GetTools() end},
+	ragdoll = {print="Ragdoll",print2="Ragdolls",search="Model"},
+	use = {print="Use",print2="Using",search="Search..",items=function() return table.Merge(table.Merge(WUMA.GetEntities(),WUMA.GetVehicles()),WUMA.GetNPCs()) end}  
 } 
 
 /////////////////////////////////////////////////////////
@@ -41,8 +41,7 @@ function Restriction:new(tbl)
 	obj.m._id = Restriction._id
 	
 	obj.m.origin = tbl.origin or nil
-	obj.m.origin = tbl.origin or nil
-obj.m.parent = tbl.parent or nil 
+	obj.m.parent = tbl.parent or nil 
 	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
 	obj.m.exceptions = {} 
 	
@@ -53,9 +52,17 @@ end
 
 function Restriction:GenerateID(type,usergroup,str)
 	if usergroup then
-		return string.lower(type.."_"..usergroup.."_"..str)
+		if str then
+			return string.lower(type.."_"..usergroup.."_"..str)
+		else
+			return string.lower(type.."_"..usergroup)
+		end
 	else
-		return string.lower(type.."_"..str)
+		if str then
+			return string.lower(type.."_"..str)
+		else
+			return string.lower(type)
+		end
 	end
 end 
 
@@ -158,10 +165,18 @@ function object:Hit()
 	self.m.lasthit = os.time()
 
 	local str = self.print or self.string
-
-	self:GetParent():SendLua(string.format([[
+	
+	if (self:IsGeneral()) then
+		str = Restriction:GetTypes()[self:GetType()].print2
+		
+		self:GetParent():SendLua(string.format([[
+			notification.AddLegacy("%s are restricted!",NOTIFY_ERROR,3)
+		]],str))
+	else
+		self:GetParent():SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
-		]],self:GetType(),str))
+		]],string.lower(Restriction:GetTypes()[self:GetType()].print), str))
+	end
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
@@ -171,6 +186,10 @@ end
 
 function object:IsPersonal()
 	if self.usergroup then return nil else return true end
+end
+
+function object:IsGeneral()
+	if self.string then return nil else return true end
 end
 
 function object:Clone()
@@ -241,7 +260,6 @@ end
 
 function object:SetScope(scope)	
 	if not self:GetOrigin() then
-		WUMADebug("Setting scope for %s",tostring(self:GetUniqueID()))
 		self.scope = Scope:new(scope)
 		
 		self.scope:SetParent(self)
@@ -298,9 +316,17 @@ end
 
 function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
-		return string.lower(string.format("%s_%s",self.type,self.string))
+		if self:GetString() then
+			return string.lower(string.format("%s_%s",self.type,self.string))
+		else
+			return string.lower(self.type)
+		end
 	else
-		return string.lower(string.format("%s_%s_%s",self.type,self.usergroup,self.string))
+		if self:GetString() then
+			return string.lower(string.format("%s_%s_%s",self.type,self.usergroup,self.string))
+		else
+			return string.lower(string.format("%s_%s",self.type,self.usergroup))
+		end
 	end
 end
 
