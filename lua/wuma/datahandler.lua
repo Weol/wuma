@@ -24,6 +24,8 @@ end
 
 --Pooling
 WUMA.FunctionPool = {}
+WUMA.FunctionTimers = {}
+
 function WUMA.PopFunctionPool(id)
 	if (WUMA.FunctionPool[id]) then
 		local data = {}
@@ -32,36 +34,24 @@ function WUMA.PopFunctionPool(id)
 		end
 		
 		local args = WUMA.FunctionPool[id].args
-		args[table.KeyFromValue(args, "_DATA")] = data
+		args[WUMA.FunctionPool[id].datai] = data
 		
 		WUMA.FunctionPool[id].func(unpack(args))
 		WUMA.FunctionPool[id] = nil
-		
-		if (table.Count(WUMA.FunctionPool) < 1) then
-			timer.Remove("FunctionPoolTimer")
-		end
+		WUMA.FunctionTimers[id] = nil
 	end
 end
 
-function WUMA.PoolFunction(id, func, data, args, timeout) 
-	if not timer.Exists("FunctionPoolTimer") then
-		timer.Create(FunctionPoolTimer, 0.1, 0, WUMA.CheckFunctionPool)
+function WUMA.PoolFunction(id, func, data, args, datai) 
+	if not WUMA.FunctionTimers[id] then
+		timer.Simple(1, function() WUMA.PopFunctionPool(id) end)
+		WUMA.FunctionTimers = true
 	end
 
 	if WUMA.FunctionPool[id] then 
 		table.insert(WUMA.FunctionPool[id].data, data)
 	else
-		WUMA.FunctionPool[id] = {func=func, data=data, args=args, timeout=timeout, cur_time=0}
-	end
-end
-
-function WUMA.CheckFunctionPool() 
-	for id, tbl in pairs(WUMA.FunctionPool) do 
-		if (tbl.cur_time > tbl.timeout) then
-			WUMA.PopFunctionPool(id)
-		else
-			tbl.cur_time = tbl.cur_time + 0.1
-		end
+		WUMA.FunctionPool[id] = {func=func, data={data}, args=args, datai=datai}
 	end
 end
 

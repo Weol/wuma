@@ -247,25 +247,25 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 	if (data[1] == "subscribe") then
 		WUMA.AddDataSubscription(user,user:SteamID(),user:SteamID())
 		
-		hook.Add(WUMA.USERRESTRICTIONADDED, user:SteamID() .. WUMA.USERRESTRICTIONADDED, function(hook_user, restriction) 
+		hook.Add(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. "_" .. user:AccountID(), function(hook_user, restriction) 
 			if (user == hook_user) and not restriction:IsPersonal() then
 				local tbl = {}
 				tbl[restriction:GetID()] = restriction
 				
 				local id = Restriction:GetID() .. ":::" .. user:SteamID()
 				
-				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData", data, {user, "_DATA", id}, 1)
+				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData" .. "_" .. user:AccountID(), data, {user, _, id}, 2)
 			end
 		end)
 		
-		hook.Add(WUMA.USERRESTRICTIONREMOVED, user:SteamID() .. WUMA.USERRESTRICTIONREMOVED, function(hook_user, restriction) 
+		hook.Add(WUMA.USERRESTRICTIONREMOVED, WUMA.USERRESTRICTIONREMOVED .. "_" .. user:AccountID(), function(hook_user, restriction) 
 			if (user == hook_user) and not restriction:IsPersonal() then
 				local tbl = {}
 				tbl[restriction:GetID()] = WUMA.DELETE
 				
 				local id = Restriction:GetID() .. ":::" .. user:SteamID()
 				
-				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData", data, {user, "_DATA", id}, 1)			
+				WUMA.PoolFunction(WUMA.SendCompressedData, "SendPersonalCompressedData" .. "_" .. user:AccountID(), data, {user, _, id}, 2)			
 			end
 		end)
 	elseif (data[1] == "unsubscribe") then 
