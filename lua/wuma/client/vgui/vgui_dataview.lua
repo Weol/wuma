@@ -179,7 +179,7 @@ function PANEL:UpdateDataTable(tbl)
 				if line:IsLineSelected() then line:SetSelected(false) end
 				self:RemoveViewLine(id)
 				self.DataTable[id] = nil
-		end
+			end
 		elseif sort then
 			self.DataTable[id] = data
 			self:AddViewLine(id,sort,sortv)

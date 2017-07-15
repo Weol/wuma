@@ -20,7 +20,6 @@ function Loadout_Weapon:new(tbl)
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
 	obj.m.origin = tbl.origin or nil
-	obj.m.origin = tbl.origin or nil
 	obj.m.parent = tbl.parent or nil
 	obj.class = tbl.class or nil
 	obj.primary = tbl.primary or -1
@@ -67,7 +66,9 @@ function object:Clone()
 end
 
 function object:Delete()
-	self = nil
+	if self.scope then
+		self.scope:Delete()
+	end
 end
 
 function object:GetBarebones()
@@ -130,8 +131,9 @@ end
 
 function object:SetScope(scope)	
 	if not self:GetOrigin() then
-		self.scope = Scope:new(scope)
-		
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
 		self.scope:SetParent(self)
 		
 		self.scope:AllowThink()

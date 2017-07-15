@@ -67,7 +67,6 @@ function WUMA.ProcessCompressedData(id,data)
 	local tbl = util.JSONToTable(uncompressed_data)
 
 	WUMA.ProcessDataUpdate(id, tbl)
-	
 end
 
 function WUMA.UpdateRestrictions(update)
@@ -75,19 +74,12 @@ function WUMA.UpdateRestrictions(update)
 	for id, tbl in pairs(update) do
 		if istable(tbl) then 
 			tbl = Restriction:new(tbl)	
+			WUMA.Restrictions[id] = tbl	
+		else
+			WUMA.Restrictions[id] = nil	
 		end
 		
-		WUMA.Restrictions[id] = tbl	
-	end
-	
-	if WUMA.GUI.Tabs.Restrictions then
-		WUMA.GUI.Tabs.Restrictions:GetDataView():UpdateDataTable(WUMA.Restrictions)
-	end
-	
-	for k, v in pairs(WUMA.Restrictions) do
-		if (v == WUMA.DELETE) then
-			WUMA.Restrictions[k] = nil
-		end
+		update[id] = tbl
 	end
 	
 	hook.Call(WUMA.RESTRICTIONUPDATE, _, update)
@@ -97,19 +89,13 @@ function WUMA.UpdateLimits(update)
 
 	for id, tbl in pairs(update) do
 		if istable(tbl) then 
-			tbl = Limit:new(tbl)		
+			tbl = Limit:new(tbl)	
+			WUMA.Limits[id] = tbl			
+		else 
+			WUMA.Limits[id] = nil
 		end
-		WUMA.Limits[id] = tbl	
-	end
-	
-	if WUMA.GUI.Tabs.Limits then
-		WUMA.GUI.Tabs.Limits:GetDataView():UpdateDataTable(WUMA.Limits)
-	end
-	
-	for k, v in pairs(WUMA.Limits) do
-		if (v == WUMA.DELETE) then
-			WUMA.Limits[k] = nil
-		end
+			
+		update[id] = tbl
 	end
 	
 	hook.Call(WUMA.LIMITUPDATE, _, update)
@@ -118,35 +104,16 @@ end
 
 function WUMA.UpdateLoadouts(update)
 
-	for id, tbl in pairs(update) do
-		if istable(tbl) then 
-			tbl = Loadout:new(tbl)
-		end
-		WUMA.Loadouts[id] = tbl
-	end 
+	PrintTable(update)
 
-	if WUMA.GUI.Tabs.Loadouts then
-		local tbl = {}
-		for id, loadout in pairs(WUMA.Loadouts) do
-			if istable(loadout) then
-				for class, wep_tbl in pairs(loadout:GetWeapons()) do
-					wep_tbl.class = class
-					wep_tbl.usergroup = loadout:GetUserGroup()
-					tbl[id.."_"..class] = wep_tbl
-				end
-				
-				if (loadout:GetPrimary() and tbl[id.."_"..loadout:GetPrimary()]) then
-					tbl[id.."_"..loadout:GetPrimary()].isprimary = true
-				end
-			end
-		end
-
-		WUMA.GUI.Tabs.Loadouts:GetDataView():SetDataTable(tbl)
-	end
-	
-	for k, v in pairs(WUMA.Loadouts) do	
-		if (v == WUMA.DELETE) then
-			WUMA.Loadouts[k] = nil
+	for id, weapon in pairs(update) do
+		if istable(weapon) then
+			local usergrup = weapon.usergroup
+			update[id] = Loadout_Weapon:new(weapon)
+			update[id].usergroup = usergrup
+			WUMA.Loadouts[id] = update[id]
+		else
+			WUMA.Loadouts[id] = nil
 		end
 	end
 	
@@ -179,25 +146,16 @@ function WUMA.UpdateUserRestrictions(user, update)
 			tbl = Restriction:new(tbl)	
 			tbl.usergroup = user
 			tbl.parent = user
+			
+			WUMA.UserData[user].Restrictions[id] = tbl	
+		else 
+			WUMA.UserData[user].Restrictions[id] = nil	
 		end
 		
-		WUMA.UserData[user].Restrictions[id] = tbl	
-	end
-
-	if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.restrictions then
-		if (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
-			WUMA.GUI.Tabs.Users.restrictions:GetDataView():UpdateDataTable(WUMA.UserData[user].Restrictions)
-		end
-	end
-	
-	for k, v in pairs(WUMA.UserData[user].Restrictions) do
-		if (v == WUMA.DELETE) then
-			WUMA.UserData[user].Restrictions[k] = nil
-		end
+		update[id] = tbl
 	end
 	
 	hook.Call(WUMA.USERDATAUPDATE, _, user, Restriction:GetID(), update)
-	
 end
 
 function WUMA.UpdateUserLimits(user, update)
@@ -208,21 +166,13 @@ function WUMA.UpdateUserLimits(user, update)
 			tbl = Limit:new(tbl)	
 			tbl.parent = user
 			tbl.usergroup = user
+			
+			WUMA.UserData[user].Limits[id] = tbl	
+		else
+			WUMA.UserData[user].Limits[id] = nil	
 		end
 		
-		WUMA.UserData[user].Limits[id] = tbl	
-	end
-	
-	if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.limits then
-		if (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
-			WUMA.GUI.Tabs.Users.limits:GetDataView():UpdateDataTable(WUMA.UserData[user].Limits)
-		end
-	end
-	
-	for k, v in pairs(WUMA.UserData[user].Limits) do
-		if (v == WUMA.DELETE) then
-			WUMA.UserData[user].Limits[k] = nil
-		end
+		update[id] = tbl	
 	end
 
 	hook.Call(WUMA.USERDATAUPDATE, _, user, Limit:GetID(), update)
@@ -231,37 +181,21 @@ end
 
 function WUMA.UpdateUserLoadouts(user, update)
 	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
-	
-	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
 
-	if istable(update) and (update[1] ~= WUMA.DELETE) then
-		update = Loadout:new(update)
-		WUMA.UserData[user].Loadouts = update
-		
-		if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
-			local tbl = {}
-			for class, weapon in pairs(update:GetWeapons()) do
-				tbl[class] = {}
-				for k, v in pairs(weapon) do
-					tbl[class][k] = v 
-				end
-				tbl[class].parent = user
-				tbl[class].usergroup = user
-			end
+	local tbl = {}
+	for class, weapon in pairs(update) do
+		if istable(weapon) then
+			weapon.parent = user
+			weapon.usergroup = user
+			weapon = Loadout_Weapon:new(weapon)
 			
-			if (update:GetPrimary() and tbl[update:GetPrimary()]) then
-				tbl[update:GetPrimary()].isprimary = true
-			end
-
-			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable(tbl)
+			WUMA.UserData[user].Loadouts[class] = weapon
+		else
+			WUMA.UserData[user].Loadouts[class] = nil
 		end
-	else
-		if WUMA.GUI.Tabs.Users and WUMA.GUI.Tabs.Users.loadouts and (WUMA.GUI.Tabs.Users:GetSelectedUser() == user) then
-			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable({})
-		end
-	
-		WUMA.UserData[user].Loadouts = nil
 	end
+
+	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
 	
 end
 

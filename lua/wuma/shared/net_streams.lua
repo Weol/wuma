@@ -225,12 +225,26 @@ WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
 	if data[1] then
 		if WUMA.CheckUserFileExists(data[1],Loadout) then
 			local tbl = WUMA.GetSavedLoadouts(data[1])
-			if (tbl:GetWeaponCount() < 1) then tbl = false end
-			return {user, tbl, Loadout:GetID()..":::"..data[1]}
+			if (tbl:GetWeaponCount() < 1) then return nil end
+			
+			local weapons = {}
+			for class, weapon in pairs(tbl:GetWeapons()) do
+				weapons[class] = weapon
+			end
+			return {user, weapons, Loadout:GetID()..":::"..data[1]}
 		end
 	else
 		if WUMA.LoadoutsExist() then
-			return {user, WUMA.GetSavedLoadouts(), Loadout:GetID()}
+			local tbl = WUMA.GetSavedLoadouts()
+
+			local weapons = {}
+			for group, loadout in pairs(tbl) do
+				for class, weapon in pairs(loadout:GetWeapons()) do
+					weapons[group.."_"..class] = weapon
+					weapons[group.."_"..class].usergroup = group
+				end
+			end
+			return {user, weapons, Loadout:GetID()}
 		end
 	end
 end) 

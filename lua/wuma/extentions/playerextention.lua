@@ -6,20 +6,21 @@ function ENT:CheckLimit(str, WUMA)
 	if (game.SinglePlayer()) then return true end
 	
 	if (WUMA and self:HasLimit(WUMA)) then
-		WUMADebug(0)
-		return self:GetLimit(WUMA):Check()
-	elseif (self:HasLimit(str)) then
-		return self:GetLimit(str):Check()
-	else
-
-		local c = cvars.Number("sbox_max"..str, 0)
-
-		if (c < 0) then return true end
-		if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
-		return true
+		local limithit = self:GetLimit(WUMA):Check() 
+		if (limithit != nil) then return limithit end
+	end	
 	
+	if (self:HasLimit(str)) then
+		local limithit = self:GetLimit(str):Check()
+		if (limithit != nil) then return limithit end
 	end
 
+	local c = cvars.Number("sbox_max"..str, 0)
+
+	if (c < 0) then return true end
+	if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
+	return true
+	
 end 
   
 function ENT:AddCount(str, ent, WUMA)
@@ -53,6 +54,8 @@ function ENT:AddCount(str, ent, WUMA)
 end 
      
 function ENT:GetCount(str, minus, WUMA)
+	
+	minus = minus or 0 
 
 	if (WUMA and self:HasLimit(WUMA)) then 
 		local l = self:GetLimit(WUMA):GetCount()
@@ -67,8 +70,6 @@ function ENT:GetCount(str, minus, WUMA)
 		if (CLIENT) then
 			return self:GetNetworkedInt("Count."..str, 0)
 		end
-		
-		minus = minus or 0 
 		
 		if (!self:IsValid()) then return end
 

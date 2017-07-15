@@ -78,6 +78,15 @@ function WUMA.GUI.Initialize()
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Loadouts.TabName, WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts.TabIcon) --Loadout
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player
 	
+	--Adding data update hooks
+	hook.Add(WUMA.RESTRICTIONUPDATE, "WUMARestrictionDataUpdate", function(update) WGUI.Tabs.Restrictions:GetDataView():UpdateDataTable(update) end) --Restriction
+	hook.Add(WUMA.LIMITUPDATE, "WUMALimitDataUpdate", function(update) WGUI.Tabs.Limits:GetDataView():UpdateDataTable(update) end) --Limits
+	hook.Add(WUMA.LOADOUTUPDATE, "WUMALoadoutDataUpdate", function(update) WGUI.Tabs.Loadouts:GetDataView():UpdateDataTable(update) end) --Loadouts
+	
+	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserRestrictionDataUpdate", function(user, enum, update) if (enum == Restriction:GetID()) then WGUI.Tabs.Users.restrictions:GetDataView():UpdateDataTable(update) end end) --Restriction
+	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLimitDataUpdate", function(user, enum, update) if (enum == Limit:GetID()) then WGUI.Tabs.Users.limits:GetDataView():UpdateDataTable(update) end end) --Limits
+	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLoadoutDataUpdate", function(user, enum, update) if (enum == Loadout:GetID()) then WGUI.Tabs.Users.loadouts:GetDataView():UpdateDataTable(update) end end) --Loadouts
+	
 	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
 	
 	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
@@ -292,36 +301,33 @@ function WUMA.GUI.AddHook(h,name,func)
 	WUMA.GUI.HookIDs = WUMA.GUI.HookIDs + 1
 end
 
-concommand.Add( "wuma", function() 
-	WUMA.GUI.Toggle()
-end)
+concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
 
-concommand.Add( "loadout", function() 
-	WUMA.Selfout = vgui.Create("DFrame")
-	WUMA.Selfout:SetSize(ScrW()*0.40,ScrH()*0.44)
-	WUMA.Selfout:SetPos(ScrW()/2-WUMA.Selfout:GetWide()/2,ScrH()/2-WUMA.Selfout:GetTall()/2)
-	WUMA.Selfout:SetTitle("Select your loadout")
-	WUMA.Selfout.Paint = function()
-		draw.RoundedBox(5, 0, 0, WUMA.Selfout:GetWide(), WUMA.Selfout:GetTall(), Color(59, 59, 59, 255))
-		draw.RoundedBox(5, 1, 1, WUMA.Selfout:GetWide() - 2, WUMA.Selfout:GetTall() - 2, Color(226, 226, 226, 255))
-		
-		draw.RoundedBox(5, 1, 1, WUMA.Selfout:GetWide()-2, 25-1, Color(163, 165, 169, 255))
-		surface.SetDrawColor(Color(163, 165, 169, 255))
-		surface.DrawRect(1, 10, WUMA.Selfout:GetWide()- 2, 15)
-	end
-		
-	local loadout = vgui.Create("WUMA_PersonalLoadout",WUMA.Selfout)
-	loadout:Dock(TOP)
-	loadout:SetWide(WUMA.Selfout:GetWide())
-	loadout:SetTall(WUMA.Selfout:GetTall()-35)
-	loadout.OnClose = function() 
+function WUMA.GUI.CreateLoadoutSelector() 
+	local frame = vgui.Create("DFrame")
+	frame:SetSize(ScrW()*0.40,ScrH()*0.44)
+	frame:SetPos(ScrW()/2-frame:GetWide()/2,ScrH()/2-frame:GetTall()/2)
+	frame:SetTitle("Select your loadout")
+	frame.OnClose = function() 
 		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
 		hook.Remove(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate")
 	end
+	frame.Paint = function()
+		draw.RoundedBox(5, 0, 0, frame:GetWide(), frame:GetTall(), Color(59, 59, 59, 255))
+		draw.RoundedBox(5, 1, 1, frame:GetWide() - 2, frame:GetTall() - 2, Color(226, 226, 226, 255))
+		
+		draw.RoundedBox(5, 1, 1, frame:GetWide()-2, 25-1, Color(163, 165, 169, 255))
+		surface.SetDrawColor(Color(163, 165, 169, 255))
+		surface.DrawRect(1, 10, frame:GetWide()- 2, 15)
+	end
+		
+	local loadout = vgui.Create("WUMA_PersonalLoadout",frame)
+	loadout:Dock(TOP)
+	loadout:SetWide(frame:GetWide())
+	loadout:SetTall(frame:GetTall()-35)
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
-		if not loadout then return end
-		
+		if not frame then return end
 		if (enum == Loadout:GetID()) then
 			if update.primary then
 				for k, v in pairs(update.weapons) do
@@ -350,19 +356,17 @@ concommand.Add( "loadout", function()
 					end
 				end
 			end
-			
-			if loadout then
-				loadout:ReloadSuggestions()
-			end
+				
+			loadout:ReloadSuggestions()
 		end
-		
 	end)
 	
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"loadout")
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"restrictions")
 
-	WUMA.Selfout:MakePopup()
-	WUMA.Selfout:SetVisible(true)
-	
-end)
+	frame:MakePopup()
+	frame:SetVisible(true)
+end
+
+concommand.Add( "wuma_loadout", WUMA.GUI.CreateLoadoutSelector)

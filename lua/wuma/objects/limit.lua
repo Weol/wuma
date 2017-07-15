@@ -127,6 +127,10 @@ function object:Delete()
 	for id, entity in pairs(self.m.entities)  do
 		entity:RemoveWUMAParent(entity)
 	end
+	
+	if self.scope then
+		self.scope:Delete()
+	end
 end
 
 function object:Shred()
@@ -236,8 +240,9 @@ end
 
 function object:SetScope(scope)	
 	if not self:GetOrigin() then
-		self.scope = Scope:new(scope)
-		
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
 		self.scope:SetParent(self)
 		
 		self.scope:AllowThink()
@@ -280,11 +285,10 @@ function object:InheritEntities(limit)
 end
 
 function object:Check(int)
-WUMADebug(1)
 	if self:IsDisabled() then return nil end
-WUMADebug(2)
+	
 	local limit = int or self:Get()
-	WUMADebug(3)
+	
 	if istable(limit) then 
 		if not limit:IsExclusive() then
 			return limit:Check()
@@ -297,15 +301,14 @@ WUMADebug(2)
 	elseif isstring(limit) then
 		return nil
 	end
-	WUMADebug(4)
 	
-	
-	if (limit < 0) then return end
-	WUMADebug(5)
+	if (limit < 0) then return true end
 	if (limit <= self:GetCount()) then
 		self:Hit()
 		return false
 	end
+	
+	return true
 end
 
 function object:Hit()
@@ -329,6 +332,8 @@ function object:Subtract(c)
 end 
 
 function object:Add(entity)
+	if (self.m.entities[entity:GetCreationID()]) then return end
+
 	self:SetCount(self:GetCount() + 1)
 	
 	local limit = self:Get()

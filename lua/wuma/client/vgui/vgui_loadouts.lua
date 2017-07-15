@@ -433,9 +433,13 @@ function PANEL:OnSetAsClick()
 	frame:SetTitle("Set as...")
 	frame:SetDeleteOnClose(true)
 
-	local paint = frame.Paint
-	frame.Paint = function()
-		paint(frame,frame:GetSize())
+	frame.Paint = function(panel, w, h)
+		draw.RoundedBox(5, 0, 0, w, h, Color(59, 59, 59, 255))
+		draw.RoundedBox(5, 1, 1, w - 2, h - 2, Color(226, 226, 226, 255))
+		
+		draw.RoundedBox(5, 1, 1, w-2, 25-1, Color(163, 165, 169, 255))
+		surface.SetDrawColor(Color(163, 165, 169, 255))
+		surface.DrawRect(1, 10, w- 2, 15)
 		
 		surface.SetFont("DermaDefault")
 		surface.SetTextColor( 0, 0, 0, 255 )
@@ -485,19 +489,6 @@ function PANEL:OnSetAsClick()
 		end
 		
 		listview:SortByColumn(2)
-		
-		--[[
-		table.Copy( self.Sorted, self.Lines )
-		table.sort(listview.Sorted,function(a,b)
-			local aval = a:GetSortValue(2)
-			local bval = b:GetSortValue(2)
-			
-			return aval < bval
-		end)
-		listview:SetDirty( true )
-		listview:InvalidateLayout()
-		]]--
-		
 	end
 	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE,"WUMAGUILoudoutSetAsHook",populatePlayerList())
 	

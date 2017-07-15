@@ -109,12 +109,12 @@ end
 function object:__call(type,str)
 
 	if self:IsDisabled() then return end
-	
+
 	if (self:HasException(str)) then 
 		self:RemoveException(str)
 		return
 	end
-
+	
 	if not self.allow then
 		self:Hit()
 		return false
@@ -130,8 +130,9 @@ function object:GetStatic()
 end
 
 function object:Delete()
-	self.scope = nil
-	self = nil
+	if self.scope then
+		self.scope:Delete()
+	end
 end
 
 function object:Shred()
@@ -260,8 +261,9 @@ end
 
 function object:SetScope(scope)	
 	if not self:GetOrigin() then
-		self.scope = Scope:new(scope)
-		
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
 		self.scope:SetParent(self)
 		
 		self.scope:AllowThink()

@@ -185,7 +185,7 @@ end
 
 function WUMA.IsSteamID(steamid)
 	if not isstring(steamid) then return false end
-	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
+	return (steamid == string.match(steamid,[[STEAM_%d:%d:%d*]]))
 end
 
 function WUMA.GetUserGroups()

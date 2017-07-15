@@ -20,13 +20,11 @@ function WUMA.GetTools()
 end
 
 function WUMA.GetWeapons()
-	local tbl = {
-		"weapon_annabelle"
-	}
-	
+	local tbl = {}
+
 	for k, v in pairs(list.Get( "Weapon" )) do
 		if v.Spawnable then
-			table.insert(tbl,k)
+			table.insert(tbl, k)
 		end
 	end
 	

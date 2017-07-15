@@ -14,7 +14,7 @@ end
 hook.Add("PlayerSpawnSENT", "WUMAPlayerSpawnSENT", WUMA.PlayerSpawnSENT, -1)
 
 function WUMA.PlayerSpawnedSENT(ply, ent)
-	ply:AddCount("sents",ent,ent:GetClass())
+	ply:AddCount("sents",ent,ent:GetClass()) 
 end
 hook.Add("PlayerSpawnedSENT", "WUMAPlayerSpawnedProp", WUMA.PlayerSpawnedSENT, -2)
 

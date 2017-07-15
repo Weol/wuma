@@ -39,13 +39,38 @@ Scope.types.UNTIL = Scope.UNTIL
 
 Scope.DURATION = {
 	print="Duration",
-	print2=function(obj) return string.format("%s seconds",obj:GetData()-WUMA.GetTime()) end,
+	print2=function(obj)
+		local time = obj:GetData()-WUMA.GetTime()
+		local str = ""
+
+		local form = {
+			{3600*60*24*365, "years"},
+			{math.Round(52/12*(3600*60*24*7)), "months"},
+			{3600*60*24*7, "weeks"},
+			{3600*24, "days"},
+			{60*60, "hours"},
+			{60, "minutes"},
+			{1, "seconds"}
+		}
+		
+		for k, v in pairs(form) do
+			local dur = v[1]
+			if (time >= dur) then
+				local t = math.floor(time/dur)
+				str = str .. t .. " " .. v[2] .. " "
+				time = time - t*dur
+			end
+		end
+
+		return str
+	end,
 	log_prefix="for",
 	parts={"time_chooser"},
 	save=true,
 	processdata=function(data) return tonumber(data)+WUMA.GetTime() end,
+	checkdata=os.time,
 	checkfunction=function(obj) 
-		if (os.time() > obj:GetData()) then return false else return true end 
+		return (os.time() <= obj:GetData())
 	end,
 	arguments={WUMAAccess.NUMBER}
 }
@@ -60,11 +85,9 @@ Scope.MAP = {
 	keep=true,
 	checkdata=game.GetMap,
 	checkfunction = function(obj, data) 
-		if (obj:GetData() == data) then 
-			return true 
-		else 
-			return false  
-		end 
+		WUMADebug("[%s]", obj:GetData())
+		WUMADebug("[%s]", data)
+		return (data == obj:GetData())
 	end,
 	arguments={WUMAAccess.STRING}, 
 }

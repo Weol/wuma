@@ -170,6 +170,8 @@ function PANEL:Init()
 		self.map_chooser:AddOptions(WUMA.Maps)
 	end)
 	
+	self:ReloadSuggestions()
+	
 end
 
 function PANEL:PerformLayout()
@@ -224,8 +226,6 @@ function PANEL:PerformLayout()
 		self.period_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
 
 		self.map_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
-
-	self:ReloadSuggestions()
 		
 end
 

@@ -94,6 +94,7 @@ end
 
 function WUMA.RemoveRestriction(caller,usergroup,type,item)
  
+	WUMA.Restrictions[Restriction:GenerateID(type,usergroup,item)]:Delete()
 	WUMA.Restrictions[Restriction:GenerateID(type,usergroup,item)] = nil
 
 	local affected = WUMA.UpdateUsergroup(usergroup,function(ply)

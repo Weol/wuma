@@ -65,7 +65,8 @@ end
 function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 	if not(WUMA.Loadouts[usergroup]) then return false end
 	
-	if (WUMA.Loadouts[usergroup]:GetPrimary() == item) then item = false end 
+	primary = WUMA.Loadouts[usergroup]:GetPrimary()
+	if (WUMA.Loadouts[usergroup]:GetPrimary() == item) then item = nil end 
 	
 	WUMA.Loadouts[usergroup]:SetPrimary(item)
 	
@@ -75,7 +76,14 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 	end)
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)
-		tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
+		local weapon = WUMA.Loadouts[usergroup]:GetWeapon(item or primary)
+		weapon.class = weapon:GetClass()
+		weapon.usergroup = WUMA.Loadouts[usergroup]:GetUserGroup()
+		if not item then
+			weapon.primary = true
+		end
+		
+		tbl[usergroup.."_"..(item or primary)] = weapon
 		return tbl
 	end)
 	
@@ -89,9 +97,8 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 end
 
 function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,scope)
-	if not(WUMA.Loadouts[usergroup]) then
-		WUMA.Loadouts[usergroup] = Loadout:new({usergroup=usergroup})
-	end
+	
+	WUMA.Loadouts[usergroup] = WUMA.Loadouts[usergroup] or Loadout:new({usergroup=usergroup})
 	
 	if scope then scope:SetProperty("class",item) end
 
@@ -107,7 +114,11 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 	end)
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)
-		tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
+		local weapon = WUMA.Loadouts[usergroup]:GetWeapon(item)
+		weapon.class = weapon:GetClass()
+		weapon.usergroup = WUMA.Loadouts[usergroup]:GetUserGroup()
+	
+		tbl[usergroup.."_"..item] = WUMA.Loadouts[usergroup]:GetWeapon(item)
 		return tbl
 	end)
 	
@@ -125,7 +136,6 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 end
  
 function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
-	WUMADebug("RemoveLoadoutWeapon(_, %s, %s)",usergroup,item)
 	if not WUMA.Loadouts[usergroup] then return false end
 	WUMA.Loadouts[usergroup]:RemoveWeapon(item)
 		
@@ -138,11 +148,7 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 	end)
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)	
-		if not WUMA.Loadouts[usergroup] or (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then 
-			tbl[usergroup] = WUMA.DELETE
-		else
-			tbl[usergroup] = WUMA.Loadouts[usergroup]:GetBarebones()
-		end
+		tbl[usergroup.."_"..item] = WUMA.DELETE
 		
 		return tbl
 	end)
@@ -208,10 +214,10 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller,user,item)
 		loadout:SetPrimary(item)
 		
 		WUMA.AddClientUpdate(Loadout,function(tbl)
-			if not istable(tbl) or not tbl._id then tbl = loadout end
-		
-			tbl:SetPrimary(item)
-			
+			local weapon = loadout:GetWeapon(item)
+			weapon.primary = true
+	
+			tbl[item] = weapon
 			return tbl
 		end, user)
 		
@@ -224,9 +230,10 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller,user,item)
 		loadout:SetPrimary(false)
 		
 		WUMA.AddClientUpdate(Loadout,function(tbl)
-			if not istable(tbl) or tbl._id then tbl = loadout end
-		
-			tbl:SetPrimary(false)
+			local weapon = loadout:GetWeapon(item)
+			weapon.primary = nil
+	
+			tbl[item] = weapon
 			return tbl
 		end, user)
 		
@@ -256,10 +263,9 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 	end
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = WUMA.GetSavedLoadouts(user) end
+		local weapon = Loadout_Weapon:new{class=item, primary=primary, secondary=secondary, respect_restrictions=respect, parent=user}
 	
-		tbl:AddWeapon(item,primary,secondary,respect,scope)
-		
+		tbl[item] = weapon
 		return tbl
 	end, user)
 	
@@ -284,9 +290,7 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 	end
 
 	WUMA.AddClientUpdate(Loadout,function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = loadout end
-		tbl:RemoveWeapon(item)
-		if (tbl:GetWeaponCount() < 1) then return {WUMA.DELETE} end
+		tbl[item] = WUMA.DELETE
 		
 		return tbl
 	end, user)
