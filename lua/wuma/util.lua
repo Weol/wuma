@@ -6,7 +6,6 @@ local WUMALog = WUMALog
 WUMA.WUMALookupTable = "WUMALookup"
 WUMA.Settings = WUMA.Settings or {}
 WUMA.SettingsHooks = WUMA.SettingsHooks or {}
-WUMA.Cache = {}
 
 local uniqueIDs = 0
 function WUMA.GenerateUniqueID()
@@ -39,20 +38,57 @@ function WUMA.GetSteamIDbyNick(id)
 	return WUMA.Lookup(user)
 end
 
+local cacheCounter = 0
 local cacheSize = 15
+local head
+local tail
 function WUMA.Cache(id, data)
 	if (data) then
-		if (WUMA.Cache[id]) then
-			WUMA.Cache[id] = {data = data, uses = 1}
-			return true
+		if not head then
+			head = {id = id, data = data, next = nil}
+			tail = head
+			cacheCounter = cacheCounter + 1
+		else 
+			if (cacheCounter => cacheSize) then
+				tail = tail.previous
+			end
+			
+			local link = {id = id, data = data, next = head}
+			tail.previous = tail
+			tail = head
+			head = link
+			cacheCounter = cacheCounter + 1
 		end
-	elseif (WUMA.Cache[id]) then
-		WUMA.Cache[id].uses = WUMA.Cache[id].uses + 1
-		return WUMA.Cache[id]
+	else
+		local link = head --Set link to head (first element)
+		local previous --Declare pervious
+		while (link != nil) do
+			if (link.id == id) then --Check if link is what we are looking for
+				if (previous) then --If previous is not nil then link is not head
+					previous.next = link.next --Set the previous element to the the current links next element
+					link.next = head --Set current links next to current head
+					head = link --Set head to current link
+				end
+				return link.data --Return the data
+			elseif (link.next != nil) then
+				previous = link --Set previous to current link
+				link = link.next --Set current link to next link
+			end
+		end
 	end
-	return false
 end
 
 function WUMA.InvalidateCache(id) 
-	
+	local link = head
+	local previous
+	while (link != nil) do
+		if (link.id == id) then
+			if (previous) then
+				previous.next = link.next
+			else 
+				head = head.next
+			end
+			cacheCounter = cacheCounter - 1
+		end
+	end
 end
