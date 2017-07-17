@@ -327,8 +327,14 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:SetTall(frame:GetTall()-35)
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
-		if not frame then return end
 		if (enum == Loadout:GetID()) then
+			if not update.weapons then
+				update.parent = user
+				update.usergroup = user
+				update = {weapons = update}
+			end
+			
+			PrintTable(update)
 			if update.primary then
 				for k, v in pairs(update.weapons) do
 					if (k == update.primary) then update.weapons[k].isprimary = true end
@@ -336,7 +342,7 @@ function WUMA.GUI.CreateLoadoutSelector()
 			end
 			
 			if loadout:GetDataView() then
-				loadout:GetDataView():SetDataTable(update.weapons)
+				loadout:GetDataView():UpdateDataTable(update.weapons)
 			end
 		elseif (enum == Restriction:GetID()) then
 			for key, restriction in pairs(update) do

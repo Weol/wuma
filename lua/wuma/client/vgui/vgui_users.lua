@@ -146,17 +146,17 @@ function PANEL:Init()
 		local nick = "ERROR"
 		if WUMA.LookupUsers[data.parent] then nick = WUMA.LookupUsers[data.parent].nick elseif WUMA.ServerUsers[data.parent] then nick = WUMA.ServerUsers[data.parent]:Nick() end
 		
-		local secondary = data.secondary
+		local secondary = data.secondary or -1
 		if (secondary < 0) then
 			secondary = "def"
 		end 
 		
-		local primary = data.primary
+		local primary = data.primary or -1
 		if (primary < 0) then
 			primary = "def"
 		end 
 		
-		return {nick, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-data.primary,-data.secondary}
+		return {nick, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-(data.primary or 0),-(data.secondary or 0)}
 	end
 	self.loadouts:GetDataView():SetSortFunction(sort3)
 	

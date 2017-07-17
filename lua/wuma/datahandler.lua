@@ -97,7 +97,7 @@ end
 function WUMA.GetDataSubsribers(target,enum)
 	if WUMA.IsSteamID(target) then
 		if not WUMA.DATA.Subscriptions.users[target] then return {} end
-		if not WUMA.DATA.Subscriptions.users[target][enum] then return {} end
+		if not WUMA.DATA.Subscriptions.users[target][enum] then return {} end --Stops here
 		return WUMA.DATA.Subscriptions.users[target][enum]
 	else
 		if not (WUMA.DATA.Subscriptions[target]) then return {} end 
@@ -147,7 +147,7 @@ WUMA.DATA.ClientUpdates.users = {}
 
 local tick_clients = false
 function WUMA.AddClientUpdate(enum, func, user)
-	if (table.Count(player.GetAll()) == 0) then return end
+	if (table.Count(player.GetAll()) == 0) then return end --Why bother?
 	if isentity(user) then user = user:SteamID() end
 	enum = enum:GetID()
 

@@ -4,6 +4,7 @@ local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
 local Files = {}
+local cache = {}
 
 function Files.Initialize()
 
@@ -22,9 +23,9 @@ function Files.CreateDir(dir)
 end
 
 function Files.Append(path,text)
-	local f = file.Exists(WUMA.DataDirectory..path,"DATA")
+	local f = file.Exists(WUMA.DataDirectory..path, "DATA")
 	if (not f) then
-		Files.Write(WUMA.DataDirectory..path,text)
+		Files.Write(WUMA.DataDirectory..path, text)
 		return 
 	end
 	file.Append(path, text)
@@ -44,7 +45,7 @@ end
 
 function Files.Read(path)
 	Msg("Reading file at "..path.."\n")
-	--debug.Trace()
+	
 	local f = file.Open(path, "r", "DATA")
 	if (!f) then return "" end
 	local str = f:Read(f:Size())

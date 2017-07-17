@@ -6,6 +6,7 @@ local WUMALog = WUMALog
 WUMA.WUMALookupTable = "WUMALookup"
 WUMA.Settings = WUMA.Settings or {}
 WUMA.SettingsHooks = WUMA.SettingsHooks or {}
+WUMA.Cache = {}
 
 local uniqueIDs = 0
 function WUMA.GenerateUniqueID()
@@ -36,4 +37,22 @@ end
 
 function WUMA.GetSteamIDbyNick(id)
 	return WUMA.Lookup(user)
+end
+
+local cacheSize = 15
+function WUMA.Cache(id, data)
+	if (data) then
+		if (WUMA.Cache[id]) then
+			WUMA.Cache[id] = {data = data, uses = 1}
+			return true
+		end
+	elseif (WUMA.Cache[id]) then
+		WUMA.Cache[id].uses = WUMA.Cache[id].uses + 1
+		return WUMA.Cache[id]
+	end
+	return false
+end
+
+function WUMA.InvalidateCache(id) 
+	
 end

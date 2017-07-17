@@ -259,7 +259,7 @@ WUMA.NET.LOADOUT:AddInto(WUMA.NET.ENUMS)
 WUMA.NET.PERSONAL = WUMA_NET_STREAM:new{send=WUMA.SendCompressedData}
 WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 	if (data[1] == "subscribe") then
-		WUMA.AddDataSubscription(user,user:SteamID(),user:SteamID())
+		WUMA.AddDataSubscription(user,user:SteamID(),Loadout:GetID())
 		
 		hook.Add(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. "_" .. user:AccountID(), function(hook_user, restriction) 
 			if (user == hook_user) and not restriction:IsPersonal() then

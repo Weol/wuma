@@ -135,7 +135,7 @@ function PANEL:SetDataTable(tbl)
 	self.DataTable = tbl or {}
 	self.DataRegistry = {}
 	self:Clear()
-
+	
 	for id, data in pairs(self.DataTable) do
 		if isstring(data) then data = nil end
 		local sort, sortv = self:SortItem(data)

@@ -66,10 +66,10 @@ function PANEL:Init()
 	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
 	
 	local sort = function(data)	
-		local primary = data.primary
+		local primary = data.primary or -1
 		if (tonumber(primary) < 0) then primary = "def" end
 		
-		local secondary = data.secondary
+		local secondary = data.secondary or -1
 		if (tonumber(secondary) < 0) then secondary = "def" end
 	
 		return {data.class},{_}
