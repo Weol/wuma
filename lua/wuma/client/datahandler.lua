@@ -104,8 +104,6 @@ end
 
 function WUMA.UpdateLoadouts(update)
 
-	PrintTable(update)
-
 	for id, weapon in pairs(update) do
 		if istable(weapon) then
 			local usergrup = weapon.usergroup
@@ -180,16 +178,17 @@ function WUMA.UpdateUserLimits(user, update)
 end
 
 function WUMA.UpdateUserLoadouts(user, update)
-	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
+	PrintTable(update)
 
-	local tbl = {}
+	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
+	
 	for class, weapon in pairs(update) do
 		if istable(weapon) then
-			weapon.parent = user
-			weapon.usergroup = user
-			weapon = Loadout_Weapon:new(weapon)
-			
-			WUMA.UserData[user].Loadouts[class] = weapon
+			update[class].parent = user
+			update[class] = Loadout_Weapon:new(update[class])
+			update[class].usergroup = user
+
+			WUMA.UserData[user].Loadouts[class] = update[class]
 		else
 			WUMA.UserData[user].Loadouts[class] = nil
 		end

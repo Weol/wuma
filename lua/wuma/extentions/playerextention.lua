@@ -307,7 +307,13 @@ function ENT:ClearLoadout()
 end
 
 function ENT:HasLoadout()
-	if self:GetLoadout() then return true else return false end
+	if self:GetLoadout() then
+		if self:GetLoadout():IsDisabled() then
+			return false
+		end
+		return true
+	end
+	return false
 end
 
 function ENT:GetLoadout()

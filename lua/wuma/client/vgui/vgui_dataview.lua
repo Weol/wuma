@@ -161,6 +161,8 @@ function PANEL:CheckHighlights()
 end
 
 function PANEL:UpdateDataTable(tbl)
+	PrintTable(tbl)
+
 	if not tbl then return end
 	if (table.Count(self.DataTable) < 1) then self:SetDataTable(tbl) return end
 	

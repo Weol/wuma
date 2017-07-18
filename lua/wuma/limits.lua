@@ -34,6 +34,11 @@ function WUMA.GetSavedLimits(user)
 end
 
 function WUMA.ReadUserLimits(user)
+	if not isstring(user) then user = user:SteamID() end
+
+	local cached = WUMA.Cache(user .. "_Limits")
+	if cached then return cached end
+
 	local tbl = {}
 	
 	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
@@ -43,7 +48,7 @@ function WUMA.ReadUserLimits(user)
 		tbl[key] = Limit:new(obj)
 	end 
 	
-	if not isstring(user) then user = user:SteamID() end
+	WUMA.Cache(user .. "_Limits", tbl)
 	
 	return tbl
 end

@@ -33,6 +33,11 @@ function WUMA.GetSavedRestrictions(user)
 end
 
 function WUMA.ReadUserRestrictions(user)
+	if not isstring(user) then user = user:SteamID() end
+
+	local cached = WUMA.Cache(user .. "_Restrictions")
+	if cached then return cached end
+
 	local tbl = {}
 	
 	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Restriction))) or {}
@@ -41,6 +46,8 @@ function WUMA.ReadUserRestrictions(user)
 		obj.parent = user
 		tbl[key] = Restriction:new(obj)
 	end 
+	
+	WUMA.Cache(user .. "_Restrictions", tbl)
 	
 	return tbl
 end

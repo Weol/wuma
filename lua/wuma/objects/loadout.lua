@@ -201,6 +201,15 @@ function object:HasWeapon(weapon)
 	if self:GetAncestor() and self:GetAncestor():GetWeapon(weapon) then return true end
 end
 
+function object:IsDisabled() 
+	for class, weapon in pairs(self:GetWeapons()) do
+		if not weapon:IsDisabled() then
+			return false
+		end
+	end
+	return true
+end
+
 function object:IsPersonal()
 	if self.usergroup then return nil else return true end
 end
@@ -284,11 +293,6 @@ end
 
 function object:Enable()
 	self.m.disabled = false
-end
-
-function object:IsDisabled() 
-	if self.m and self.m.disabled then return true end
-	return false
 end
 
 function object:GetUserGroup()

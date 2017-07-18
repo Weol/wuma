@@ -138,13 +138,13 @@ function PANEL:Init()
 	self.loadouts.Command.Primary = "setuserprimaryweapon"
 	
 	local sort3 = function(data)
-		if not (self:GetSelectedUser() == data.parent) then return false end
+		if not (self:GetSelectedUser() == data:GetParent()) then return false end
 		
 		scope = "Permanent"
 		if data.scope then scope = data.scope end
 
 		local nick = "ERROR"
-		if WUMA.LookupUsers[data.parent] then nick = WUMA.LookupUsers[data.parent].nick elseif WUMA.ServerUsers[data.parent] then nick = WUMA.ServerUsers[data.parent]:Nick() end
+		if WUMA.LookupUsers[data:GetParent()] then nick = WUMA.LookupUsers[data:GetParent()].nick elseif WUMA.ServerUsers[data:GetParent()] then nick = WUMA.ServerUsers[data:GetParent()]:Nick() end
 		
 		local secondary = data.secondary or -1
 		if (secondary < 0) then
@@ -156,7 +156,7 @@ function PANEL:Init()
 			primary = "def"
 		end 
 		
-		return {nick, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-(data.primary or 0),-(data.secondary or 0)}
+		return {nick, data.class, primary, secondary, scope},{0,_,-(data.primary or 0),-(data.secondary or 0)}
 	end
 	self.loadouts:GetDataView():SetSortFunction(sort3)
 	
@@ -394,7 +394,7 @@ function PANEL:OnLoadoutsClick()
 	self.loadouts:SetVisible(true)
 	
 	if WUMA.UserData[self:GetSelectedUser()] then
-		self.loadouts:GetDataView():UpdateDataTable(WUMA.UserData[self:GetSelectedUser()].Loadouts)
+		self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Loadouts)
 	end
 	
 	self:OnExtraChange(Loadout:GetID(),self:GetSelectedUser())

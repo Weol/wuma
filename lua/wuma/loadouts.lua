@@ -34,10 +34,18 @@ function WUMA.GetSavedLoadouts(user)
 end
 
 function WUMA.ReadUserLoadout(user)
+	if not isstring(user) then user = user:SteamID() end
+
+	local cached = WUMA.Cache(user .. "_Loadout")
+	if cached then return cached end
+
 	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or Loadout:new()
 	saved.parent = user
 	
-	return Loadout:new(saved)
+	local loadout = Loadout:new(saved)
+	WUMA.Cache(user .. "_Loadout", loadout)
+	
+	return Loadout:new(loadout)
 end
 
 function WUMA.GetSavedLoadout(user)
@@ -289,9 +297,10 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 		if (user:GetLoadout():GetWeaponCount() < 1) then user:ClearLoadout() end
 	end
 
+	WUMADebug(item)
 	WUMA.AddClientUpdate(Loadout,function(tbl)
 		tbl[item] = WUMA.DELETE
-		
+
 		return tbl
 	end, user)
 

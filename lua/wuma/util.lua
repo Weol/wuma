@@ -39,7 +39,7 @@ function WUMA.GetSteamIDbyNick(id)
 end
 
 local cacheCounter = 0
-local cacheSize = 15
+local cacheSize = 20
 local head
 local tail
 function WUMA.Cache(id, data)
@@ -49,15 +49,24 @@ function WUMA.Cache(id, data)
 			tail = head
 			cacheCounter = cacheCounter + 1
 		else 
-			if (cacheCounter => cacheSize) then
-				tail = tail.previous
-			end
-			
 			local link = {id = id, data = data, next = head}
-			tail.previous = tail
-			tail = head
 			head = link
 			cacheCounter = cacheCounter + 1
+		end
+		
+		if (cacheCounter >= cacheSize) then
+			local counter = 0
+			local l = head
+			while l do
+				if (counter > cacheSize - 2) then
+					l.next = nil	
+					l = nil
+					cacheCounter = counter
+				else 
+					l = l.next
+					counter = counter + 1
+				end
+			end
 		end
 	else
 		local link = head --Set link to head (first element)
@@ -70,10 +79,10 @@ function WUMA.Cache(id, data)
 					head = link --Set head to current link
 				end
 				return link.data --Return the data
-			elseif (link.next != nil) then
-				previous = link --Set previous to current link
-				link = link.next --Set current link to next link
 			end
+			
+			previous = link --Set previous to current link
+			link = link.next --Set current link to next link
 		end
 	end
 end
