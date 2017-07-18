@@ -109,11 +109,6 @@ function PANEL:Init()
 		self.time_chooser:SetVisible(false)
 		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 		
-		//period_chooser list
-		self.period_chooser = vgui.Create("WPeriodPicker",self)
-		self.period_chooser:SetVisible(false)
-		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
-		
 		//map_chooser 
 		self.map_chooser = vgui.Create("WMapPicker",self)
 		self.map_chooser:SetVisible(false)
@@ -222,8 +217,6 @@ function PANEL:PerformLayout()
 
 		self.time_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
 		self.time_chooser:SetSize(120,40)
-
-		self.period_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
 
 		self.map_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(),self.list_scopes.y)
 		

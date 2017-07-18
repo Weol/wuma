@@ -1,4 +1,4 @@
-
+ 
 local ENT = FindMetaTable("Player")
   
 function ENT:CheckLimit(str, WUMA) 

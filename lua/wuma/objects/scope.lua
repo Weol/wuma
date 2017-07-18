@@ -90,28 +90,6 @@ Scope.MAP = {
 	arguments={WUMAAccess.STRING}, 
 }
 Scope.types.MAP = Scope.MAP
-
-Scope.PERIOD = {
-	print="Time period",
-	print2=function(obj) 
-		return string.format("%02i:%02i to %02i:%02i",math.floor(obj:GetData().from/3600), (obj:GetData().from/3600 - math.floor(obj:GetData().from/3600)) * 60, math.floor(obj:GetData().to/3600), (obj:GetData().to/3600 - math.floor(obj:GetData().to/3600)) * 60) 
-	end,
-	log_prefix="from",
-	parts={"period_chooser"},
-	save=true,
-	keep=true,
-	checkfunction = function(obj)
-		local time = tonumber(os.date("%M", os.time()))*60 + tonumber(os.date("%H", os.time()))*3600
-
-		WUMADebug("%s -> %s <- %s", obj:GetData().from, time, obj:GetData().to)
-		
-		if (time >= obj:GetData().from and time < obj:GetData().to) then return true end
-
-		return false
-	end,
-	arguments={WUMAAccess.NUMBER,WUMAAccess.NUMBER}
-}
-Scope.types.PERIOD = Scope.PERIOD
  
 Scope._id = "WUMA_Scope"
 Scope.Objects = Scope.Objects or {}
