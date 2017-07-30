@@ -42,6 +42,7 @@ function WUMA.GetAllItems()
 	table.Add(tbl,WUMA.GetVehicles())
 	table.Add(tbl,WUMA.GetTools())
 	table.Add(tbl,WUMA.GetWeapons())
+	table.Add(tbl,WUMA.GetStandardLimits())
 	
 	return tbl
 end

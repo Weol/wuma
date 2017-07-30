@@ -288,26 +288,18 @@ function object:Check(int)
 	if self:IsDisabled() then return nil end
 	
 	local limit = int or self:Get()
-	
-	WUMADebug(1)
+
 	if istable(limit) then 
-		WUMADebug(2)
 		if not limit:IsExclusive() then
-			WUMADebug(3)
 			return limit:Check()
 		else
-			WUMADebug(4)
 			return self:Check(limit:Get()) 
 		end
-		WUMADebug(5)
 	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
-		WUMADebug(6)
 		return self:Check(self:GetParent():GetLimit(limit))
 	elseif isstring(limit) then
-		WUMADebug(7)
 		return nil
 	end
-	WUMADebug(8)
 	
 	if (limit < 0) then return true end
 	if (limit <= self:GetCount()) then
