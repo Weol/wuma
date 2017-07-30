@@ -54,7 +54,20 @@ function WUMA.ProcessDataUpdate(id,data)
 end
 
 --Data update
-function WUMA.ProcessCompressedData(id,data)
+local compressedBuffer = {}
+function WUMA.ProcessCompressedData(id, data, await)
+	if compressedBuffer[id] then
+		compressedBuffer[id] = compressedBuffer[id] .. data
+		if not await then
+			data = compressedBuffer[id]
+		else
+			return
+		end
+	elseif await then
+		compressedBuffer[id] = data
+		return
+	end
+
 	WUMADebug("Processing compressed data. Size: %s",data:len())
 
 	uncompressed_data = util.Decompress(data)
@@ -106,9 +119,19 @@ function WUMA.UpdateLoadouts(update)
 
 	for id, weapon in pairs(update) do
 		if istable(weapon) then
-			local usergrup = weapon.usergroup
+			local usergroup = weapon.usergroup
 			update[id] = Loadout_Weapon:new(weapon)
-			update[id].usergroup = usergrup
+			update[id].usergroup = usergroup
+			
+			if (update[id]:IsPrimary()) then
+				for k, v in pairs(WUMA.Loadouts) do
+					if ((v.usergroup == usergroup) and v:IsPrimary()) then
+						WUMA.Loadouts[k]:SetIsPrimary(false)
+						update[k] = WUMA.Loadouts[k]
+					end
+				end
+			end
+			
 			WUMA.Loadouts[id] = update[id]
 		else
 			WUMA.Loadouts[id] = nil
@@ -178,8 +201,6 @@ function WUMA.UpdateUserLimits(user, update)
 end
 
 function WUMA.UpdateUserLoadouts(user, update)
-	PrintTable(update)
-
 	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
 	
 	for class, weapon in pairs(update) do
@@ -188,12 +209,22 @@ function WUMA.UpdateUserLoadouts(user, update)
 			update[class] = Loadout_Weapon:new(update[class])
 			update[class].usergroup = user
 
+			if (update[class]:IsPrimary()) then
+				for k, v in pairs(WUMA.UserData[user].Loadouts) do
+					if ((v.usergroup == user) and v:IsPrimary()) then
+						WUMA.UserData[user].Loadouts[k]:SetIsPrimary(false)
+						
+						update[k] = WUMA.UserData[user].Loadouts[k]
+					end
+				end
+			end
+			
 			WUMA.UserData[user].Loadouts[class] = update[class]
 		else
 			WUMA.UserData[user].Loadouts[class] = nil
 		end
 	end
-
+	
 	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
 	
 end
@@ -208,10 +239,6 @@ function WUMA.ProcessInformationUpdate(enum,data)
 	else	
 		WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
 	end
-end
-
-function WUMA.RecievePushNotification(data) 
-
 end
 
 local DisregardSettingsChange = false

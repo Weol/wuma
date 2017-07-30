@@ -99,7 +99,7 @@ function WUMA.GUI.Show()
 		WUMA.GUI.Base:SetVisible(true)
 		WUMA.GUI.Base:MakePopup()
 	else
-		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE,"You do not have access to this command\n")
+		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE, "You do not have access to this command\n")
 	end
 end
 
@@ -132,7 +132,7 @@ function WUMA.OnTabChange(_,tabname)
 	elseif (tabname == WUMA.GUI.Tabs.Loadouts.TabName and not WUMA.Subscriptions.loadouts) then
 		WUMA.FetchData(Loadout:GetID())
 	elseif (tabname == WUMA.GUI.Tabs.Users.TabName and not WUMA.Subscriptions.users) then
-		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
+		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),4)
 		
 		WUMA.Subscriptions.users = true
 	end
@@ -327,16 +327,9 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:SetTall(frame:GetTall()-35)
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
+		
 		if (enum == Loadout:GetID()) then
-			if update.primary then
-				for k, v in pairs(update.weapons or update) do
-					if (k == update.primary) then update.weapons[k].isprimary = true end
-				end
-			end
-			
-			if loadout:GetDataView() then
-				loadout:GetDataView():UpdateDataTable(update.weapons or update)
-			end
+			loadout:GetDataView():UpdateDataTable(update)
 		elseif (enum == Restriction:GetID()) then
 			for key, restriction in pairs(update) do
 				if istable(restriction) and (restriction.type == "swep") then

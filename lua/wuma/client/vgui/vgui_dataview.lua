@@ -135,7 +135,7 @@ function PANEL:SetDataTable(tbl)
 	self.DataTable = tbl or {}
 	self.DataRegistry = {}
 	self:Clear()
-	
+
 	for id, data in pairs(self.DataTable) do
 		if isstring(data) then data = nil end
 		local sort, sortv = self:SortItem(data)
@@ -161,8 +161,6 @@ function PANEL:CheckHighlights()
 end
 
 function PANEL:UpdateDataTable(tbl)
-	PrintTable(tbl)
-
 	if not tbl then return end
 	if (table.Count(self.DataTable) < 1) then self:SetDataTable(tbl) return end
 	

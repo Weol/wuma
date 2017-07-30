@@ -128,13 +128,15 @@ WUMA.NET.USER:AddInto(WUMA.NET.ENUMS)
 /////////////////////////////////////////////////////////
 WUMA.NET.LOOKUP = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
 WUMA.NET.LOOKUP:SetServerFunction(function(user,data)
-	return {user, WUMA.NET.LOOKUP, WUMA.Lookup(data[1])}
+	return {user, WUMA.NET.LOOKUP, WUMA.Lookup(data[1]) or {}}
 end) 
 WUMA.NET.LOOKUP:SetClientFunction(function(data)
+	local tbl = {}
 	for i=1,table.Count(data[1]) do
 		WUMA.LookupUsers[data[1][i].steamid] = data[1][i]
+		tbl[data[1][i].steamid] = WUMA.LookupUsers[data[1][i].steamid]
 	end
-	hook.Call(WUMA.LOOKUPUSERSUPDATE)
+	hook.Call(WUMA.LOOKUPUSERSUPDATE, _, tbl)
 end) 
 WUMA.NET.LOOKUP:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
@@ -230,18 +232,23 @@ WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
 			local weapons = {}
 			for class, weapon in pairs(tbl:GetWeapons()) do
 				weapons[class] = weapon
+				if (tbl.primary == class) then
+					weapons[class].isprimary = true
+				end
 			end
 			return {user, weapons, Loadout:GetID()..":::"..data[1]}
 		end
 	else
 		if WUMA.LoadoutsExist() then
 			local tbl = WUMA.GetSavedLoadouts()
-
 			local weapons = {}
 			for group, loadout in pairs(tbl) do
 				for class, weapon in pairs(loadout:GetWeapons()) do
 					weapons[group.."_"..class] = weapon
 					weapons[group.."_"..class].usergroup = group
+					if (loadout.primary == class) then
+						weapons[group.."_"..class].isprimary = true
+					end
 				end
 			end
 			return {user, weapons, Loadout:GetID()}
@@ -291,7 +298,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 		return {user, user:GetRestrictions(), Restriction:GetID()..":::"..user:SteamID()}
 	elseif (data[1] == "loadout") then
 		if user:HasLoadout() then
-			return {user, user:GetLoadout():GetBarebones(), Loadout:GetID()..":::"..user:SteamID()}
+			return {user, user:GetLoadout():GetWeapons(), Loadout:GetID()..":::"..user:SteamID()}
 		end
 	end
 end) 

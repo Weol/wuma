@@ -345,7 +345,7 @@ function WUMA.Update_User()
 				limits[user] = WUMA.DELETE 
 			end
 			
-			if (isTableEmpty(loadouts[user]) and loadouts[user] ~= nil) then 
+			if (loadouts[user] == nil or (table.Count(loadouts[user]) == 0) or (table.Count(loadouts[user].weapons) == 0)) then 
 				loadouts[user] = WUMA.DELETE 
 			end
 		end

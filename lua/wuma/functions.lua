@@ -315,7 +315,7 @@ end)
 SetLimit:AddArgument(WUMAAccess.PLAYER)
 SetLimit:AddArgument(WUMAAccess.USERGROUP)
 SetLimit:AddArgument(WUMAAccess.STRING)
-SetLimit:AddArgument(WUMAAccess.NUMBER)
+SetLimit:AddArgument(WUMAAccess.STRING)
 SetLimit:AddArgument(WUMAAccess.NUMBER,true)
 SetLimit:AddArgument(WUMAAccess.SCOPE,true)
 SetLimit:SetLogFunction(WUMA.EchoFunction)
@@ -558,7 +558,7 @@ SetPrimaryWeapon:SetFunction(function(caller, usergroup, item)
 	local sucess = WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item, scope)
 	
 	if not (sucess == false) then
-		return {"%s set %s as %s primary weapons",usergroup,item}, sucess, caller
+		return {"%s set %s as %s primary weapons", item, usergroup}, sucess, caller
 	end
 end)
 SetPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
@@ -579,7 +579,7 @@ SetUserPrimaryWeapon:SetFunction(function(caller, users, item)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s set %s as %s primary weapons",nick,item}, sucess, caller
+		return {"%s set %s as %s primary weapons", item, nick}, sucess, caller
 	end
 end)
 SetUserPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)

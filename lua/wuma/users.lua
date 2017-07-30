@@ -20,7 +20,6 @@ function WUMA.InitializeUser(user)
 	WUMA.HasAccess(user, function(bool) 
 		user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
 	end)	
-	
 end
 
 function WUMA.AssignUserRegulations(user)
@@ -91,7 +90,9 @@ end
 function WUMA.AssignUsergroupLoadout(user, usergroup)
 	if not(WUMA.Loadouts[(usergroup or user:GetUserGroup())]) then return end
 	
-	user:SetLoadout(WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone())
+	local loadout = WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone()
+	
+	user:SetLoadout(loadout)
 end
 
 function WUMA.AssignUserLoadout(user)

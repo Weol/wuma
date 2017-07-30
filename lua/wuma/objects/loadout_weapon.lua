@@ -21,6 +21,7 @@ function Loadout_Weapon:new(tbl)
 	
 	obj.m.origin = tbl.origin or nil
 	obj.m.parent = tbl.parent or nil
+	obj.m.isprimary = tbl.isprimary or nil
 	obj.class = tbl.class or nil
 	obj.primary = tbl.primary or -1
 	obj.secondary = tbl.secondary or -1
@@ -150,6 +151,14 @@ end
 
 function object:IsPersonal()
 	return self:GetParent():IsPersonal()
+end
+
+function object:IsPrimary()
+	return self.m.isprimary or false
+end
+
+function object:SetIsPrimary(isprimary)
+	self.m.isprimary = isprimary
 end
 
 function object:Shred()

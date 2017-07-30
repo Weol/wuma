@@ -23,6 +23,8 @@ function Loadout:new(tbl)
 	obj.primary = tbl.primary or nil
 	obj.inherit = tbl.inherit or nil
 	obj.respect_restrictions = tbl.respect_restrictions or nil
+	obj.parent = tbl.parent or nil
+	if isstring(obj.parent) then obj.parentid = obj.parent elseif obj.parent then obj.parentid = obj.parent:SteamID() end
 	obj.weapons = {}
 	
 	if tbl.weapons then
@@ -35,8 +37,6 @@ function Loadout:new(tbl)
 	obj.m._id = Loadout._id
 	
 	obj.m.origin = tbl.origin or nil
-	obj.m.parent = tbl.parent or nil
-	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
 	obj.m.ancestor = tbl.ancestor or nil
 	obj.m.child = tbl.child or nil
 
@@ -275,12 +275,16 @@ function object:GetWeapons()
 end
 
 function object:SetParent(parent)
-	self.m.parent = parent
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
+	self.parent = parent
+	if isstring(self.parent) then self.parentid = self.parent elseif self.parent then self.parentid = self.parent:SteamID() end
 end
 
 function object:GetParent()
-	return self.m.parent
+	return self.parent
+end
+
+function object:GetParentID()
+	return self.parentid
 end
 
 function object:GetOrigin()

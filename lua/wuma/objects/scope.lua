@@ -197,9 +197,7 @@ function object:Think()
 		local typ = Scope.types[self:GetType()]
 		local checkdata = nil
 		if typ.checkdata then checkdata = typ.checkdata() end
-			
-		WUMADebug(typ.checkfunction(self,checkdata))
-			
+
 		if not typ.checkfunction(self,checkdata) then
 			if not self:GetParent():IsDisabled() then
 				if typ.keep then

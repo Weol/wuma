@@ -19,7 +19,7 @@ function PANEL:Init()
 	self.helptext_label:SetText(self.HelpText)
 	self.helptext_label:SetTextColor(Color(0,0,0))
 	self.helptext_label:SetAutoStretchVertical( true )
-	
+
 	//Search bar
 	self.textbox_search = vgui.Create("WTextbox",self)
 	self.textbox_search:SetDefault("Search..")
@@ -60,7 +60,7 @@ function PANEL:Init()
 	self.list_items.OnRowSelected = self.OnItemChange
 	
 	local highlight = function(line,data,datav)
-		if datav.isprimary then return Color(0,255,0,120) else return nil end
+		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 

@@ -229,7 +229,7 @@ end
 function ENT:RemoveLimit(id,personal)
 	local limit = self:GetLimit(id)
 	if not limit then return end
-	
+
 	if (limit:IsPersonal() == personal) then
 		local ancestor = limit:GetAncestor()
 		if ancestor then ancestor:InheritEntities(limit) end
@@ -243,8 +243,8 @@ function ENT:RemoveLimit(id,personal)
 		
 		self:GetLimits()[id] = ancestor
 	end
-	
-	if (#self:GetLimits() < 1) then self.Limits = nil end
+
+	if (table.Count(self:GetLimits()) < 1) then self.Limits = nil end
 end
 
 function ENT:GetLimits()

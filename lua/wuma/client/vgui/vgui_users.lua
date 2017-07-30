@@ -181,11 +181,21 @@ function PANEL:Init()
 		if (text != "" and text != string.lower(self.textbox_search:GetDefault())) then
 		
 			local column = 2
-			if (string.Left(text,6) == "steam_") then column = 3 end
+			if (string.Left(text, 6) == "steam_") then column = 3 end
 			
 			local item = data[column]
-			if not string.match(string.lower(item),text) then
+			local succ, err = pcall( function() 
+				if not string.match(string.lower(item),text) then
+					return false
+				end
+			end )
+			
+			if not succ then 
 				return false
+			else
+			if not string.match(string.lower(item),text) then
+					return false
+				end
 			end
 		end
 		
@@ -194,13 +204,17 @@ function PANEL:Init()
 	self:GetDataView():SetSortFunction(sort)
 	self:GetDataView():SortByColumn(4)
 	
-	local function updateUserList()
-		local data = table.Merge(table.Copy(WUMA.LookupUsers),WUMA.ServerUsers)
-		
-		self:GetDataView():UpdateDataTable(data)
-		self:GetDataView():SortData()
-		
-		self:GetDataView():SelectFirstItem()
+	local function updateUserList(tbl)
+		if tbl and (table.Count(tbl) < 1) then
+			self:GetDataView():SetDataTable({})
+		else
+			local data = table.Merge(table.Copy(WUMA.LookupUsers),WUMA.ServerUsers)
+			
+			self:GetDataView():SetDataTable(data)
+			self:GetDataView():SortData()
+			
+			self:GetDataView():SelectFirstItem()
+		end
 	end
 	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE,"VGUIUsersUserListHook1",updateUserList)
 	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE,"VGUIUsersUserListHook2",updateUserList)
@@ -419,9 +433,7 @@ function PANEL:OnBackClick()
 end
 
 function PANEL:OnSearch()
-	self = self:GetParent()
-	
-	self:GetDataView():SortData()
+	self:GetParent().OnLookup(self)
 end
 
 	
@@ -430,6 +442,8 @@ function PANEL:OnLookup()
 	
 	if (self.textbox_search:GetValue() != "") then
 		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),self.textbox_search:GetValue())
+	else
+		self:GetDataView():SetDataTable(WUMA.LookupUsers)
 	end
 end
 

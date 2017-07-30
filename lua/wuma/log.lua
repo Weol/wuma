@@ -32,7 +32,11 @@ end
 WUMAChatPrint = WUMA.Log.ChatPrint --To save my fingers
 
 function WUMA.Log.DebugLog(msg,...)
-	if (log_level:GetInt() != 2) then return end
+	if (log_level:GetInt() != 2 and SERVER) then return end
+	if (istable(msg)) then 
+		PrintTable(msg) 
+		return false
+	end
 	local args = { ... }
 	if args then
 		msg = WUMA.SafeFormat(msg,args)

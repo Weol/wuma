@@ -36,16 +36,11 @@ end
 function WUMA.ReadUserLoadout(user)
 	if not isstring(user) then user = user:SteamID() end
 
-	local cached = WUMA.Cache(user .. "_Loadout")
-	if cached then return cached end
-
-	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or Loadout:new()
+	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or {}
 	saved.parent = user
 	
 	local loadout = Loadout:new(saved)
-	WUMA.Cache(user .. "_Loadout", loadout)
-	
-	return Loadout:new(loadout)
+	return loadout
 end
 
 function WUMA.GetSavedLoadout(user)
@@ -87,9 +82,7 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 		local weapon = WUMA.Loadouts[usergroup]:GetWeapon(item or primary)
 		weapon.class = weapon:GetClass()
 		weapon.usergroup = WUMA.Loadouts[usergroup]:GetUserGroup()
-		if not item then
-			weapon.primary = true
-		end
+		weapon.isprimary = not weapon.isprimary
 		
 		tbl[usergroup.."_"..(item or primary)] = weapon
 		return tbl
@@ -218,39 +211,24 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller,user,item)
 		loadout = WUMA.ReadUserLoadout(user)
 	end
 	
-	if (loadout:GetPrimary() ~= item) then
-		loadout:SetPrimary(item)
-		
-		WUMA.AddClientUpdate(Loadout,function(tbl)
-			local weapon = loadout:GetWeapon(item)
-			weapon.primary = true
+	local primary = loadout:GetPrimary()
+	if (primary == item) then item = nil end
 	
-			tbl[item] = weapon
-			return tbl
-		end, user)
-		
-		WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
-			tbl:SetPrimary(item)
-
-			return tbl
-		end)
-	else
-		loadout:SetPrimary(false)
-		
-		WUMA.AddClientUpdate(Loadout,function(tbl)
-			local weapon = loadout:GetWeapon(item)
-			weapon.primary = nil
+	loadout:SetPrimary(item)
 	
-			tbl[item] = weapon
-			return tbl
-		end, user)
-		
-		WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
-			tbl:SetPrimary(false)
+	WUMA.AddClientUpdate(Loadout,function(tbl)
+		local weapon = loadout:GetWeapon(item or primary)
+		weapon.isprimary = not weapon.isprimary
 
-			return tbl
-		end)
-	end
+		tbl[item or primary] = weapon
+		return tbl
+	end, user)
+	
+	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
+		tbl:SetPrimary(item)
+
+		return tbl
+	end)
 end
 
 function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respect, scope)
@@ -271,6 +249,7 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 	end
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)
+		if (tbl._id) then tbl = tbl.weapons end
 		local weapon = Loadout_Weapon:new{class=item, primary=primary, secondary=secondary, respect_restrictions=respect, parent=user}
 	
 		tbl[item] = weapon
@@ -288,8 +267,7 @@ end
 function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 
 	if not WUMA.CheckUserFileExists(user,Loadout) then return false end
-	local loadout = WUMA.ReadUserLoadout(user)
-	
+
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) and user:HasLoadout() and user:GetLoadout():IsPersonal() then
 		user:GetLoadout():RemoveWeapon(item)	
@@ -297,8 +275,8 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 		if (user:GetLoadout():GetWeaponCount() < 1) then user:ClearLoadout() end
 	end
 
-	WUMADebug(item)
 	WUMA.AddClientUpdate(Loadout,function(tbl)
+		if (tbl._id) then tbl = tbl.weapons end
 		tbl[item] = WUMA.DELETE
 
 		return tbl
@@ -306,8 +284,6 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 
 	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
 		tbl:RemoveWeapon(item)
-		
-		if (tbl:GetWeaponCount() < 1) then return {} end
 		
 		return tbl
 	end)

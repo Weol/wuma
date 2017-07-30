@@ -289,18 +289,25 @@ function object:Check(int)
 	
 	local limit = int or self:Get()
 	
+	WUMADebug(1)
 	if istable(limit) then 
+		WUMADebug(2)
 		if not limit:IsExclusive() then
+			WUMADebug(3)
 			return limit:Check()
 		else
+			WUMADebug(4)
 			return self:Check(limit:Get()) 
 		end
+		WUMADebug(5)
 	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
-		self:Set(self:GetParent():GetLimit(limit))
-		return self:Check(self:Get())
+		WUMADebug(6)
+		return self:Check(self:GetParent():GetLimit(limit))
 	elseif isstring(limit) then
+		WUMADebug(7)
 		return nil
 	end
+	WUMADebug(8)
 	
 	if (limit < 0) then return true end
 	if (limit <= self:GetCount()) then
@@ -337,7 +344,9 @@ function object:Add(entity)
 	self:SetCount(self:GetCount() + 1)
 	
 	local limit = self:Get()
-	if istable(limit) and not self:Get():IsExclusive() then limit:Add(entity) end
+	if isstring(limit) and self:GetParent():HasLimit(limit) then
+		self:GetParent():GetLimit(limit):Add(entity) 
+	end
 	
 	entity:AddWUMAParent(self) 
 	self.m.entities[entity:GetCreationID()] = entity

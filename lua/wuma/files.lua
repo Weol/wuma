@@ -45,7 +45,6 @@ end
 
 function Files.Read(path)
 	Msg("Reading file at "..path.."\n")
-	
 	local f = file.Open(path, "r", "DATA")
 	if (!f) then return "" end
 	local str = f:Read(f:Size())
