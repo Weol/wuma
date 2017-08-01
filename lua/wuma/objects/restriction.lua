@@ -66,10 +66,6 @@ function Restriction:GenerateID(type,usergroup,str)
 	end
 end 
 
-function static:__eq(v1, v2)
-	if v1._id and v2._id then return (v1._id == v2.__id) end
-end
-
 function static:GetID()
 	return Restriction._id
 end
@@ -106,6 +102,10 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function object:__eq(v1, v2)
+	return ((v1.usergroup == v2.usergroup) and (v1.type == v2.type) and (v1.string == v2.string) and (v1.allow == v2.allow))
+end
+
 function object:__call(type,str)
 
 	if self:IsDisabled() then return end

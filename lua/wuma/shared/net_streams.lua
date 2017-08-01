@@ -26,6 +26,21 @@ end)
 WUMA.NET.SETTINGS:AddInto(WUMA.NET.ENUMS)
 
 /////////////////////////////////////////////////////////
+/////  Inheritance | Sends server's inheritances	/////
+/////////////////////////////////////////////////////////
+WUMA.NET.INHERITANCE = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
+WUMA.NET.INHERITANCE:SetServerFunction(function(user,data)
+	return {user, WUMA.NET.INHERITANCE, WUMA.GetAllInheritances()}
+end) 
+WUMA.NET.INHERITANCE:SetClientFunction(function(data) 
+
+end)
+WUMA.NET.INHERITANCE:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
+end)
+WUMA.NET.INHERITANCE:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
 /////  SUBSCRIPTION | Subscribes client to a table  /////
 /////////////////////////////////////////////////////////
 WUMA.NET.SUBSCRIPTION = WUMA_NET_STREAM:new()

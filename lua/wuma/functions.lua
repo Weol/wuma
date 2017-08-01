@@ -589,6 +589,7 @@ SetUserPrimaryWeapon:SetLogFunction(WUMA.EchoFunction)
 SetUserPrimaryWeapon:SetAccessFunction(WUMA.CheckAccess)
 SetUserPrimaryWeapon:SetAccess("superadmin")
 
+--Change settings
 local ChangeSettings = WUMA.RegisterAccess{name="changesettings",help="Change WUMA settings"}
 ChangeSettings:SetFunction(function(caller, setting, value)
 	if not setting or not value then return WUMADebug("Invalid access arguments (changesettings)!") end
@@ -612,6 +613,24 @@ ChangeSettings:AddArgument(WUMAAccess.STRING)
 ChangeSettings:AddArgument(WUMAAccess.STRING)
 ChangeSettings:SetAccessFunction(WUMA.CheckAccess)
 ChangeSettings:SetAccess("superadmin")
+
+--Inheritance
+local ChangeInheritance = WUMA.RegisterAccess{name="changeinheritance",help="Change WUMA settings"}
+ChangeInheritance:SetFunction(function(caller, enum, target, usergroup)
+	if not enum or not target or not usergroup then return WUMADebug("Invalid access arguments (changeinheritance)!") end
+
+	if (usergroup) then
+		WUMA.SetUsergroupInheritance(enum, string.lower(target), string.lower(usergroup))
+	else
+		WUMA.UnsetUsergroupInheritance(enum, string.lower(target))
+	end
+end)
+ChangeInheritance:AddArgument(WUMAAccess.PLAYER)
+ChangeInheritance:AddArgument(WUMAAccess.STRING)
+ChangeInheritance:AddArgument(WUMAAccess.STRING)
+ChangeInheritance:AddArgument(WUMAAccess.STRING, true)
+ChangeInheritance:SetAccessFunction(WUMA.CheckAccess)
+ChangeInheritance:SetAccess("superadmin")
 
 --Add personal loadout
 local AddPersonalLoadout = WUMA.RegisterAccess{name="addpersonalloadout",help="Adds a weapon to a users personal loadout.",strict=true}

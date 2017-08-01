@@ -137,7 +137,10 @@ function object:GiveWeapon(class)
 		if restriction then
 			restriction:AddException(class)
 		end
-	end 
+	elseif self:GetParent():GetRestriction("swep", class) then 
+		return 
+	end
+
 	if not list.Get("Weapon")[class] then return end
 	self:GetParent():Give(class)
 	

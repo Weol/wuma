@@ -130,6 +130,30 @@ function PANEL:Init()
 	self.buttons.fetch_data.DoClick = function(panel) WUMA.FetchData() end 
 	self.buttons.fetch_data:SetText("Fetch data")
 	
+	self.inheritance_settings = vgui.Create("DPanel", self)
+	
+	self.inheritance_settings.header = vgui.Create("DPanel", self.inheritance_settings)
+	self.inheritance_settings.header.Paint = function(panel, w, h) 
+		draw.DrawText("Inheritance settings", "DermaDefaultBold", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) 
+		surface.SetDrawColor(Color(159, 163, 167, 255))
+		surface.DrawLine(0,h-1,w,h-1)
+	end
+	
+	self.inheritance_target = vgui.Create("DPanel",self.inheritance_settings)
+	self.inheritance_target.Paint = function(panel,w, h) draw.DrawText("Select inheritance for", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
+	self.inheritance_target.combobox = vgui.Create("DComboBox",self.inheritance_target)
+	for _, usergroup in pairs (WUMA.ServerGroups) do
+		self.inheritance_target.combobox:AddChoice(usergroup, _, true)
+	end
+	
+	WUMA.GUI.AddHook(WUMA.USERGROUPSUPDATE,"WUMASettubsGUIUsergroupUpdateHook",function()
+		self.inheritance_target.combobox:Clear()
+		for _, usergroup in pairs (WUMA.ServerGroups) do
+			self.inheritance_target.combobox:AddChoice(usergroup, _, true)
+		end
+	end)
+	self.inheritance_target.combobox:SetSortItems(false)
+	
 end
 
 function PANEL:PerformLayout(w,h)
@@ -182,7 +206,7 @@ function PANEL:PerformLayout(w,h)
 	self.data_save_delay.wang:SetPos(self.data_save_delay:GetWide()-self.data_save_delay.wang:GetWide(),0)
 	
 	self.client_settings:SetPos(self:GetWide()/2+3,0)
-	self.client_settings:SetSize(self:GetWide()/2-3,self:GetTall())
+	self.client_settings:SetSize(self:GetWide()/2-3,self:GetTall()/2-3)
 	
 	self.client_settings.header:SetTall(20)
 	self.client_settings.header:DockMargin(5,0,5,0)
@@ -214,6 +238,25 @@ function PANEL:PerformLayout(w,h)
 	
 	self.buttons.flush_user_data:SetWide(self.buttons.fetch_data:GetWide()/2-2)
 	self.buttons.flush_user_data:SetPos(self.buttons.flush_data:GetWide()+4,self.buttons:GetTall()-self.buttons.flush_user_data:GetTall())
+	
+	self.inheritance_settings:SetPos(self:GetWide()/2+3,self:GetTall()/2+2)
+	self.inheritance_settings:SetSize(self:GetWide()/2-3,self:GetTall()/2-2)
+	
+	self.inheritance_settings.header:SetTall(20)
+	self.inheritance_settings.header:DockMargin(5,0,5,0)
+	self.inheritance_settings.header:Dock(TOP)
+	
+	self.inheritance_target:SetTall(22)
+	self.inheritance_target:DockMargin(5,5,5,0)
+	self.inheritance_target:Dock(TOP)
+	self.inheritance_target.combobox:SetWide(self.autounsubscribe:GetWide()/5*2)
+	self.inheritance_target.combobox:SetPos(self.autounsubscribe:GetWide()-self.autounsubscribe.combobox:GetWide(),0)
+	
+	self.inheritance_target:SetTall(22)
+	self.inheritance_target:DockMargin(5,5,5,0)
+	self.inheritance_target:Dock(TOP)
+	self.inheritance_target.combobox:SetWide(self.inheritance_target:GetWide()/5*2)
+	self.inheritance_target.combobox:SetPos(self.inheritance_target:GetWide()-self.inheritance_target.combobox:GetWide(),0)
 	
 end
 

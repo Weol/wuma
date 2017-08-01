@@ -28,6 +28,7 @@ function WUMA.GUI.Initialize()
 	//Requests
 	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
 		WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())
+		WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
 		
 		if GetConVar("wuma_request_on_join"):GetBool() then
 			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
@@ -119,7 +120,6 @@ function WUMA.OnTabChange(_,tabname)
 	
 	if not WUMA.Subscriptions.info then
 		WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
-		WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
 		WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
 		
 		WUMA.Subscriptions.info = true
@@ -132,7 +132,7 @@ function WUMA.OnTabChange(_,tabname)
 	elseif (tabname == WUMA.GUI.Tabs.Loadouts.TabName and not WUMA.Subscriptions.loadouts) then
 		WUMA.FetchData(Loadout:GetID())
 	elseif (tabname == WUMA.GUI.Tabs.Users.TabName and not WUMA.Subscriptions.users) then
-		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),4)
+		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
 		
 		WUMA.Subscriptions.users = true
 	end
