@@ -5,7 +5,7 @@ WUMA.ConVars = WUMA.ConVars or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
-WUMA.VERSION = "1.0 Beta"
+WUMA.VERSION = "1.0"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
@@ -45,6 +45,7 @@ function WUMA.Initialize()
 	include(WUMA.HomeDirectory.."limits.lua")
 	include(WUMA.HomeDirectory.."restrictions.lua")
 	include(WUMA.HomeDirectory.."loadouts.lua")
+	include(WUMA.HomeDirectory.."inheritance.lua") 
 	include(WUMA.HomeDirectory.."hooks.lua") 
 	include(WUMA.HomeDirectory.."duplicator.lua")
 	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
@@ -63,7 +64,8 @@ function WUMA.Initialize()
 	WUMA.LoadRestrictions()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
-	
+	WUMA.LoadInheritance()
+		
 	--Load shared files
 	WUMALog("Loading shared files")
 	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
@@ -76,7 +78,7 @@ function WUMA.Initialize()
 	--Allow the poor scopes to think
 	Scope:StartThink()
 	
-	//Add hook so playerextention loads when the first player joins
+	--Add hook so playerextention loads when the first player joins
 	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()  
 		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 		hook.Remove("WUMAPlayerAuthedPlayerExtentionInit")

@@ -617,7 +617,7 @@ ChangeSettings:SetAccess("superadmin")
 --Inheritance
 local ChangeInheritance = WUMA.RegisterAccess{name="changeinheritance",help="Change WUMA settings"}
 ChangeInheritance:SetFunction(function(caller, enum, target, usergroup)
-	if not enum or not target or not usergroup then return WUMADebug("Invalid access arguments (changeinheritance)!") end
+	if not enum or not target then return WUMADebug("Invalid access arguments (changeinheritance)!") end
 
 	if (usergroup) then
 		WUMA.SetUsergroupInheritance(enum, string.lower(target), string.lower(usergroup))

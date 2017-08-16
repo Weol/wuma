@@ -90,7 +90,7 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
+	WUMA.ScheduleDataUpdate(Limit, function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
@@ -115,7 +115,7 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Limit, function(tbl)
+	WUMA.ScheduleDataUpdate(Limit, function(tbl)
 		tbl[id] = nil
 		
 		return tbl
@@ -182,3 +182,6 @@ function WUMA.RefreshGroupLimits(user, usergroup)
 	WUMA.AssignLimits(user, usergroup)
 end
 
+WUMA.RegisterDataID(Limit, "limits.txt", WUMA.GetSavedLimits)
+WUMA.RegisterUserDataID(Limit, "limits.txt", WUMA.GetSavedLimits)
+ 

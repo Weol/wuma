@@ -73,7 +73,7 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 	
 	WUMA.Loadouts[usergroup]:SetPrimary(item)
 	
-	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
 		tbl[usergroup]:SetPrimary(item)
 		return tbl
 	end)
@@ -123,7 +123,7 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
 		if not tbl[usergroup] or isstring(tbl[usergroup]) then
 			tbl[usergroup] = Loadout:new({usergroup=usergroup})
 		end
@@ -154,7 +154,7 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 		return tbl
 	end)
 		
-	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
 		if tbl[usergroup] then 
 			tbl[usergroup]:RemoveWeapon(item)
 			
@@ -189,7 +189,7 @@ function WUMA.ClearLoadout(caller,usergroup)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
 		tbl[usergroup] = nil
 		
 		return tbl
@@ -343,3 +343,6 @@ function WUMA.RefreshUsergroupLoadout(user, usergroup)
 	WUMA.AssignLoadout(user, usergroup)
 	WUMA.GiveLoadout(user)
 end
+
+WUMA.RegisterDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts)
+WUMA.RegisterUserDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts)

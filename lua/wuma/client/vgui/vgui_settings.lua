@@ -139,17 +139,75 @@ function PANEL:Init()
 		surface.DrawLine(0,h-1,w,h-1)
 	end
 	
+	--Inheritance target
 	self.inheritance_target = vgui.Create("DPanel",self.inheritance_settings)
 	self.inheritance_target.Paint = function(panel,w, h) draw.DrawText("Select inheritance for", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.inheritance_target.combobox = vgui.Create("DComboBox",self.inheritance_target)
-	for _, usergroup in pairs (WUMA.ServerGroups) do
-		self.inheritance_target.combobox:AddChoice(usergroup, _, true)
+	
+	--Restrictions
+	self.inheritance_restriction = vgui.Create("DPanel",self.inheritance_settings)
+	self.inheritance_restriction.Paint = function(panel,w, h) draw.DrawText("Inherit restrictions from ", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
+	self.inheritance_restriction.combobox = vgui.Create("DComboBox",self.inheritance_restriction)
+	self.inheritance_restriction.combobox.OnSelect = function() 
+		local target = self.inheritance_target.combobox:GetSelected()
+		local usergroup = self.inheritance_restriction.combobox:GetSelected()
+		
+		WUMA.OnInheritanceUpdate(Restriction:GetID(), target, usergroup)
 	end
 	
+	--Limits
+	self.inheritance_limit = vgui.Create("DPanel",self.inheritance_settings)
+	self.inheritance_limit.Paint = function(panel,w, h) draw.DrawText("Inherit limits from ", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
+	self.inheritance_limit.combobox = vgui.Create("DComboBox",self.inheritance_limit)
+	self.inheritance_limit.combobox.OnSelect = function() 
+		local target = self.inheritance_target.combobox:GetSelected()
+		local usergroup = self.inheritance_limit.combobox:GetSelected()
+		
+		WUMA.OnInheritanceUpdate(Limit:GetID(), target, usergroup)
+	end
+	
+	--Loadouts
+	self.inheritance_loadout = vgui.Create("DPanel",self.inheritance_settings)
+	self.inheritance_loadout.Paint = function(panel,w, h) draw.DrawText("Inherit loadout from ", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
+	self.inheritance_loadout.combobox = vgui.Create("DComboBox",self.inheritance_loadout)
+	self.inheritance_loadout.combobox.OnSelect = function() 
+		local target = self.inheritance_target.combobox:GetSelected()
+		local usergroup = self.inheritance_loadout.combobox:GetSelected()
+		
+		WUMA.OnInheritanceUpdate(Loadout:GetID(), target, usergroup)
+	end
+
+	local function populateUsergroups() 
+		self.DisregardInheritanceChange = true
+		local text, data = self.inheritance_target.combobox:GetSelected()
+
+		self.inheritance_restriction.combobox:Clear()
+		self.inheritance_limit.combobox:Clear()
+		self.inheritance_loadout.combobox:Clear()
+		
+		for _, usergroup in pairs (WUMA.ServerGroups) do
+			if (text != usergroup) then
+				self.inheritance_restriction.combobox:AddChoice(usergroup, i)
+				self.inheritance_limit.combobox:AddChoice(usergroup, i)
+				self.inheritance_loadout.combobox:AddChoice(usergroup, i)
+			end
+		end
+		
+		self.inheritance_restriction.combobox:AddChoice("Nobody", _, true)
+		self.inheritance_limit.combobox:AddChoice("Nobody", _, true)
+		self.inheritance_loadout.combobox:AddChoice("Nobody", _, true)
+		self.DisregardInheritanceChange = false
+		
+		WUMA.UpdateInheritance(WUMA.Inheritance)
+	end
+	self.inheritance_target.combobox.OnSelect = populateUsergroups
+
 	WUMA.GUI.AddHook(WUMA.USERGROUPSUPDATE,"WUMASettubsGUIUsergroupUpdateHook",function()
 		self.inheritance_target.combobox:Clear()
 		for _, usergroup in pairs (WUMA.ServerGroups) do
 			self.inheritance_target.combobox:AddChoice(usergroup, _, true)
+			
+			populateUsergroups() 
 		end
 	end)
 	self.inheritance_target.combobox:SetSortItems(false)
@@ -252,11 +310,23 @@ function PANEL:PerformLayout(w,h)
 	self.inheritance_target.combobox:SetWide(self.autounsubscribe:GetWide()/5*2)
 	self.inheritance_target.combobox:SetPos(self.autounsubscribe:GetWide()-self.autounsubscribe.combobox:GetWide(),0)
 	
-	self.inheritance_target:SetTall(22)
-	self.inheritance_target:DockMargin(5,5,5,0)
-	self.inheritance_target:Dock(TOP)
-	self.inheritance_target.combobox:SetWide(self.inheritance_target:GetWide()/5*2)
-	self.inheritance_target.combobox:SetPos(self.inheritance_target:GetWide()-self.inheritance_target.combobox:GetWide(),0)
+	self.inheritance_restriction:SetTall(22)
+	self.inheritance_restriction:DockMargin(5,0,5,5)
+	self.inheritance_restriction:Dock(BOTTOM)
+	self.inheritance_restriction.combobox:SetWide(self.inheritance_restriction:GetWide()/5*2)
+	self.inheritance_restriction.combobox:SetPos(self.inheritance_restriction:GetWide()-self.inheritance_restriction.combobox:GetWide(),0)
+	
+	self.inheritance_limit:SetTall(22)
+	self.inheritance_limit:DockMargin(5,0,5,5)
+	self.inheritance_limit:Dock(BOTTOM)
+	self.inheritance_limit.combobox:SetWide(self.inheritance_limit:GetWide()/5*2)
+	self.inheritance_limit.combobox:SetPos(self.inheritance_limit:GetWide()-self.inheritance_limit.combobox:GetWide(),0)	
+
+	self.inheritance_loadout:SetTall(22)
+	self.inheritance_loadout:DockMargin(5,0,5,5)
+	self.inheritance_loadout:Dock(BOTTOM)
+	self.inheritance_loadout.combobox:SetWide(self.inheritance_loadout:GetWide()/5*2)
+	self.inheritance_loadout.combobox:SetPos(self.inheritance_loadout:GetWide()-self.inheritance_loadout.combobox:GetWide(),0)
 	
 end
 
@@ -281,6 +351,36 @@ function PANEL:SelectChoiceByText(combobox, text)
 	end 
 end
  
+function PANEL:UpdateInheritance(inheritance)
+	local selected = self.inheritance_target.combobox:GetSelected()
+	
+	for enum, tbl in pairs(inheritance) do 
+		for target, usergroup in pairs(tbl) do 
+			if (selected == target) then
+				if (enum == Restriction:GetID()) then
+					for k, v in pairs(self.inheritance_restriction.combobox.Choices) do
+						if (string.lower(v) == string.lower(usergroup)) then 
+							self.inheritance_restriction.combobox:ChooseOptionID(k)
+						end
+					end
+				elseif (enum == Loadout:GetID()) then
+					for k, v in pairs(self.inheritance_loadout.combobox.Choices) do
+						if (string.lower(v) == string.lower(usergroup)) then 
+							self.inheritance_loadout.combobox:ChooseOptionID(k)
+						end
+					end
+				elseif (enum == Limit:GetID()) then
+					for k, v in pairs(self.inheritance_limit.combobox.Choices) do
+						if (string.lower(v) == string.lower(usergroup)) then 
+							self.inheritance_limit.combobox:ChooseOptionID(k)
+						end
+					end
+				end
+			end
+		end
+	end
+end 
+
 function PANEL:UpdateSettings(settings)
 	self:SelectChoiceByData(self.log_level.combobox,tonumber(settings.log_level))
 	self:SelectChoiceByData(self.echo_changes.combobox,tonumber(settings.echo_changes))

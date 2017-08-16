@@ -198,7 +198,7 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.UserDisconnect(user)
-	//Cache users limit data so they cant rejoin to reset limits
+	--Cache users limit data so they cant rejoin to reset limits
 	if (user:GetLimits()) then
 		WUMA.UserLimitsCache[user:SteamID()] = user:GetLimits()
 		for _, limit in pairs(user:GetLimits()) do 
@@ -233,7 +233,7 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 	
 	timer.Simple(2, function()
 		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
+			user:SetNWBool(WUMA.HasUserAccessNetworkBool, bool)
 			user:SendLua([[WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())]])
 		end)
 	end)	

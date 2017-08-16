@@ -29,11 +29,12 @@ WUMA.NET.SETTINGS:AddInto(WUMA.NET.ENUMS)
 /////  Inheritance | Sends server's inheritances	/////
 /////////////////////////////////////////////////////////
 WUMA.NET.INHERITANCE = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
-WUMA.NET.INHERITANCE:SetServerFunction(function(user,data)
+WUMA.NET.INHERITANCE:SetServerFunction(function(user,data)  
 	return {user, WUMA.NET.INHERITANCE, WUMA.GetAllInheritances()}
 end) 
 WUMA.NET.INHERITANCE:SetClientFunction(function(data) 
-
+	WUMA.Inheritance = data[1]
+	hook.Call(WUMA.INHERITANCEUPDATE, _, data[1])
 end)
 WUMA.NET.INHERITANCE:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)

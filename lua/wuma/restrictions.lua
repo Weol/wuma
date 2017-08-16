@@ -3,7 +3,7 @@ WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 WUMA.Restrictions = WUMA.Restrictions or {}
- 
+
 function WUMA.LoadRestrictions()
 	local saved, tbl = WUMA.GetSavedRestrictions() or {}, {}
 
@@ -85,7 +85,7 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Restriction, function(tbl)
+	WUMA.ScheduleDataUpdate(Restriction, function(tbl)
 		tbl[restriction:GetID()] = restriction:GetBarebones()
 		return tbl
 	end)
@@ -108,7 +108,7 @@ function WUMA.RemoveRestriction(caller,usergroup,type,item)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataFileUpdate(Restriction, function(tbl)
+	WUMA.ScheduleDataUpdate(Restriction, function(tbl)
 		tbl[Restriction:GenerateID(type,usergroup,item)] = nil
 		
 		return tbl
@@ -173,4 +173,7 @@ function WUMA.RefreshGroupRestrictions(user,usergroup)
 	
 	WUMA.AssignRestrictions(user,usergroup)
 end
+
+WUMA.RegisterDataID(Restriction, "restrictions.txt", WUMA.GetSavedRestrictions)
+WUMA.RegisterUserDataID(Restriction, "restrictions.txt", WUMA.GetSavedRestrictions)
 

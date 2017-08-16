@@ -195,171 +195,138 @@ function WUMA.Clients_Tick()
 	end
 end
 
---Global files
-WUMA.DATA.GlobalSchedule = {}
-WUMA.DATA.GlobalCache = {}
+/////////////////////////////////////////////////////////
+/////  				Global files update				/////
+/////////////////////////////////////////////////////////
+WUMA.DATA.DataRegistry = {}
+WUMA.DATA.DataSchedule = {}
 
 local tick_global = WUMA.DataUpdateCooldown:GetInt() + 1
-function WUMA.ScheduleDataFileUpdate(enum,func)
-	table.insert(WUMA.DATA.GlobalSchedule,{enum=enum,func=func})
-	
-	tick_global = 0 
+function WUMA.ScheduleDataUpdate(id, func)
+	if WUMA.DATA.DataRegistry[id] then
+		table.insert(WUMA.DATA.DataSchedule, {id=id, func=func})
+		
+		tick_global = 0
+	else
+		WUMADebug("Tried to schedule unregistered data update (%s)!",id)
+	end
 end
 
-function WUMA.SaveData(restrictions,limits,loadouts) 
+function WUMA.RegisterDataID(id, path, init)
+	WUMA.DATA.DataRegistry[id] = {path=path, init=init}
+end
+
+function WUMA.SaveData(data) 
 	
-	if (restrictions and restrictions ~= WUMA.DELETE) then
-		local str = util.TableToJSON(restrictions)
-		WUMA.Files.Write(WUMA.DataDirectory.."restrictions.txt",str)	
-	elseif (restrictions == WUMA.DELETE) then
-		WUMA.Files.Delete(WUMA.DataDirectory.."restrictions.txt")
-	end
-
-	if (limits and limits ~= WUMA.DELETE) then
-		local str = util.TableToJSON(limits)
-		WUMA.Files.Write(WUMA.DataDirectory.."limits.txt",str)
-	elseif (limits == WUMA.DELETE) then
-		WUMA.Files.Delete(WUMA.DataDirectory.."limits.txt")
-	end
-
-	if (loadouts and loadouts ~= WUMA.DELETE) then
-		local str = util.TableToJSON(loadouts)
-		WUMA.Files.Write(WUMA.DataDirectory.."loadouts.txt",str)
-	elseif (loadouts == WUMA.DELETE) then
-		WUMA.Files.Delete(WUMA.DataDirectory.."loadouts.txt")
+	local dataregistry = WUMA.DATA.DataRegistry
+	
+	for id, tbl in pairs(data) do
+		if (tbl and tbl ~= WUMA.DELETE) then
+			local str = util.TableToJSON(tbl)
+			WUMA.Files.Write(WUMA.DataDirectory..dataregistry[id].path, str)	
+		elseif (tbl == WUMA.DELETE) then
+			WUMA.Files.Delete(WUMA.DataDirectory..dataregistry[id].path)
+		end
 	end
 	
 end 
 
-function WUMA.Update_Global()
+function WUMA.UpdateGlobal()
 	if (tick_global >= 0) then
 		tick_global = tick_global + 1
 	end
-	
-	local restrictions, limits, loadouts = false
 
 	if (tick_global >= WUMA.DataUpdateCooldown:GetInt()) then 
-		for _, tbl in pairs(WUMA.DATA.GlobalSchedule) do
-			if (tbl.enum == Restriction) then
-				restrictions = tbl.func(restrictions or WUMA.GetSavedRestrictions())
-			elseif (tbl.enum == Limit)then
-				limits = tbl.func(limits or WUMA.GetSavedLimits())
-			elseif (tbl.enum == Loadout)then
-				loadouts = tbl.func(loadouts or WUMA.GetSavedLoadouts())
+		local tbl = {}
+		local dataregistry = WUMA.DATA.DataRegistry
+		
+		for _, update in pairs(WUMA.DATA.DataSchedule) do
+			tbl[update.id] = update.func(tbl[update.id] or dataregistry[update.id].init())
+		end
+		
+		for id, update in pairs(dataregistry) do
+			if (isTableEmpty(tbl[id]) and tbl[id] ~= nil) then 
+				tbl[id] = WUMA.DELETE 
 			end
 		end
 
-		if (isTableEmpty(restrictions) and limits ~= nil) then 
-			restrictions = WUMA.DELETE 
-		end
-		
-		if (isTableEmpty(limits) and limits ~= nil) then 
-			limits = WUMA.DELETE 
-		end
-		
-		if (isTableEmpty(loadouts) and limits ~= nil) then 
-			loadouts = WUMA.DELETE 
-		end
-		
-		WUMA.DATA.GlobalSchedule = {}
+		WUMA.DATA.DataSchedule = {}
 
-		WUMA.SaveData(restrictions,limits,loadouts) 
-		
-		restrictions, limits, loadouts = false
-		
+		WUMA.SaveData(tbl) 
+
 		tick_global = -1
 	end
 end
-timer.Create("WUMAUpdateGlobalTables", 1, 0, WUMA.Update_Global)   
- 
---User files
-WUMA.DATA.UserSchedule = {}
-WUMA.DATA.UserCache = {}
+timer.Create("WUMAUpdateData", 1, 0, WUMA.UpdateGlobal)  
 
-local tick_user = WUMA.DataUpdateCooldown:GetInt()+1
-function WUMA.ScheduleUserFileUpdate(user,enum,func)
-	if isentity(user) then user = user:SteamID() end
-	table.insert(WUMA.DATA.UserSchedule,{user=user,enum=enum,func=func})
+/////////////////////////////////////////////////////////
+/////  				User files update				/////
+/////////////////////////////////////////////////////////
+WUMA.DATA.UserDataRegistry = {}
+WUMA.DATA.UserDataSchedule = {}
 
-	tick_user = 0
+local tick_user = WUMA.DataUpdateCooldown:GetInt() + 1
+function WUMA.ScheduleUserDataUpdate(user, id, func)
+	if WUMA.DATA.UserDataRegistry[id] then
+		table.insert(WUMA.DATA.UserDataSchedule, {id=id, func=func, user=user})
+		
+		tick_user = 0
+	else
+		WUMADebug("Tried to schedule unregistered userdata update (%s)!",id)
+	end
 end
 
-function WUMA.SaveUserData(user,restrictions,limits,loadouts) 
-	
-	WUMA.Files.CreateDir(WUMA.DataDirectory.."users/"..WUMA.GetUserFolder(user))
-	
-	if (restrictions and restrictions ~= WUMA.DELETE) then
-		local str = util.TableToJSON(restrictions)
-		WUMA.Files.Write(WUMA.GetUserFile(user,Restriction),str)
-	elseif (restrictions == WUMA.DELETE) then
-		WUMA.DeleteUserFile(user,Restriction)
-	end
-	
-	if (limits and limits ~= WUMA.DELETE) then
-		local str = util.TableToJSON(limits)
-		WUMA.Files.Write(WUMA.GetUserFile(user,Limit),str)
-	elseif (limits == WUMA.DELETE) then
-		WUMA.DeleteUserFile(user,Limit)
-	end
-
-	if (loadouts and loadouts ~= WUMA.DELETE) then
-		local str = util.TableToJSON(loadouts)
-		WUMA.Files.Write(WUMA.GetUserFile(user,Loadout),str)
-	elseif (loadouts == WUMA.DELETE) then
-		WUMA.DeleteUserFile(user,Loadout)
-	end
-	
+function WUMA.RegisterUserDataID(id, path, init)
+	WUMA.DATA.UserDataRegistry[id] = {path=path, init=init}
 end
 
-function WUMA.Update_User()
+function WUMA.SaveUserData(data) 
+	
+	local dataregistry = WUMA.DATA.UserDataRegistry
+	
+	for user, tbls in pairs(data) do
+		for id, tbl in pairs(tbls) do
+			if (tbl and tbl ~= WUMA.DELETE) then
+				local str = util.TableToJSON(tbl)
+				WUMA.Files.Write(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path, str)	
+			elseif (tbl == WUMA.DELETE) then
+				WUMA.Files.Delete(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path)
+			end
+		end
+	end
+	
+end 
+
+function WUMA.UpdateUser()
 	if (tick_user >= 0) then
 		tick_user = tick_user + 1
 	end
-	
-	local restrictions = {}
-	local limits = {}
-	local loadouts = {}
-	
-	if (tick_user >= 1) then 
-		local users = {}
-		for _, tbl in pairs(WUMA.DATA.UserSchedule) do
-			if (tbl.enum == Restriction) then
-				restrictions[tbl.user] = tbl.func(restrictions[tbl.user] or WUMA.GetSavedRestrictions(tbl.user))
-			elseif (tbl.enum == Limit)then
-				limits[tbl.user] = tbl.func(limits[tbl.user] or WUMA.GetSavedLimits(tbl.user))
-			elseif (tbl.enum == Loadout)then
-				loadouts[tbl.user] = tbl.func(loadouts[tbl.user] or WUMA.GetSavedLoadouts(tbl.user))
-			end 
-			
-			if not table.HasValue(users,tbl.user) then table.insert(users,tbl.user) end
-		end 
 
-		WUMA.DATA.UserSchedule = {}
-		
-		for _, user in pairs(users) do
-			if (isTableEmpty(restrictions[user]) and restrictions[user] ~= nil) then 
-				restrictions[user] = WUMA.DELETE 
-			end
-			
-			if (isTableEmpty(limits[user]) and limits[user] ~= nil) then 
-				limits[user] = WUMA.DELETE 
-			end
-			
-			if (loadouts[user] == nil or (table.Count(loadouts[user]) == 0) or (table.Count(loadouts[user].weapons) == 0)) then 
-				loadouts[user] = WUMA.DELETE 
-			end
+	if (tick_user >= WUMA.DataUpdateCooldown:GetInt()) then 
+		local tbl = {}
+		local dataregistry = WUMA.DATA.UserDataRegistry
+
+		for _, update in pairs(WUMA.DATA.UserDataSchedule) do
+			tbl[update.user] = tbl[update.user] or {}
+			tbl[update.user][update.id] = update.func(tbl[update.id] or dataregistry[update.id].init(update.user))
 		end
 		
-		
-		for _,user in pairs(users) do
-			WUMA.SaveUserData(user,restrictions[user], limits[user], loadouts[user]) 
-		end 
+		for id, data in pairs(dataregistry) do
+			for user, updates in pairs(tbl) do
+				if (isTableEmpty(updates[id]) and updates[id] ~= nil) then 
+					updates[id] = WUMA.DELETE 
+				end
+			end
+		end
 
-		tick_user = -10
-		
+		WUMA.DATA.UserDataSchedule = {}
+
+		WUMA.SaveUserData(tbl) 
+
+		tick_user = -1
 	end
 end
-timer.Create("WUMAUpdateUserTables", 1, 0, WUMA.Update_User)
+timer.Create("WUMAUpdateUserData", 1, 0, WUMA.UpdateUser)    
 
 function WUMA.GetUserFolder(user)
 	if (isstring(user)) then
@@ -400,7 +367,7 @@ end
 local function onShutdown()
 	tick_user = WUMA.DataUpdateCooldown:GetInt() - 1
 	tick_global = WUMA.DataUpdateCooldown:GetInt() -1
-    WUMA.Update_User()
-	WUMA.Update_Global()
+    WUMA.UpdateUser()
+	WUMA.UpdateGlobal()
 end
 hook.Add("ShutDown", "WUMADatahandlerShutdown", onShutdown)

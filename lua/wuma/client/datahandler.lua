@@ -12,6 +12,7 @@ WUMA.Loadouts = WUMA.Loadouts or {}
 WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
+WUMA.Inheritance = {}
 
 //Hooks
 WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
@@ -20,6 +21,7 @@ WUMA.SERVERUSERSUPDATE = "WUMAServerUsersUpdate"
 WUMA.USERDATAUPDATE = "WUMAUserDataUpdate"
 WUMA.MAPSUPDATE = "WUMAMapsUpdate"
 WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
+WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
 
 WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
 WUMA.LIMITUPDATE = "WUMALimitUpdate"
@@ -254,11 +256,31 @@ end
 hook.Add(WUMA.SETTINGSUPDATE,"WUMAGUISettings",function(settings) WUMA.UpdateSettings(settings) end)
 
 function WUMA.OnSettingsUpdate(setting, value)
-	if not (DisregardSettingsChange) then
+	if not DisregardSettingsChange then
 		value = util.TableToJSON({value})
 
 		local access = "changesettings"
 		local data = {setting,value}
+		 
+		WUMA.SendCommand(access,data,true)
+	end
+end
+
+function WUMA.UpdateInheritance(inheritance)
+	if (WUMA.GUI.Tabs.Settings) then
+		WUMA.GUI.Tabs.Settings.DisregardInheritanceChange = true
+		WUMA.GUI.Tabs.Settings:UpdateInheritance(inheritance)
+		WUMA.GUI.Tabs.Settings.DisregardInheritanceChange = false
+	end
+end
+hook.Add(WUMA.INHERITANCEUPDATE,"WUMAGUIInheritance",function(settings) WUMA.UpdateInheritance(settings) end)
+
+function WUMA.OnInheritanceUpdate(enum, target, usergroup)
+	if not WUMA.GUI.Tabs.Settings.DisregardInheritanceChange then
+		local access = "changeinheritance"
+		
+		if (string.lower(usergroup) == "nobody") then usergroup = nil end
+		local data = {enum, target, usergroup}
 		 
 		WUMA.SendCommand(access,data,true)
 	end
