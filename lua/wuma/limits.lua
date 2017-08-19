@@ -84,6 +84,19 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 		user:AddLimit(limit:Clone())
 	end)
 	
+	function recursive(group)
+		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
+		for k, heir in pairs(heirs) do
+			if not WUMA.Limits[Limit:GenerateID(heir,item)] then
+				WUMA.UpdateUsergroup(heir,function(ply)
+					ply:AddLimit(limit)
+				end)
+				recursive(heir)
+			end
+		end
+	end
+	recursive(usergroup)
+	
 	WUMA.AddClientUpdate(Limit,function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
@@ -105,9 +118,36 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 	
 	WUMA.Limits[id] = nil
 
-	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
-		user:RemoveLimit(Limit:GenerateID(_,item))
+	local limit
+	local ancestor = WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup)
+	while ancestor do
+		limit = WUMA.Limits[Limit:GenerateID(ancestor,item)]
+		if limit then
+			break
+		end
+		ancestor = WUMA.GetUsergroupAncestor(Limit:GetID(), ancestor)
+	end
+	
+	local affected = WUMA.UpdateUsergroup(usergroup,function(ply)
+		ply:RemoveLimit(Limit:GenerateID(usergroup,item))
+		if limit then ply:AddLimit(limit) end
 	end)
+	
+	function recursive(group)
+		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
+		for _, heir in pairs(heirs) do
+			if not WUMA.Restrictions[Limit:GenerateID(heir,item)] then
+				WUMA.UpdateUsergroup(heir,function(ply)
+					ply:RemoveLimit(Limit:GenerateID(_,item))
+					if limit then
+						ply:AddLimit(limit)
+					end
+				end)
+				recursive(heir)
+			end
+		end
+	end
+	recursive(usergroup)
 
 	WUMA.AddClientUpdate(Limit,function(tbl)
 		tbl[id] = WUMA.DELETE
@@ -182,6 +222,6 @@ function WUMA.RefreshGroupLimits(user, usergroup)
 	WUMA.AssignLimits(user, usergroup)
 end
 
-WUMA.RegisterDataID(Limit, "limits.txt", WUMA.GetSavedLimits)
-WUMA.RegisterUserDataID(Limit, "limits.txt", WUMA.GetSavedLimits)
+WUMA.RegisterDataID(Limit, "limits.txt", WUMA.GetSavedLimits, WUMA.isTableEmpty)
+WUMA.RegisterUserDataID(Limit, "limits.txt", WUMA.GetSavedLimits, WUMA.isTableEmpty)
  

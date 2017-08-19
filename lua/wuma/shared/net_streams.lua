@@ -289,7 +289,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 				local tbl = {}
 				tbl[restriction:GetID()] = restriction
 				
-				local id = Restriction:GetID() .. ":::" .. user:SteamID()
+				local id = "PersonalLoadoutRestrictions:::" .. user:SteamID()
 				
 				WUMA.PoolFunction("SendPersonalCompressedData" .. "_" .. user:AccountID(), WUMA.SendCompressedData, tbl, {user, _, id}, 2)
 			end
@@ -300,7 +300,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 				local tbl = {}
 				tbl[restriction:GetID()] = WUMA.DELETE
 				
-				local id = Restriction:GetID() .. ":::" .. user:SteamID()
+				local id = "PersonalLoadoutRestrictions:::" .. user:SteamID()
 				
 				WUMA.PoolFunction("SendPersonalCompressedData" .. "_" .. user:AccountID(), WUMA.SendCompressedData, tbl, {user, _, id}, 2)			
 			end
@@ -311,7 +311,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 		hook.Remove(WUMA.USERRESTRICTIONADDED, user:SteamID() .. WUMA.USERRESTRICTIONADDED)
 		hook.Remove(WUMA.USERRESTRICTIONREMOVED, user:SteamID() .. WUMA.USERRESTRICTIONREMOVED)
 	elseif (data[1] == "restrictions") then
-		return {user, user:GetRestrictions(), Restriction:GetID()..":::"..user:SteamID()}
+		return {user, user:GetRestrictions(), "PersonalLoadoutRestrictions:::"..user:SteamID()}
 	elseif (data[1] == "loadout") then
 		if user:HasLoadout() then
 			return {user, user:GetLoadout():GetWeapons(), Loadout:GetID()..":::"..user:SteamID()}

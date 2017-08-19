@@ -133,8 +133,7 @@ function PANEL:Init()
 
 		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
 		
-		local limit_sort = data.limit
-		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
+		local limit_sort = tonumber(data.limit) or -1
 		
 		local limit = data.limit
 		if ((tonumber(limit) or 0) < 0) then limit = "∞" end

@@ -13,6 +13,7 @@ WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
 WUMA.Inheritance = {}
+WUMA.AggregateInheritance = {}
 
 //Hooks
 WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
@@ -22,6 +23,7 @@ WUMA.USERDATAUPDATE = "WUMAUserDataUpdate"
 WUMA.MAPSUPDATE = "WUMAMapsUpdate"
 WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
 WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
+WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE = "WUMAPersonalLoadoutRestrictionsUpdate"
 
 WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
 WUMA.LIMITUPDATE = "WUMALimitUpdate"
@@ -159,6 +161,10 @@ function WUMA.UpdateUser(id, enum, data)
 		WUMA.UpdateUserLoadouts(id,data)
 	end
 	
+	if (enum == "PersonalLoadoutRestrictions") then
+		WUMA.UpdatePersonalLoadoutRestrictions(id,data)
+	end
+	
 end
 
 function WUMA.UpdateUserRestrictions(user, update)
@@ -228,7 +234,20 @@ function WUMA.UpdateUserLoadouts(user, update)
 	end
 	
 	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
+end
+
+function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
+	for id, tbl in pairs(update) do
+		if istable(tbl) then 
+			tbl = Restriction:new(tbl)	
+			tbl.usergroup = user
+			tbl.parent = user
+		end
+		
+		update[id] = tbl
+	end
 	
+	hook.Call(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, _, user, update)
 end
 
 

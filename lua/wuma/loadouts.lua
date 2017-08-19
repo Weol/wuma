@@ -224,7 +224,7 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller,user,item)
 		return tbl
 	end, user)
 	
-	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
 		tbl:SetPrimary(item)
 
 		return tbl
@@ -256,17 +256,15 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 		return tbl
 	end, user)
 	
-	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
 		tbl:AddWeapon(item,primary,secondary,respect,scope)
-		
+
 		return tbl
 	end)
 	
 end
 
 function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
-
-	if not WUMA.CheckUserFileExists(user,Loadout) then return false end
 
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) and user:HasLoadout() and user:GetLoadout():IsPersonal() then
@@ -282,7 +280,7 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 		return tbl
 	end, user)
 
-	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
 		tbl:RemoveWeapon(item)
 		
 		return tbl
@@ -301,7 +299,7 @@ function WUMA.ClearUserLoadout(caller,user)
 		return {WUMA.DELETE}
 	end, user)
 
-	WUMA.ScheduleUserFileUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
 		tbl = nil
 			
 		return tbl
@@ -344,5 +342,5 @@ function WUMA.RefreshUsergroupLoadout(user, usergroup)
 	WUMA.GiveLoadout(user)
 end
 
-WUMA.RegisterDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts)
-WUMA.RegisterUserDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts)
+WUMA.RegisterDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts, function(tbl) return (tbl:GetWeaponCount() < 1) end)
+WUMA.RegisterUserDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts, function(tbl) return (tbl:GetWeaponCount() < 1) end)

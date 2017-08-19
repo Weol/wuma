@@ -17,7 +17,7 @@ function WUMA.GetSavedTable(enum,user)
 	end
 end
 
-local function isTableEmpty(tbl) 
+function WUMA.isTableEmpty(tbl) 
 	if not istable(tbl) then return true end
 	if (table.Count(tbl) < 1) then return true else return false end
 end
@@ -245,7 +245,7 @@ function WUMA.UpdateGlobal()
 		end
 		
 		for id, update in pairs(dataregistry) do
-			if (isTableEmpty(tbl[id]) and tbl[id] ~= nil) then 
+			if (WUMA.isTableEmpty(tbl[id]) and tbl[id] ~= nil) then 
 				tbl[id] = WUMA.DELETE 
 			end
 		end
@@ -276,18 +276,18 @@ function WUMA.ScheduleUserDataUpdate(user, id, func)
 	end
 end
 
-function WUMA.RegisterUserDataID(id, path, init)
-	WUMA.DATA.UserDataRegistry[id] = {path=path, init=init}
+function WUMA.RegisterUserDataID(id, path, init, delete)
+	WUMA.DATA.UserDataRegistry[id] = {path=path, init=init, delete=delete}
 end
 
 function WUMA.SaveUserData(data) 
 	
 	local dataregistry = WUMA.DATA.UserDataRegistry
-	
 	for user, tbls in pairs(data) do
 		for id, tbl in pairs(tbls) do
 			if (tbl and tbl ~= WUMA.DELETE) then
 				local str = util.TableToJSON(tbl)
+				WUMA.Files.CreateDir(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user))
 				WUMA.Files.Write(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path, str)	
 			elseif (tbl == WUMA.DELETE) then
 				WUMA.Files.Delete(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path)
@@ -308,12 +308,12 @@ function WUMA.UpdateUser()
 
 		for _, update in pairs(WUMA.DATA.UserDataSchedule) do
 			tbl[update.user] = tbl[update.user] or {}
-			tbl[update.user][update.id] = update.func(tbl[update.id] or dataregistry[update.id].init(update.user))
+			tbl[update.user][update.id] = update.func(tbl[update.user][update.id] or dataregistry[update.id].init(update.user))
 		end
 		
 		for id, data in pairs(dataregistry) do
 			for user, updates in pairs(tbl) do
-				if (isTableEmpty(updates[id]) and updates[id] ~= nil) then 
+				if (data.delete(updates[id] or {}) and updates[id] ~= nil) then 
 					updates[id] = WUMA.DELETE 
 				end
 			end
@@ -344,7 +344,7 @@ function WUMA.GetUserFile(user,enum)
 	elseif (enum == Limit) then
 		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."limits.txt"
 	elseif (enum == Loadout) then
-		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."loadout.txt"
+		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."loadouts.txt"
 	end
 end
 

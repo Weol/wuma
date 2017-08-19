@@ -4,9 +4,10 @@ local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
 WUMA.Users = {}
-
 WUMA.UserLimitsCache = {}
+
 WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
+WUMA.HasUserPersonalLoadoutAccess = "WUMAHasUserPersonalLoadoutAccess"
 
 function WUMA.InitializeUser(user)
 	WUMA.AssignRestrictions(user)
@@ -20,6 +21,10 @@ function WUMA.InitializeUser(user)
 	WUMA.HasAccess(user, function(bool) 
 		user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
 	end)	
+	
+	WUMA.HasAccess(user, function(bool) 
+		user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
+	end, "wuma personalloadout")
 end
 
 function WUMA.AssignUserRegulations(user)
@@ -34,12 +39,18 @@ function WUMA.AssignRestrictions(user)
 end
 
 function WUMA.AssignUsergroupRestrictions(user,usergroup)	
+	local usergroup = usergroup or user:GetUserGroup()
+
 	for _,object in pairs(WUMA.Restrictions) do
-		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
+		if (object:GetUserGroup() == usergroup) and not user:GetRestriction(object:GetType(), object:GetString()) then
 			user:AddRestriction(object:Clone())
 		end
 	end
-end
+
+	if WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup) then
+		WUMA.AssignUsergroupRestrictions(user,WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup))
+	end
+end 
 
 function WUMA.AssignUserRestrictions(user)
 	if WUMA.CheckUserFileExists(user,Restriction) then
@@ -64,12 +75,17 @@ function WUMA.AssignLimits(user)
 	end
 end
 
-
 function WUMA.AssignUsergroupLimits(user, usergroup)
+	local usergroup = usergroup or user:GetUserGroup()
+
 	for id, object in pairs(WUMA.Limits) do
-		if (object:GetUserGroup() == (usergroup or user:GetUserGroup())) then
+		if (object:GetUserGroup() == usergroup) and not user:HasLimit(object:GetID(true)) then
 			user:AddLimit(object:Clone())
 		end
+	end
+	
+	if WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup) then
+		WUMA.AssignUsergroupLimits(user,WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup))
 	end
 end
 
@@ -88,6 +104,7 @@ function WUMA.AssignLoadout(user, usergroup)
 end
 
 function WUMA.AssignUsergroupLoadout(user, usergroup)
+	local inheritance = WUMA.GetUsergroupAncestor(Loadout:GetID(), usergroup)
 	if not(WUMA.Loadouts[(usergroup or user:GetUserGroup())]) then return end
 	
 	local loadout = WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone()
@@ -239,3 +256,9 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 	end)	
 end
 hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)
+
+function WUMA.UsergroupsChanged()
+	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.GROUPS:Send(users) end)
+end
+hook.Add("CAMI.OnUsergroupRegistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)
+hook.Add("CAMI.OnUsergroupUnregistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)

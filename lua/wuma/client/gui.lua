@@ -22,6 +22,7 @@ WUMA.Subscriptions.user = {}
 WUMA.Subscriptions.timers = {}
 
 WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
+WUMA.HasUserPersonalLoadoutAccess = "WUMAHasUserPersonalLoadoutAccess"
 
 function WUMA.GUI.Initialize()
 
@@ -307,6 +308,12 @@ end
 concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
 
 function WUMA.GUI.CreateLoadoutSelector() 
+	
+	if not LocalPlayer():GetNWBool(WUMA.HasUserPersonalLoadoutAccess) then 
+		LocalPlayer():ChatPrint("You do not have access to this command!")
+		return 
+	end
+
 	local frame = vgui.Create("DFrame")
 	frame:SetSize(ScrW()*0.40,ScrH()*0.44)
 	frame:SetPos(ScrW()/2-frame:GetWide()/2,ScrH()/2-frame:GetTall()/2)
@@ -354,6 +361,28 @@ function WUMA.GUI.CreateLoadoutSelector()
 				
 			loadout:ReloadSuggestions()
 		end
+	end)
+	
+	hook.Add(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate", function(user, update)
+		for key, restriction in pairs(update) do
+			if istable(restriction) and (restriction.type == "swep") then
+				table.RemoveByValue(loadout.weapons or {}, restriction.string)
+			else 
+				local exploded = string.Explode("_", key)
+
+				local wep = key
+				for _, shrapnel in pairs(exploded) do
+					if (table.HasValue(WUMA.GetWeapons(),wep)) then
+						table.insert(loadout.weapons or {}, wep)
+						break
+					end
+					
+					wep = string.sub(wep, string.len(shrapnel) + 2)
+				end
+			end
+		end
+			
+		loadout:ReloadSuggestions()
 	end)
 	
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")

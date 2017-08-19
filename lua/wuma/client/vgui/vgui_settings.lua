@@ -166,36 +166,22 @@ function PANEL:Init()
 		WUMA.OnInheritanceUpdate(Limit:GetID(), target, usergroup)
 	end
 	
-	--Loadouts
-	self.inheritance_loadout = vgui.Create("DPanel",self.inheritance_settings)
-	self.inheritance_loadout.Paint = function(panel,w, h) draw.DrawText("Inherit loadout from ", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
-	self.inheritance_loadout.combobox = vgui.Create("DComboBox",self.inheritance_loadout)
-	self.inheritance_loadout.combobox.OnSelect = function() 
-		local target = self.inheritance_target.combobox:GetSelected()
-		local usergroup = self.inheritance_loadout.combobox:GetSelected()
-		
-		WUMA.OnInheritanceUpdate(Loadout:GetID(), target, usergroup)
-	end
-
 	local function populateUsergroups() 
 		self.DisregardInheritanceChange = true
 		local text, data = self.inheritance_target.combobox:GetSelected()
 
 		self.inheritance_restriction.combobox:Clear()
 		self.inheritance_limit.combobox:Clear()
-		self.inheritance_loadout.combobox:Clear()
 		
 		for _, usergroup in pairs (WUMA.ServerGroups) do
 			if (text != usergroup) then
 				self.inheritance_restriction.combobox:AddChoice(usergroup, i)
 				self.inheritance_limit.combobox:AddChoice(usergroup, i)
-				self.inheritance_loadout.combobox:AddChoice(usergroup, i)
 			end
 		end
 		
 		self.inheritance_restriction.combobox:AddChoice("Nobody", _, true)
 		self.inheritance_limit.combobox:AddChoice("Nobody", _, true)
-		self.inheritance_loadout.combobox:AddChoice("Nobody", _, true)
 		self.DisregardInheritanceChange = false
 		
 		WUMA.UpdateInheritance(WUMA.Inheritance)
@@ -206,9 +192,8 @@ function PANEL:Init()
 		self.inheritance_target.combobox:Clear()
 		for _, usergroup in pairs (WUMA.ServerGroups) do
 			self.inheritance_target.combobox:AddChoice(usergroup, _, true)
-			
-			populateUsergroups() 
 		end
+		populateUsergroups() 
 	end)
 	self.inheritance_target.combobox:SetSortItems(false)
 	
@@ -321,12 +306,6 @@ function PANEL:PerformLayout(w,h)
 	self.inheritance_limit:Dock(BOTTOM)
 	self.inheritance_limit.combobox:SetWide(self.inheritance_limit:GetWide()/5*2)
 	self.inheritance_limit.combobox:SetPos(self.inheritance_limit:GetWide()-self.inheritance_limit.combobox:GetWide(),0)	
-
-	self.inheritance_loadout:SetTall(22)
-	self.inheritance_loadout:DockMargin(5,0,5,5)
-	self.inheritance_loadout:Dock(BOTTOM)
-	self.inheritance_loadout.combobox:SetWide(self.inheritance_loadout:GetWide()/5*2)
-	self.inheritance_loadout.combobox:SetPos(self.inheritance_loadout:GetWide()-self.inheritance_loadout.combobox:GetWide(),0)
 	
 end
 
