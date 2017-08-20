@@ -1,13 +1,13 @@
 # Weols User Management Addon
-WUMA is an addon that provides server administrators with control over what their users can spawn. It enables them to restrict what a usergroup or individual player can spawn, or how many they can spawn. It also provides loadouts for a usergroup or individual player.
+WUMA is an addon that provides server administrators control over what their users can spawn. It enables them to restrict what a usergroup or individual player can spawn, or how many they can spawn. It also provides loadouts for a usergroups or individual player.
 
 ## Restrictions
 
-Administrators may restrict any entity, weapon, vehicle, npc, tool, effect, ragdoll, prop model, or entity usage for a usergroup or an individual player. They can also add an anti-restriction which overrides any normal restriction in place, this function is meant to add exceptions for players in a usergroup so that they can spawn items that are banned for their usergroup. Restrictions can also be added with a scope to restrict items for a certain period of time or on a specific map.
+Administrators may restrict any entity, weapon, vehicle, npc, tool, effect, ragdoll, prop model, or entity usage from a usergroup or an individual player. They can also add an anti-restriction which overrides any normal restriction in place, this function is meant to add exceptions for players in a usergroup so that they can spawn items that are banned for their usergroup. Restrictions can also be added with a scope to restrict items for a certain period of time or on a specific map.
 
 ## Limits
 
-Administrators may limit any entity, weapon, vehicle, npc, effect, ragdoll, or prop model for a usergroup or an individual player. Items may be limited to any value, even infinity, which means it won't have any limit at all. Limits can also be grouped into advanded limits, which allows administrators to set a group of items to the same limit. This limit can be inclusive or exclusive, meaning that all the items can have the same static limit, or all the items may count towards the same limit. Advanced limits can have their limit set to another advanced limit. Limits can also be added with a scope to restrict items for a certain period of time or on a specific map.
+Administrators may limit any entity, weapon, vehicle, npc, effect, ragdoll, or prop model from a usergroup or an individual player. Items may be limited to any value, even infinity, which means it won't have any limit at all. Limits can also be grouped into advanded limits, which allows administrators to set a group of items to the same limit. This limit can be inclusive or exclusive, meaning that all the items can have the same static limit, or all the items may count towards the same limit. Advanced limits can have their limit set to another advanced limit. Limits can also be added with a scope to restrict items for a certain period of time or on a specific map.
 
 ## Loadouts
 
