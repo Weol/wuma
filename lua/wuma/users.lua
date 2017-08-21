@@ -190,6 +190,16 @@ function WUMA.GetAuthorizedUsers(callback)
 end
 
 function WUMA.HasAccess(user, callback, access)
+	local access = access or WUMA.WUMAGUI
+
+	local cb = function(bool)
+		WUMA.STCache(user:SteamID()..access, bool)
+		callback(bool)
+		return
+	end
+
+	local cached = WUMA.STCache(user:SteamID()..access)
+	if cached then return callback(cached) end
 	CAMI.PlayerHasAccess(user, access or WUMA.WUMAGUI, callback)
 end
 

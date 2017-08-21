@@ -5,7 +5,7 @@ local WUMALog = WUMALog
 
 WUMA.DATA = {}
 
-WUMA.DataUpdateCooldown = WUMA.CreateConVar("wuma_data_save_delay", "30", FCVAR_ARCHIVE, "Delay before changes are saved.")
+WUMA.DataUpdateCooldown = WUMA.CreateConVar("wuma_data_save_delay", "10", FCVAR_ARCHIVE, "Delay before changes are saved.")
 
 function WUMA.GetSavedTable(enum,user)
 	if (enum == Restriction) then
@@ -268,6 +268,7 @@ WUMA.DATA.UserDataSchedule = {}
 local tick_user = WUMA.DataUpdateCooldown:GetInt() + 1
 function WUMA.ScheduleUserDataUpdate(user, id, func)
 	if WUMA.DATA.UserDataRegistry[id] then
+		if isentity(user) then user = user:SteamID() end
 		table.insert(WUMA.DATA.UserDataSchedule, {id=id, func=func, user=user})
 		
 		tick_user = 0

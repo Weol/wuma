@@ -38,6 +38,22 @@ function WUMA.GetSteamIDbyNick(id)
 	return WUMA.Lookup(user)
 end
 
+local stcache = {}
+function WUMA.STCache(id, data)
+	if data then
+		stcache[id] = {data=data,t=os.time()}
+	else
+		local entry = stcache[id]
+		if entry then
+			if (entry.t + 2 > os.time()) then
+				return stcache[id]
+			else
+				stcache[id] = nil
+			end
+		end
+	end
+end
+
 local cacheCounter = 0
 local cacheSize = 20
 local head
