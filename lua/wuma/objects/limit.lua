@@ -285,7 +285,7 @@ function object:InheritEntities(limit)
 end
 
 function object:Check(int)
-	if self:IsDisabled() then return nil end
+	if self:IsDisabled() then return end
 	
 	local limit = int or self:Get()
 
@@ -298,7 +298,7 @@ function object:Check(int)
 	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
 		return self:Check(self:GetParent():GetLimit(limit))
 	elseif isstring(limit) then
-		return nil
+		return
 	end
 	
 	if (limit < 0) then return true end

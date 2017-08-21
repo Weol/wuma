@@ -23,7 +23,7 @@ function PANEL:SetMinMaxNumeric(min,max)
 end
 
 function PANEL:OnTextChanged()
-	local valid = pcall(string.match, "abcdefghijklmnopqrstuvwxyz1234567890()123", self:GetText())
+	local valid = pcall(string.match, "abcdefghijklmnopqrstuvwxyz1234567890()123", self:GetText()) --To check if pattern is valid, these are not the only characters allowed
 	if not valid then return end
 
 	self.HistoryPos = 0
@@ -44,6 +44,16 @@ function PANEL:OnTextChanged()
 
 	self:OnChange()
 	
+end
+
+function PANEL:RefreshDefault()
+	if self:GetDefault() then
+		local text = self:GetValue()
+		if (not text) or (text == "") then
+			self:SetText(self:GetDefault())
+			self:SetTextColor(self.default_color)
+		end
+	end
 end
 
 function PANEL:OnLoseFocus()
@@ -67,7 +77,12 @@ function PANEL:OnLoseFocus()
 	
 	self:UpdateConvarValue()
 	hook.Call( "OnTextEntryLoseFocus", _, self )
+	self:FocusLost()
 	
+end
+
+function PANEL:FocusLost()
+
 end
 
 function PANEL:OnGetFocus()

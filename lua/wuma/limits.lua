@@ -181,7 +181,7 @@ function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)
 		return tbl
 	end,user)
 	
-	WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
+	WUMA.ScheduleUserDataUpdate(user,Limit, function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
@@ -205,7 +205,7 @@ function WUMA.RemoveUserLimit(caller,user,item)
 		return tbl
 	end,user)
 		
-	WUMA.ScheduleUserFileUpdate(user,Limit, function(tbl)
+	WUMA.ScheduleUserDataUpdate(user,Limit, function(tbl)
 		tbl[id] = nil
 			
 		return tbl

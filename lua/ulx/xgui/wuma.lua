@@ -18,7 +18,7 @@ local function OnWUMAInitialized(panel)
 	wuma_tab:InvalidateLayout()
 	panel:InvalidateLayout()
 	
-	concommand.Remove("wuma")
+	concommand.Remove("wuma_menu")
 end
 hook.Add("OnWUMAInitialized","ULXOverrideWUMAGUI",OnWUMAInitialized)
 

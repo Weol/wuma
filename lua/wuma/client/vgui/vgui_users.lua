@@ -49,6 +49,9 @@ function PANEL:Init()
 	self.list_items:AddColumn("SteamID")
 	self.list_items:AddColumn("Last Online")
 	self.list_items.OnRowSelected = self.OnUserSelected
+	self.list_items.OnViewChange = function()
+		self.list_items:SortByColumn()	
+	end
 		
 	local function highlight(line,data,datav)
 		if WUMA.ServerUsers[data[3]] then return Color(0,255,0,120) else return nil end
@@ -117,7 +120,7 @@ function PANEL:Init()
 		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
 		
 		local limit = data.limit
-		if (limit < 0) then limit = "∞" end
+		if ((tonumber(limit) or 1) < 0) then limit = "∞" end
 		
 		return {nick, data.print or data.string, limit, scope},{_,_,sort_limit,0}
 	end
@@ -215,9 +218,12 @@ function PANEL:Init()
 			
 			self:GetDataView():SelectFirstItem()
 		end
+		self:GetDataView():SortData()
+		self:GetDataView():SortByColumn(4)
 	end
 	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE,"VGUIUsersUserListHook1",updateUserList)
 	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE,"VGUIUsersUserListHook2",updateUserList)
+	
 	
 end
 

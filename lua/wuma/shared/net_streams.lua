@@ -114,7 +114,13 @@ WUMA.NET.USERS:SetClientFunction(function(data)
 			WUMA.LookupUsers[v.steamid] = v
 		end
 	end
+	
 	WUMA.ServerUsers = players
+	
+	for steamid, user in pairs(WUMA.ServerUsers) do
+		if not IsValid(user.ent) then WUMA.ServerUsers[steamid] = nil end
+	end
+	
 	hook.Call(WUMA.SERVERUSERSUPDATE)
 end) 
 WUMA.NET.USERS:SetAuthenticationFunction(function(user, callback) 
@@ -314,7 +320,7 @@ WUMA.NET.PERSONAL:SetServerFunction(function(user,data)
 		return {user, user:GetRestrictions(), "PersonalLoadoutRestrictions:::"..user:SteamID()}
 	elseif (data[1] == "loadout") then
 		if user:HasLoadout() then
-			return {user, user:GetLoadout():GetWeapons(), Loadout:GetID()..":::"..user:SteamID()}
+			WUMA.NET.LOADOUT:Send(user, {user:SteamID()})
 		end
 	end
 end) 

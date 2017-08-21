@@ -25,9 +25,9 @@ end
 function WUMA.Lookup(user)
 	if (string.lower(type(user)) == "string") then
 		if WUMA.IsSteamID(user) then
-			return WUMASQL("SELECT * FROM %s WHERE steamid LIKE '%s%s LIMIT 100;", WUMA.WUMALookupTable, sql.SQLStr(user,true), "%'")
+			return WUMASQL("SELECT * FROM %s WHERE steamid LIKE '%s%s LIMIT 50;", WUMA.WUMALookupTable, sql.SQLStr(user,true), "%'")
 		else
-			return WUMASQL("SELECT * FROM %s WHERE nick LIKE %s%s%s LIMIT 100;", WUMA.WUMALookupTable, "'%", sql.SQLStr(user,true), "%'")
+			return WUMASQL("SELECT * FROM %s WHERE nick LIKE %s%s%s LIMIT 50;", WUMA.WUMALookupTable, "'%", sql.SQLStr(user,true), "%'")
 		end
 	elseif (isnumber(user)) then
 		return WUMASQL("SELECT * FROM %s ORDER BY t ASC LIMIT %s",WUMA.WUMALookupTable,sql.SQLStr(tostring(user),true))

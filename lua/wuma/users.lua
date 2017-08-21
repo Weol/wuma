@@ -9,14 +9,14 @@ WUMA.UserLimitsCache = {}
 WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
 WUMA.HasUserPersonalLoadoutAccess = "WUMAHasUserPersonalLoadoutAccess"
 
+WUMA.PersonalLoadoutCommand = WUMA.CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", FCVAR_ARCHIVE, "Chat command to open the loadout selector")
+
 function WUMA.InitializeUser(user)
 	WUMA.AssignRestrictions(user)
 	WUMA.AssignLimits(user)
 	WUMA.AssignLoadout(user)
 
-	if user:HasWUMAData() then
-		WUMA.AddLookup(user)
-	end
+	WUMA.AddLookup(user)
 	
 	WUMA.HasAccess(user, function(bool) 
 		user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
@@ -214,7 +214,14 @@ function WUMA.GetUserGroups()
 	return groups
 end
 
+function WUMA.UserChatCommand(user, text, public)
+	if (string.lower(text) == string.lower(WUMA.PersonalLoadoutCommand:GetString())) then user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]]); return "" end
+end
+hook.Add("PlayerSay", "WUMAChatCommand", WUMA.UserChatCommand)
+
 function WUMA.UserDisconnect(user)
+	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end)
+
 	--Cache users limit data so they cant rejoin to reset limits
 	if (user:GetLimits()) then
 		WUMA.UserLimitsCache[user:SteamID()] = user:GetLimits()
@@ -226,9 +233,7 @@ function WUMA.UserDisconnect(user)
 		end
 	end
 
-	if user:HasWUMAData() then
-		WUMA.AddLookup(user)
-	end
+	WUMA.AddLookup(user)
 end
 hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect, 0)
 
@@ -238,8 +243,10 @@ end
 hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout, -1)
 
 function WUMA.PlayerInitialSpawn(user)
-	WUMA.InitializeUser(user) 
-	timer.Simple(1,function() WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end) end)
+	timer.Simple(1,function() 
+		WUMA.InitializeUser(user) 
+		WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end)
+	end)
 end
 hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
 
@@ -251,7 +258,11 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 	timer.Simple(2, function()
 		WUMA.HasAccess(user, function(bool) 
 			user:SetNWBool(WUMA.HasUserAccessNetworkBool, bool)
-			user:SendLua([[WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())]])
+			user:SendLua([[
+				WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID());
+				WUMA.RequestFromServer(WUMA.NET.INHERITANCE:GetID());
+				WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID());
+		]])
 		end)
 	end)	
 end

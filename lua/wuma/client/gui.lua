@@ -96,7 +96,7 @@ function WUMA.GUI.Initialize()
 	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
 	
 end
-hook.Add("InitPostEntity", "WUMAGuiInitialize", WUMA.GUI.Initialize)
+hook.Add("InitPostEntity", "WUMAGuiInitialize", function() timer.Simple(2, WUMA.GUI.Initialize) end)
 
 function WUMA.GUI.Show()
 	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
@@ -136,7 +136,7 @@ function WUMA.OnTabChange(_,tabname)
 	elseif (tabname == WUMA.GUI.Tabs.Loadouts.TabName and not WUMA.Subscriptions.loadouts) then
 		WUMA.FetchData(Loadout:GetID())
 	elseif (tabname == WUMA.GUI.Tabs.Users.TabName and not WUMA.Subscriptions.users) then
-		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
+		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),50)
 		
 		WUMA.Subscriptions.users = true
 	end
@@ -321,6 +321,7 @@ function WUMA.GUI.CreateLoadoutSelector()
 	frame.OnClose = function() 
 		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
 		hook.Remove(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate")
+		hook.Remove(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate")
 	end
 	frame.Paint = function()
 		draw.RoundedBox(5, 0, 0, frame:GetWide(), frame:GetTall(), Color(59, 59, 59, 255))
@@ -335,8 +336,10 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:Dock(TOP)
 	loadout:SetWide(frame:GetWide())
 	loadout:SetTall(frame:GetTall()-35)
+	loadout:GetDataView():SetDataTable((WUMA.UserData[LocalPlayer():SteamID()] or {}).Loadouts or {})
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
+		PrintTable(update)
 		
 		if (enum == Loadout:GetID()) then
 			loadout:GetDataView():UpdateDataTable(update)

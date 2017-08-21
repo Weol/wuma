@@ -21,6 +21,8 @@ end
 function WUMA.SetUsergroupInheritance(enum, target, usergroup)
 	WUMA.Inheritance[enum] = WUMA.Inheritance[enum] or {}
 	
+	if table.HasValue(WUMA.GetInheritanceTree(enum, target), usergroup) then return end 
+	
 	WUMA.Inheritance[enum][target] = usergroup
 	
 	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.INHERITANCE:Send(users) end)

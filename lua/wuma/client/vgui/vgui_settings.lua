@@ -39,6 +39,26 @@ function PANEL:Init()
 	self.checkbox_echo_chat:SetTextColor(Color(0,0,0))
 	self.checkbox_echo_chat:SetValue(false)
 	self.checkbox_echo_chat.OnChange = function(panel,bool) WUMA.OnSettingsUpdate("echo_to_chat",bool) end 
+	
+	self.chat_command = vgui.Create("DPanel",self.server_settings)
+	self.chat_command.Paint = function(panel,w, h) draw.DrawText("Loadout chat command", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
+	self.chat_command.textbox = vgui.Create("DTextEntry",self.chat_command)
+	local old_setvalue = self.chat_command.textbox.SetValue
+	self.chat_command.textbox.SetValue = function(panel, value) 
+		panel.previousValue = value
+		old_setvalue(panel,value)
+	end
+	local old_losefocus = self.chat_command.textbox.OnLoseFocus
+	self.chat_command.textbox.OnLoseFocus = function(panel)
+		old_losefocus(panel)
+		
+		local str = panel:GetValue()
+		if (str != "") then
+			WUMA.OnSettingsUpdate("personal_loadout_chatcommand",panel:GetValue())
+		else
+			timer.Simple(0.01, function() panel:SetValue(panel.previousValue) end)
+		end
+	end
 	 
 	self.adv_settings = vgui.Create("DPanel", self)
 	
@@ -166,6 +186,31 @@ function PANEL:Init()
 		WUMA.OnInheritanceUpdate(Limit:GetID(), target, usergroup)
 	end
 	
+	local function getUsergroupHeirs(enum, usergroup)
+		local tbl = {}
+		for heir, ancestor in pairs(WUMA.Inheritance[enum] or {}) do
+			if (ancestor == usergroup) then
+				table.insert(tbl, heir)
+			end
+		end
+		return tbl
+	end 
+
+	local function getInheritanceTree(enum, usergroup) 
+		local tbl = {}
+
+		for _, heir in pairs(getUsergroupHeirs(enum, usergroup)) do
+			table.insert(tbl, heir)
+			
+			local heirs = getUsergroupHeirs(enum, heir)
+			if (table.Count(heirs) > 0) then
+				table.Add(tbl, getInheritanceTree(enum, heir))
+			end
+		end
+		
+		return tbl
+	end
+	
 	local function populateUsergroups() 
 		self.DisregardInheritanceChange = true
 		local text, data = self.inheritance_target.combobox:GetSelected()
@@ -175,8 +220,13 @@ function PANEL:Init()
 		
 		for _, usergroup in pairs (WUMA.ServerGroups) do
 			if (text != usergroup) then
-				self.inheritance_restriction.combobox:AddChoice(usergroup, i)
-				self.inheritance_limit.combobox:AddChoice(usergroup, i)
+				if not table.HasValue(getInheritanceTree(Restriction:GetID(), text), usergroup) then
+					self.inheritance_restriction.combobox:AddChoice(usergroup, i)
+				end
+				
+				if not table.HasValue(getInheritanceTree(Limit:GetID(), text), usergroup) then
+					self.inheritance_limit.combobox:AddChoice(usergroup, i)
+				end				
 			end
 		end
 		
@@ -196,6 +246,10 @@ function PANEL:Init()
 		populateUsergroups() 
 	end)
 	self.inheritance_target.combobox:SetSortItems(false)
+	
+	WUMA.GUI.AddHook(WUMA.INHERITANCEUPDATE,"WUMASettingsGUIInheritanceUpdateHook",function()
+		populateUsergroups() 
+	end)
 	
 end
 
@@ -223,6 +277,12 @@ function PANEL:PerformLayout(w,h)
 	self.checkbox_echo_chat:DockMargin(5,5,5,0)
 	self.checkbox_echo_chat:Dock(TOP)
 	
+	self.chat_command:SetTall(22)
+	self.chat_command:DockMargin(5,5,5,5)
+	self.chat_command:Dock(BOTTOM)
+	self.chat_command.textbox:SetWide(self.echo_changes:GetWide()/2)
+	self.chat_command.textbox:SetPos(self.echo_changes:GetWide()-self.echo_changes.combobox:GetWide(),0)
+
 	self.adv_settings:SetPos(0,self:GetTall()/2+3)
 	self.adv_settings:SetSize(self:GetWide()/2-3,self:GetWide()/2-3)
 	
@@ -367,6 +427,7 @@ function PANEL:UpdateSettings(settings)
 	self.net_send_size.wang:SetValue(tonumber(settings.net_send_size))
 	self.data_save_delay.wang:SetValue(tonumber(settings.data_save_delay))
 	self.checkbox_echo_chat:SetValue(tonumber(settings.echo_to_chat))
+	self.chat_command.textbox:SetValue(settings.personal_loadout_chatcommand)
 end
 
 vgui.Register("WUMA_Settings", PANEL, 'DPanel');

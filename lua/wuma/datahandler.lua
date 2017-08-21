@@ -313,7 +313,7 @@ function WUMA.UpdateUser()
 		
 		for id, data in pairs(dataregistry) do
 			for user, updates in pairs(tbl) do
-				if (data.delete(updates[id] or {}) and updates[id] ~= nil) then 
+				if (data.delete(updates[id] or data.init(user)) and updates[id] ~= nil) then 
 					updates[id] = WUMA.DELETE 
 				end
 			end

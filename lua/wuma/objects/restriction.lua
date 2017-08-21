@@ -17,7 +17,11 @@ Restriction.types = {
 	effect = {print="Effect",print2="Effects",search="Model"},
 	tool = {print="Tool",print2="Tools",search="Search..",items=function() return WUMA.GetTools() end},
 	ragdoll = {print="Ragdoll",print2="Ragdolls",search="Model"},
-	use = {print="Use",print2="Using",search="Search..",items=function() return table.Merge(table.Merge(WUMA.GetEntities(),WUMA.GetVehicles()),WUMA.GetNPCs()) end}  
+	use = {print="Use",print2="Using",search="Search..",items=function() 
+		local tbl = {}
+		table.Add(table.Add(table.Add(tbl, WUMA.GetEntities()),WUMA.GetVehicles()),WUMA.GetNPCs()) 
+		return tbl
+	end}  
 } 
 
 /////////////////////////////////////////////////////////
