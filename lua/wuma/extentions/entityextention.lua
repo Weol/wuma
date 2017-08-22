@@ -10,7 +10,7 @@ function ENT:AddWUMAParent(limit)
 end
 
 function ENT:RemoveWUMAParent(limit)
-	self.WUMAParents[limit:GetUniqueID()] = ni
+	self.WUMAParents[limit:GetUniqueID()] = nil
 end
 
 function ENT:GetWUMAParents()
