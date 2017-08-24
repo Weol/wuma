@@ -2,6 +2,7 @@
 WUMA = WUMA or {}
 
 WUMA.ConVars = WUMA.ConVars or {}
+WUMA.ConVars.CVarLimits = WUMA.ConVars.CVarLimits or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
@@ -87,6 +88,16 @@ function WUMA.Initialize()
 	--All overides should be loaded after WUMA
 	hook.Call("PostWUMALoad")
 	
+end
+
+--Override CreateConvar in order to find out if any addons are creating sbox_max limits
+local oldCreateConVar = CreateConVar
+function CreateConVar(...)
+	local args = {...}
+	if (string.Left(args[1], 8) == "sbox_max") then
+		table.insert(WUMA.ConVars.CVarLimits, string.sub(args[1], 9))
+	end
+	return oldCreateConVar(...)
 end
 
 function WUMA.CreateConVar(...)

@@ -71,6 +71,22 @@ end)
 WUMA.NET.PUSH:AddInto(WUMA.NET.ENUMS)
 
 /////////////////////////////////////////////////////////
+/////  CVarLimits | Returns custom sandbox limits   /////
+/////////////////////////////////////////////////////////
+WUMA.NET.CVARLIMITS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
+WUMA.NET.CVARLIMITS:SetServerFunction(function(user,data)
+	return {user, WUMA.NET.CVARLIMITS, WUMA.ConVars.CVarLimits}
+end) 
+WUMA.NET.CVARLIMITS:SetClientFunction(function(data)
+	WUMA.CVarLimits = data[1]
+	hook.Call(WUMA.CVARLIMITSUPDATE)
+end)
+WUMA.NET.CVARLIMITS:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
+end)
+WUMA.NET.CVARLIMITS:AddInto(WUMA.NET.ENUMS)
+
+/////////////////////////////////////////////////////////
 /////     Groups | Returns all the usergroups		/////
 /////////////////////////////////////////////////////////
 WUMA.NET.GROUPS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}

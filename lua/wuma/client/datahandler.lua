@@ -12,6 +12,7 @@ WUMA.Loadouts = WUMA.Loadouts or {}
 WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
+WUMA.CVarLimits = WUMA.CVarLimits or {}
 WUMA.Inheritance = {}
 WUMA.AggregateInheritance = {}
 
@@ -24,6 +25,7 @@ WUMA.MAPSUPDATE = "WUMAMapsUpdate"
 WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
 WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
 WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE = "WUMAPersonalLoadoutRestrictionsUpdate"
+WUMA.CVARLIMITSUPDATE = "WUMACVarLimitsUpdate"
 
 WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
 WUMA.LIMITUPDATE = "WUMALimitUpdate"

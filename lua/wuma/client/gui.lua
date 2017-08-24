@@ -35,6 +35,7 @@ function WUMA.GUI.Initialize()
 		if GetConVar("wuma_request_on_join"):GetBool() then
 			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
 			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
 			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
 			WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
 			WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
@@ -164,6 +165,7 @@ function WUMA.OnUserTabChange(_,typ,steamid)
 	elseif (typ == Limit:GetID()) then
 		if not WUMA.Subscriptions.user[steamid][typ] then
 			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID(),steamid)	
+			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
 		else
 			if timer.Exists(typ..":::"..steamid) then
@@ -203,6 +205,7 @@ function WUMA.FetchData(typ)
 			WUMA.Subscriptions.restrictions = true
 		elseif (typ == Limit:GetID()) then
 			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
+			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
 			
 			WUMA.Subscriptions.limits = true

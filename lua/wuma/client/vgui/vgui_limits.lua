@@ -164,6 +164,10 @@ function PANEL:Init()
 		self.map_chooser:AddOptions(WUMA.Maps)
 	end)
 	
+	WUMA.GUI.AddHook(WUMA.CVARLIMITSUPDATE,"WUMALimitsGUICVarLimitsUpdateHook",function() 
+		self:ReloadSuggestions()
+	end)
+	
 	self:ReloadSuggestions()
 	
 end
@@ -244,7 +248,23 @@ end
 function PANEL:ReloadSuggestions()
 	if not self.list_suggestions then return end
 
-	self:PopulateList("list_suggestions",WUMA.GetAllItems(),true)
+	local tbl = WUMA.GetAllItems()
+	
+	for key, item in pairs(tbl) do
+		--Adding exceptions for wire entities, they never use entity class to check limits, so its useless to have them in menu
+		--Also checking if any entities have a sbox_max.. limit, if they do then they probably will use that, more probable than not atleast
+		if table.HasValue(WUMA.GetStandardLimits(), item.."s") or table.HasValue(WUMA.CVarLimits or {}, item.."s") or string.match(item, "gmod_wire") then
+			tbl[key] = nil
+		end
+	end
+	
+	for key, item in pairs(WUMA.CVarLimits or {}) do
+		if not table.HasValue(tbl, item) then --Remove duplicates
+			table.insert(tbl, item)
+		end
+	end
+	
+	self:PopulateList("list_suggestions", tbl, true)
 	
 	self.list_suggestions.VBar:SetScroll(0)
 end
