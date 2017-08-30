@@ -14,12 +14,12 @@ WUMA.DELETE = "WUMA_delete"
 WUMA.EMPTY = "WUMA_empty" 
 
 --Paths
-WUMA.DataDirectory = "WUMA/"
-WUMA.SharedDirectroy = "WUMA/shared/"
-WUMA.ClientDirectory = "WUMA/client/"
-WUMA.ObjectsDirectory = "WUMA/objects/"
+WUMA.DataDirectory = "wuma/"
+WUMA.SharedDirectroy = "wuma/shared/"
+WUMA.ClientDirectory = "wuma/client/"
+WUMA.ObjectsDirectory = "wuma/objects/"
 WUMA.UserDataDirectory = "users/"
-WUMA.HomeDirectory = "WUMA/"
+WUMA.HomeDirectory = "wuma/"
 
 WUMA.WUMAGUI = "wuma gui"
 
