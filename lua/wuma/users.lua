@@ -109,7 +109,7 @@ function WUMA.AssignUsergroupLoadout(user, usergroup)
 	if not(WUMA.Loadouts[usergroup]) then return end
 	
 	local loadout = WUMA.Loadouts[usergroup]:Clone()
-	PrintTable(loadout)
+
 	user:SetLoadout(loadout)
 end
 
