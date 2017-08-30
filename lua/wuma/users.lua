@@ -33,8 +33,8 @@ function WUMA.AssignUserRegulations(user)
 	WUMA.AssignUserLoadout(user)
 end
 
-function WUMA.AssignRestrictions(user)	
-	WUMA.AssignUsergroupRestrictions(user)
+function WUMA.AssignRestrictions(user, usergroup)	
+	WUMA.AssignUsergroupRestrictions(user, usergroup)
 	WUMA.AssignUserRestrictions(user)
 end
 
@@ -61,8 +61,8 @@ function WUMA.AssignUserRestrictions(user)
 	end
 end
 
-function WUMA.AssignLimits(user)
-	WUMA.AssignUsergroupLimits(user)
+function WUMA.AssignLimits(user, usergroup)
+	WUMA.AssignUsergroupLimits(user, usergroup)
 	WUMA.AssignUserLimits(user)
 	
 	local cache = WUMA.UserLimitsCache[user:SteamID()]
@@ -99,16 +99,17 @@ function WUMA.AssignUserLimits(user)
 end
 
 function WUMA.AssignLoadout(user, usergroup)
-	WUMA.AssignUsergroupLoadout(user)
+	WUMA.AssignUsergroupLoadout(user, usergroup)
 	WUMA.AssignUserLoadout(user)
 end
 
 function WUMA.AssignUsergroupLoadout(user, usergroup)
-	local inheritance = WUMA.GetUsergroupAncestor(Loadout:GetID(), usergroup)
-	if not(WUMA.Loadouts[(usergroup or user:GetUserGroup())]) then return end
+	local usergroup = usergroup or user:GetUserGroup()
+
+	if not(WUMA.Loadouts[usergroup]) then return end
 	
-	local loadout = WUMA.Loadouts[(usergroup or user:GetUserGroup())]:Clone()
-	
+	local loadout = WUMA.Loadouts[usergroup]:Clone()
+	PrintTable(loadout)
 	user:SetLoadout(loadout)
 end
 

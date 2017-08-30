@@ -328,9 +328,9 @@ function WUMA.GiveLoadout(user)
 	end
 end
 
-function WUMA.RefreshLoadout(user)
+function WUMA.RefreshLoadout(user, usergroup)
 	user:ClearLoadout()
-	WUMA.AssignLoadout(user)
+	WUMA.AssignLoadout(user, usergroup)
 	WUMA.AssignUserLoadout(user)
 	WUMA.GiveLoadout(user)
 end
