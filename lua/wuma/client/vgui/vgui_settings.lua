@@ -79,10 +79,31 @@ function PANEL:Init()
 	self.net_send_size = vgui.Create("DPanel", self.adv_settings)
 	self.net_send_size.Paint = function(panel, w, h) draw.DrawText("Net send size", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.net_send_size.wang = vgui.Create("DNumberWang", self.net_send_size)
-	self.net_send_size.wang:SetMinMax(1,100000)
+	self.net_send_size.wang:SetMinMax(1,60)
 	self.net_send_size.wang:SetDecimals(2)
-	self.net_send_size.wang.OnChange = function(panel) WUMA.OnSettingsUpdate("net_send_size",panel:GetValue()) end
-	
+	self.net_send_size.wang.OnChange = function(panel)
+		local value = panel:GetValue()
+		if (tonumber(value) > 60) then 
+			timer.Simple(0.1, function() panel:SetValue(60) end)
+			value = 60
+		elseif (tonumber(value) < 1) then
+			timer.Simple(0.1, function() panel:SetValue(1) end)
+			value = 1
+		end
+		WUMA.OnSettingsUpdate("net_send_size",value) 
+	end
+	local old_losefocus2 = self.net_send_size.wang.OnLoseFocus
+	self.net_send_size.wang.OnLoseFocus = function(panel)
+		old_losefocus2(panel)
+		
+		local value = panel:GetValue()
+		if (tonumber(value) > 60) then
+			timer.Simple(0.1, function() panel:SetValue(60) end)
+		elseif (tonumber(value) < 1) then
+			timer.Simple(0.1, function() panel:SetValue(1) end)
+		end
+	end
+
 	self.data_save_delay = vgui.Create("DPanel", self.adv_settings)
 	self.data_save_delay.Paint = function(panel, w, h) draw.DrawText("Data save delay", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.data_save_delay.wang = vgui.Create("DNumberWang", self.data_save_delay)

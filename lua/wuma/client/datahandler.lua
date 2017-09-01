@@ -74,7 +74,7 @@ function WUMA.ProcessCompressedData(id, data, await)
 		return
 	end
 
-	WUMADebug("Processing compressed data. Size: %s",data:len())
+	WUMADebug("Processing compressed data. Size: %s",string.len(data))
 
 	uncompressed_data = util.Decompress(data)
 	if not uncompressed_data then

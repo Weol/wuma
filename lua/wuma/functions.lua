@@ -595,16 +595,17 @@ ChangeSettings:SetFunction(function(caller, setting, value)
 	if not setting or not value then return WUMADebug("Invalid access arguments (changesettings)!") end
 
 	local actual_value = util.JSONToTable(value)[1]
-
+	local convar = GetConVar("wuma_"..setting)
+	
 	if isstring(actual_value) then
-		GetConVar("wuma_"..setting):SetString(actual_value)
+		convar:SetString(actual_value)
 	elseif isnumber(actual_value) and (math.floor(actual_value) == actual_value) then
-		GetConVar("wuma_"..setting):SetInt(actual_value)
+		convar:SetInt(actual_value)
 	elseif isnumber(actual_value) and (math.floor(actual_value) != actual_value) then
-		GetConVar("wuma_"..setting):SetFloat(actual_value)
+		convar:SetFloat(actual_value)
 	elseif isbool(actual_value) then
 		if actual_value then actual_value = 1 else actual_value = 0 end
-		GetConVar("wuma_"..setting):SetInt(actual_value)
+		convar:SetInt(actual_value)
 	end 
 	
 end)
