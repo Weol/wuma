@@ -456,6 +456,9 @@ end
 function PANEL:OnItemChange(lineid,line)
 	self = self:GetParent()														
 
+	self.restrictions.Command.DataID = Restriction:GetID()..":::"..self:GetSelectedUser() 
+	self.limits.Command.DataID = Limit:GetID()..":::"..self:GetSelectedUser() 
+	self.loadouts.Command.DataID = Loadout:GetID()..":::"..self:GetSelectedUser() 
 end
 
 vgui.Register("WUMA_Users", PANEL, 'DPanel');

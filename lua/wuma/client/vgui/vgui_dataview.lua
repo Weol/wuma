@@ -3,6 +3,8 @@ local PANEL = {}
 
 PANEL.DataTable = {}
 PANEL.DataRegistry = {}
+PANEL.DataGroupRegistry = {}
+PANEL.GroupedData = {}
 PANEL.SortFunction = nil
 PANEL.RightClickFunction = nil
 PANEL.HighlightFunction = nil
@@ -94,6 +96,10 @@ function PANEL:OnViewChanged()
 
 end
 
+function PANEL:OnDataUpdate() 
+
+end
+
 function PANEL:SetSortFunction(func)
 	self.SortFunction = func
 end
@@ -108,7 +114,12 @@ function PANEL:SortItem(item)
 	return self.SortFunction(item)
 end
 
-function PANEL:SortData()
+function PANEL:SortData(groups)
+	if groups and self.GroupedData then
+		self:SortGroupedData(groups) 
+		return
+	end
+	
 	for id, data in pairs(self.DataTable) do
 		if isstring(data) then 
 			data = nil 
@@ -128,14 +139,51 @@ function PANEL:SortData()
 	end
 	
 	self.VBar:SetScroll(0)
+end
+
+function PANEL:SortGroupedData(groups)
+	if not istable(groups) then groups = {groups} end
 	
+	for group, _ in pairs(self.DataGroupRegistry) do
+		if not table.HasValue(groups, group) then
+			for id, _ in pairs(self.GroupedData[group] or {}) do
+				if self.DataRegistry[id] then
+					self:RemoveViewLine(id)
+				end
+			end
+			self.DataGroupRegistry[group] = nil
+		end
+	end
+	
+	for _, group in pairs(groups) do
+		for id, _ in pairs(self.GroupedData[group] or {}) do
+			local data = self.DataTable[id]
+			if isstring(data) then 
+				data = nil 
+			else
+				local sort, sortv = self:SortItem(data)
+				
+				if sort then
+					if not self.DataRegistry[id] then
+						self:AddViewLine(id,sort,sortv)
+					end
+				else
+					if self.DataRegistry[id] then
+						self:RemoveViewLine(id)
+					end
+				end
+			end
+		end		
+		self.DataGroupRegistry[group] = 1
+	end 
+	self.VBar:SetScroll(0)
 end
 
 function PANEL:SetDataTable(tbl)
 	self.DataTable = tbl or {}
 	self.DataRegistry = {}
 	self:Clear()
-
+	
 	for id, data in pairs(self.DataTable) do
 		if isstring(data) then data = nil end
 		local sort, sortv = self:SortItem(data)
@@ -143,20 +191,45 @@ function PANEL:SetDataTable(tbl)
 			self:AddViewLine(id,sort,sortv)
 		end
 	end
+	
+	self:GroupBy()
+	
+	self:OnDataUpdate()
 end
 
 function PANEL:GetDataTable()				
 	return self.DataTable or {}
 end
 
-function PANEL:CheckHighlights()				
-	for id, line in pairs(self.DataRegistry) do
-		local data = {}
-		for _, v in pairs(line.Columns) do
-			table.insert(data,v.Value)
+function PANEL:CheckHighlights()	
+	if self.HighlightFunction then
+		for id, line in pairs(self.DataRegistry) do
+			local data = {}
+			for _, v in pairs(line.Columns) do
+				table.insert(data,v.Value)
+			end
+			
+			self:CheckHighlight(line,data,self.DataTable[id]) 
 		end
-		
-		if self.HighlightFunction then self:CheckHighlight(line,data,self.DataTable[id]) end 
+	end
+end
+
+function PANEL:SetGroupFunction(func)
+	self.GroupFunction = func
+end
+
+function PANEL:GroupItem(item, id) 
+	if not self.GroupFunction then return end
+	local group = self.GroupFunction(item)
+	if not self.GroupedData[group] then self.GroupedData[group] = {} end
+	self.GroupedData[group][id] = 1  --Its really the key we are saving
+end
+
+function PANEL:GroupBy()
+	if not self.GroupFunction then return end
+	self.GroupedData = {}
+	for id, item in pairs(self.DataTable) do
+		self:GroupItem(item, id)
 	end
 end
 
@@ -168,13 +241,13 @@ function PANEL:UpdateDataTable(tbl)
 		local sort, sortv = self:SortItem(data)
 		if self.DataRegistry[id] then
 			local line = self.DataRegistry[id]
-			
 			if istable(data) and sort then
 				for i, _ in pairs(line.Columns) do
 					line:SetValue(i,sort[i])
 					if sortv and sortv[i] then line:SetSortValue(i,sortv[i]) end
 				end
 				self.DataTable[id] = data
+				self:GroupItem(data, id)
 			elseif (data == WUMA.DELETE) then
 				if line:IsLineSelected() then line:SetSelected(false) end
 				self:RemoveViewLine(id)
@@ -183,9 +256,11 @@ function PANEL:UpdateDataTable(tbl)
 		elseif sort then
 			self.DataTable[id] = data
 			self:AddViewLine(id,sort,sortv)
+			self:GroupItem(data, id)
 		end
 	end
 	
+	self:OnDataUpdate()
 	self:CheckHighlights()
 	
 end

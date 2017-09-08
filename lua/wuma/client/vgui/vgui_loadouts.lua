@@ -12,80 +12,70 @@ function PANEL:Init()
 	self.Command.Edit = "addloadout"
 	self.Command.Primary = "setprimaryweapon"
 	self.Command.Clear = "clearloadout"
+	self.Command.DataID = Loadout:GetID()
 
-	//Primary ammo chooser
+	--Primary ammo chooser
 	self.slider_primary = vgui.Create("WSlider",self)
 	self.slider_primary:SetMinMax(-1,400)
 	self.slider_primary:SetText("Primary")
 	self.slider_primary:SetDecimals(0)
 	self.slider_primary:SetMinOverride(-1, "def")
 	
-	//Secondary ammo chooser
+	--Secondary ammo chooser
 	self.slider_secondary = vgui.Create("WSlider",self)
 	self.slider_secondary:SetMinMax(-1,400)
 	self.slider_secondary:SetText("Secondary")
 	self.slider_secondary:SetDecimals(0)
 	self.slider_secondary:SetMinOverride(-1, "def")
 	
-	//Set as button
+	--Set as button
 	self.button_setas = vgui.Create("DButton",self)
 	self.button_setas:SetText("Set as..")
 	self.button_setas.DoClick = self.OnSetAsClick
 	
-	//Usergroups list
+	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView",self)
 	self.list_usergroups:SetMultiSelect(true)
 	self.list_usergroups:AddColumn("Usergroups")
 	self.list_usergroups.OnRowSelected = self.OnUsergroupChange
-	--{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-5)-(self:y(self.list_types)+self.list_types:GetTall()+5),sortable=false} 
-	
-	//Search bar
+
+	--Search bar
 	self.textbox_search = vgui.Create("WTextbox",self)
 	self.textbox_search:SetDefault("Search..")
 	self.textbox_search.OnChange = self.OnSearch
-	--{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
-	
-	//Settings button
+
+	--Settings button
 	self.button_settings = vgui.Create("DButton",self)
 	self.button_settings:SetIcon("icon16/cog.png")
 	self.button_settings.DoClick = self.OnSettingsClick
-	--{parent=self,icon="icon16/cog.png",onclick=self.OnSettingsClick,align=4,x=self:GetWide()-5,y=self:GetTall()-5,w=25,h=25}
-	
-	//Primary button
+
+	--Primary button
 	self.button_primary = vgui.Create("DButton",self)
 	self.button_primary:SetText("Set Primary")
 	self.button_primary.DoClick = self.OnPrimaryClick
 	
-	--{parent=self,text="Set Primary",onclick=self.OnPrimaryClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
-	
-	//Edit button
+	--Edit button
 	self.button_edit = vgui.Create("DButton",self)
 	self.button_edit:SetText("Edit")
 	self.button_edit.DoClick = self.OnEditClick
-	--{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
-	
-	//Delete button
+
+	--Delete button
 	self.button_delete = vgui.Create("DButton",self)
 	self.button_delete:SetText("Delete")
 	self.button_delete.DoClick = self.OnDeleteClick
 	
-	--{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
-
-	//Add button
+	--Add button
 	self.button_add = vgui.Create("DButton",self)
 	self.button_add:SetText("Add")
 	self.button_add.DoClick = self.OnAddClick
 	
-	--{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
-	
-	//Suggestion list
+	--Suggestion list
 	self.list_suggestions = vgui.Create("DListView",self)
 	self.list_suggestions:SetMultiSelect(true)
 	self.list_suggestions:AddColumn("Items")
 	self.list_suggestions:SetSortable(true)
-	--{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
-
-	//Items list
+	
+	--Items list
 	self.list_items = vgui.Create("WDataView",self)
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Weapon")
@@ -98,32 +88,46 @@ function PANEL:Init()
 		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
-	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
+	
+	--Progress bar
+	self.progress = vgui.Create("WProgressBar", self)
+	self.progress:SetVisible(false)
+	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMALoadoutsProgressBarCompressedDataRecieved", function(id, msg)
+		if (id ~= Loadout:GetID()) then return end
+		if msg and not self.progress:IsVisible() then 
+			self.progress:SetVisible(true) 
+			self:PerformLayout()
+		elseif not msg then
+			self.progress:SetVisible(false) 
+			self:PerformLayout()
+		end
+	
+		self.progress:SetText(msg or "")
+	end)
+	self.list_items.OnDataUpdate = function() 
+		hook.Call(WUMA.PROGRESSUPDATE, _,Loadout:GetID(), nil)
+	end 
 
-	//Scope list
+	--Scope list
 	self.list_scopes = vgui.Create("DListView",self)
 	self.list_scopes:SetMultiSelect(true)
 	self.list_scopes:AddColumn("Scope")
 	self.list_scopes:SetMultiSelect(false)
 	self.list_scopes.OnRowSelected = self.OnScopeChange
-	--{parent=self,multiselect=false,select="Normal",text="Scope",onrowselected=self.OnScopeChange,populate=table.Add({"Permanent"},Scope:GetTypes("print")),relative=self.list_usergroups,relative_align=4,align=3,x=5,y=0,w=120,visible=false,sortable=false} 
 
-		//date_chooser list
+		--date_chooser list
 		self.date_chooser = vgui.Create("WDatePicker",self)	
 		self.date_chooser:SetVisible(false)
-		--{parent=self,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 		
-		//time_chooser list
+		--time_chooser list
 		self.time_chooser = vgui.Create("WDurationSlider",self)
 		self.time_chooser:SetVisible(false)
-		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 
-		//map_chooser 
+		--map_chooser 
 		self.map_chooser = vgui.Create("WMapPicker",self)
 		self.map_chooser:SetVisible(false)
-		--{parent=self,options=WUMA.Maps,relative=self.list_scopes,relative_align=2,x=5,y=0,w=125,visible=false}
 
-		//Allow checkbox
+		--Allow checkbox
 	self.checkbox_ignore = vgui.Create("DCheckBoxLabel",self)
 	self.checkbox_ignore:SetText("Ignore Restrictions")
 	self.checkbox_ignore:SetTextColor(Color(0,0,0))
@@ -144,8 +148,13 @@ function PANEL:Init()
 
 		return {data.usergroup, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-data.primary,-data.secondary}
 	end
-		
 	self:GetDataView():SetSortFunction(sort)
+	
+	local group = function(data)
+		if not istable(data) then return end
+		return data.usergroup
+	end
+	self:GetDataView():SetGroupFunction(group)
 	
 	local right_click = function(item)
 		local tbl = {}
@@ -157,7 +166,6 @@ function PANEL:Init()
 		
 		return tbl
 	end
-
 	self:GetDataView():SetRightClickFunction(right_click)
 	
 	self:PopulateList("list_usergroups",WUMA.ServerGroups,true,true)
@@ -209,7 +217,16 @@ function PANEL:PerformLayout()
 	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
 	
-	self.list_items:SetPos(self.slider_primary.x+5+self.slider_primary:GetWide(),5)
+	self.progress:SetPos(self.slider_primary.x+5+self.slider_primary:GetWide(),5)
+	self.progress:SetWide(self.textbox_search.x-self.list_items.x-5)
+	if (self.progress:IsVisible()) then
+		self.progress:SetTall(16)
+	else
+		self.progress:SetTall(0)
+		self.progress.y = 0
+	end
+	
+	self.list_items:SetPos(self.slider_primary.x+5+self.slider_primary:GetWide(),self.progress.y + self.progress:GetTall() + 5)
 	
 	if self:GetAdditonalOptionsVisibility() then
 		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5,self:GetTall()-10 - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25)
@@ -367,7 +384,7 @@ end
 function PANEL:OnUsergroupChange()
 	local self = self:GetParent()
 	
-	self:GetDataView():SortData()
+	self:GetDataView():SortData(self:GetSelectedUsergroups())
 end
 
 function PANEL:OnScopeChange(lineid, line)
@@ -410,6 +427,8 @@ function PANEL:OnPrimaryClick()
 
 	local access = self.Command.Primary
 	local data = {usergroup,str}
+	
+	WUMA.SetProgress(self.Command.DataID, "Setting primary", 0.2)
 	
 	WUMA.SendCommand(access,data)
 end
@@ -516,6 +535,8 @@ function PANEL:OnSetAsClick()
 		local ply = WUMA.ServerUsers[listview:GetLines()[listview:GetSelectedLine()]:GetSortValue(1)].ent
 		if not IsValid(ply) then return end
 		
+		WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
+		
 		local weapons = {}
 		local active_wep = ply:GetActiveWeapon()	
 		for k, v in pairs(ply:GetWeapons()) do
@@ -553,6 +574,8 @@ function PANEL:OnAddClick()
 	local access = self.Command.Add
 	local data = {usergroups,suggestions,self:GetPrimaryAmmo(),self:GetSecondaryAmmo(),self:GetRespectsRestrictions(),self:GetSelectedScope()}
 	
+	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
+	
 	WUMA.SendCommand(access,data)
 end
 
@@ -578,6 +601,8 @@ function PANEL:OnDeleteClick()
 	local access = self.Command.Delete
 	local data = {usergroups,strings}
 	
+	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
+	
 	WUMA.SendCommand(access,data)
 end
 
@@ -592,6 +617,8 @@ function PANEL:OnEditClick()
 
 	local access = self.Command.Edit
 	local data = {usergroup,str,self:GetPrimaryAmmo(),self:GetSecondaryAmmo(),self:GetRespectsRestrictions(),self:GetSelectedScope()}
+	
+	WUMA.SetProgress(self.Command.DataID, "Editing data", 0.2)
 	
 	WUMA.SendCommand(access,data)
 end

@@ -11,7 +11,14 @@ WUMA.NET.ENUMS = {}
 /////////////////////////////////////////////////////////
 WUMA.NET.SETTINGS = WUMA_NET_STREAM:new{send=WUMA.SendInformation}
 WUMA.NET.SETTINGS:SetServerFunction(function(user,data)
-	return {user, WUMA.NET.SETTINGS, table.Merge(WUMA.ConVars.ToClient,{wuma_server_time=os.time()})}
+	local metadata = {
+		wuma_server_time=os.time(),
+		wuma_limit_count=table.Count(WUMA.Limits),
+		wuma_restriction_count=table.Count(WUMA.Restrictions),
+		wuma_loadout_count=table.Count(WUMA.Loadouts)
+	}
+	
+	return {user, WUMA.NET.SETTINGS, table.Merge(WUMA.ConVars.ToClient,metadata)}
 end) 
 WUMA.NET.SETTINGS:SetClientFunction(function(data) 
 	for name, value in pairs(data[1]) do
@@ -223,10 +230,19 @@ WUMA.NET.RESTRICTION:SetServerFunction(function(user,data)
 			local tbl = WUMA.GetSavedRestrictions(data[1])
 			if (table.Count(tbl) < 1) then tbl = false end
 			return {user, tbl, Restriction:GetID()..":::"..data[1]}
+		else
+			return {user, {}, Restriction:GetID()..":::"..data[1]}
 		end
 	else
 		if WUMA.RestrictionsExist() then
-			return {user, WUMA.GetSavedRestrictions(), Restriction:GetID()}
+			local cached = WUMA.Cache(Restriction:GetID())
+			if not cached then
+				cached = util.Compress(util.TableToJSON(WUMA.Restrictions))
+				WUMA.Cache(Restriction:GetID(), cached)
+			end
+			return {user, cached, Restriction:GetID(), true}
+		else
+			return {user, {}, Restriction:GetID()}
 		end
 	end
 end)  
@@ -245,10 +261,19 @@ WUMA.NET.LIMIT:SetServerFunction(function(user,data)
 			local tbl = WUMA.GetSavedLimits(data[1])
 			if (table.Count(tbl) < 1) then tbl = false end
 			return {user, tbl, Limit:GetID()..":::"..data[1]}
+		else
+			return {user, {}, Limit:GetID()..":::"..data[1]}
 		end
 	else
 		if WUMA.LimitsExist() then
-			return {user, WUMA.GetSavedLimits(), Limit:GetID()}
+			local cached = WUMA.Cache(Limit:GetID())
+			if not cached then
+				cached = util.Compress(util.TableToJSON(WUMA.Limits))
+				WUMA.Cache(Limit:GetID(), cached)
+			end
+			return {user, cached, Limit:GetID(), true}
+		else
+			return {user, {}, Limit:GetID()}
 		end
 	end
 end) 
@@ -275,21 +300,30 @@ WUMA.NET.LOADOUT:SetServerFunction(function(user,data)
 				end
 			end
 			return {user, weapons, Loadout:GetID()..":::"..data[1]}
+		else
+			return {user, {}, Loadout:GetID()..":::"..data[1]}
 		end
 	else
 		if WUMA.LoadoutsExist() then
-			local tbl = WUMA.GetSavedLoadouts()
-			local weapons = {}
-			for group, loadout in pairs(tbl) do
-				for class, weapon in pairs(loadout:GetWeapons()) do
-					weapons[group.."_"..class] = weapon
-					weapons[group.."_"..class].usergroup = group
-					if (loadout.primary == class) then
-						weapons[group.."_"..class].isprimary = true
+			local cached = WUMA.Cache(Loadout:GetID())
+			if not cached then
+				local tbl = WUMA.Loadouts
+				local weapons = {}
+				for group, loadout in pairs(tbl) do
+					for class, weapon in pairs(loadout:GetWeapons()) do
+						weapons[group.."_"..class] = weapon
+						weapons[group.."_"..class].usergroup = group
+						if (loadout.primary == class) then
+							weapons[group.."_"..class].isprimary = true
+						end
 					end
 				end
+				cached = util.Compress(util.TableToJSON(weapons))
+				WUMA.Cache(Loadout:GetID(), cached)
 			end
-			return {user, weapons, Loadout:GetID()}
+			return {user, cached, Loadout:GetID(), true}
+		else
+			return {user, {}, Loadout:GetID()}
 		end
 	end
 end) 

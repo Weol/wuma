@@ -120,6 +120,20 @@ function WUMA.GUI.Toggle()
 	end
 end
 
+function WUMA.SetProgress(id, msg, timeout)
+	WUMADebug("WUMA.SetProgress(%s, %s, %s)", tostring(id), tostring(msg), tostring(timeout))
+
+	timer.Create("WUMARequestTimerBarStuff" .. id, timeout, 1, function()
+		hook.Remove(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id)
+		hook.Call(WUMA.PROGRESSUPDATE, _, id, msg)
+		WUMADebug("Calling hook (id=%s)(msg=%s)", tostring(id), msg)
+	end)
+	hook.Add(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id, function(incid)
+		timer.Remove("WUMARequestTimerBarStuff" .. incid)
+		WUMADebug("Removing timer with id: %s", tostring(incid))
+	end)
+end
+
 function WUMA.OnTabChange(_,tabname)
 	
 	if not WUMA.Subscriptions.info then
@@ -145,47 +159,11 @@ function WUMA.OnTabChange(_,tabname)
 end
 
 function WUMA.OnUserTabChange(_,typ,steamid)
-	if not (typ == "default") then
-		if not WUMA.Subscriptions.user[steamid] then
-			WUMA.Subscriptions.user[steamid] = {}
-		end
+	if (typ != "default") and not WUMA.Subscriptions.user[steamid] then
+		WUMA.Subscriptions.user[steamid] = {}
 	end
 
-	if (typ == Restriction:GetID()) then
-		if not WUMA.Subscriptions.user[steamid][typ] then
-			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID(),steamid)	
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
-		else
-			if timer.Exists(typ..":::"..steamid) then
-				timer.Remove(typ..":::"..steamid)
-			end
-		end
-		
-		WUMA.Subscriptions.user[steamid][typ] = true
-	elseif (typ == Limit:GetID()) then
-		if not WUMA.Subscriptions.user[steamid][typ] then
-			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID(),steamid)	
-			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
-		else
-			if timer.Exists(typ..":::"..steamid) then
-				timer.Remove(typ..":::"..steamid)
-			end
-		end
-		
-		WUMA.Subscriptions.user[steamid][typ] = true
-	elseif (typ == Loadout:GetID()) then
-		if not WUMA.Subscriptions.user[steamid][typ] then
-			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID(),steamid)	
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,false,typ})
-		else
-			if timer.Exists(typ..":::"..steamid) then
-				timer.Remove(typ..":::"..steamid)
-			end
-		end
-		
-		WUMA.Subscriptions.user[steamid][typ] = true
-	elseif (typ == "default") then
+	if (typ == "default") then
 		local timeout = GetConVar("wuma_autounsubscribe_user"):GetInt()
 	
 		if timeout and (timeout >= 0) and WUMA.Subscriptions.user[steamid] then
@@ -193,6 +171,8 @@ function WUMA.OnUserTabChange(_,typ,steamid)
 				timer.Create(k..":::"..steamid,timeout,1,function() WUMA.FlushUserData(steamid,k) end)
 			end
 		end
+	else
+		WUMA.FetchUserData(typ, steamid)
 	end
 end
 
@@ -202,24 +182,68 @@ function WUMA.FetchData(typ)
 			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID())
 			
+			WUMA.SetProgress(WUMA.NET.RESTRICTION:GetID(), "Requesting data", 0.2)
+			
 			WUMA.Subscriptions.restrictions = true
 		elseif (typ == Limit:GetID()) then
 			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
 			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
 			
+			WUMA.SetProgress(WUMA.NET.LIMIT:GetID(), "Requesting data", 0.2)
+			
 			WUMA.Subscriptions.limits = true
 		elseif (typ == Loadout:GetID()) then
 			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
 			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID())
 			
+			WUMA.SetProgress(WUMA.NET.LOADOUT:GetID(), "Requesting data", 0.2)
+			
 			WUMA.Subscriptions.loadouts = true
 		end
-		
 	else
 		WUMA.FetchData(Restriction:GetID())
 		WUMA.FetchData(Limit:GetID())
 		WUMA.FetchData(Loadout:GetID())
+	end
+end
+
+function WUMA.FetchUserData(typ, steamid) 
+	if typ then
+		if (typ == Restriction:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID(), steamid)
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			
+			WUMA.SetProgress(WUMA.NET.RESTRICTION:GetID()..":::"..steamid, "Requesting data", 0.2)
+			
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
+			end
+		elseif (typ == Limit:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID(), steamid)
+			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			
+			WUMA.SetProgress(WUMA.NET.LIMIT:GetID()..":::"..steamid, "Requesting data", 0.2)
+			
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
+			end
+		elseif (typ == Loadout:GetID()) then
+			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID(), steamid)
+			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			
+			WUMA.SetProgress(WUMA.NET.LOADOUT:GetID()..":::"..steamid, "Requesting data", 0.2)
+			
+			if timer.Exists(typ..":::"..steamid) then
+				timer.Remove(typ..":::"..steamid)
+			end
+		end
+		WUMA.Subscriptions.user[steamid][typ] = true
+	else
+		WUMA.FetchUserData(Restriction:GetID(), steamid)
+		WUMA.FetchUserData(Limit:GetID(), steamid)
+		WUMA.FetchUserData(Loadout:GetID(), steamid)
 	end
 end
 
@@ -307,8 +331,6 @@ function WUMA.GUI.AddHook(h,name,func)
 	hook.Add(h,name..WUMA.GUI.HookIDs,func)
 	WUMA.GUI.HookIDs = WUMA.GUI.HookIDs + 1
 end
-
-concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
 
 function WUMA.GUI.CreateLoadoutSelector() 
 	
@@ -399,4 +421,5 @@ function WUMA.GUI.CreateLoadoutSelector()
 	frame:SetVisible(true)
 end
 
+concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
 concommand.Add( "wuma_loadout", WUMA.GUI.CreateLoadoutSelector)

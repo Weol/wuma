@@ -46,7 +46,8 @@ function WUMA.STCache(id, data)
 		local entry = stcache[id]
 		if entry then
 			if (entry.t + 2 > os.time()) then
-				return stcache[id]
+				stcache[id].t = os.time()
+				return stcache[id].data
 			else
 				stcache[id] = nil
 			end
@@ -104,6 +105,7 @@ function WUMA.Cache(id, data)
 end
 
 function WUMA.InvalidateCache(id) 
+	if not head then return end
 	local link = head
 	local previous
 	while (link != nil) do
@@ -114,6 +116,10 @@ function WUMA.InvalidateCache(id)
 				head = head.next
 			end
 			cacheCounter = cacheCounter - 1
+			break
+		else
+			previous = link
+			link = link.next
 		end
 	end
 end

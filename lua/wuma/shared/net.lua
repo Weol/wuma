@@ -17,7 +17,7 @@ if SERVER then
 	WUMA.NET.INTERVAL = WUMA.CreateConVar("wuma_net_send_interval", "0.2", FCVAR_ARCHIVE, "How fast data is sent from the server (Time in seconds between chunks).")
 
 	util.AddNetworkString("WUMACompressedDataStream")
-	local function doSendData(users,data,id,await) 
+	local function doSendData(users,data,id,await,index) 
 		if not data then return end
 		if not istable(users) then users = {users} end
 
@@ -27,6 +27,7 @@ if SERVER then
 				net.WriteString(id)
 				net.WriteBool(await or false)
 				net.WriteData(data,data:len())
+				net.WriteInt(index or -1,32)
 			net.Send(user)
 		end
 	end
@@ -44,15 +45,16 @@ if SERVER then
 		if (table.Count(WUMA.DataQueue) < 1) then
 			timer.Remove("WUMAPopDataQueue")
 		else
+			local index = table.Count(WUMA.DataQueue)
 			local tbl = table.remove(WUMA.DataQueue,1)
 			
 			if tbl then
-				doSendData(tbl.user,tbl.data,tbl.id,tbl.await)
+				doSendData(tbl.user,tbl.data,tbl.id,tbl.await,index)
 			end
 		end
 	end
 	
-	function WUMA.SendCompressedData(user,data,id)	
+	function WUMA.SendCompressedData(user,data,id,compressed)	
 	
 		if not data then return end
 	
@@ -61,7 +63,9 @@ if SERVER then
 		local compress = util.Compress
 		local tojson = util.TableToJSON
 	
-		data = compress(tojson(data))
+		if not compressed then
+			data = compress(tojson(data))
+		end
 		local data_len = string.len(data) 
 		
 		max_size = math.Clamp(max_size, 1, 60) --Clamp size to 60kb, leaving 2kb free for overhead.
@@ -155,10 +159,11 @@ else
 		local id = net.ReadString()
 		local await = net.ReadBool()
 		local data = net.ReadData(len)
+		local index = net.ReadInt(32)
 		
-		WUMADebug("Compressed data recieved! (SIZE: %s bits)",tostring(lenght))
+		WUMADebug("%d: Compressed data recieved! (SIZE: %s bits)",index, tostring(lenght))
 
-		WUMA.ProcessCompressedData(id,data,await)
+		WUMA.ProcessCompressedData(id,data,await,index)
 	end
 	net.Receive("WUMACompressedDataStream", WUMA.RecieveCompressedData)
 	
@@ -177,8 +182,8 @@ else
 	//SEND REQUEST
 	function WUMA.RequestFromServer(enum,data)
 		WUMADebug("Sending request! (ENUM: %s)",tostring(enum))
-	
-		if not istable(data) then data = {data} end
+		
+		if data and not istable(data) then data = {data} end
 		net.Start("WUMARequestStream")
 			net.WriteInt(enum,WUMA.NET.INTSIZE)
 			net.WriteTable(data or {})
