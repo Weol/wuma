@@ -13,6 +13,7 @@ function PANEL:Init()
 	self.Command.Edit = "addpersonalloadout"
 	self.Command.Clear = "clearpersonalloadout"
 	self.Command.Primary = "setpersonalprimaryweapon"
+	self.Command.DataID = Loadout:GetID()..":::"..LocalPlayer():SteamID()
 
 	//HelpText Label
 	self.helptext_label = vgui.Create("DLabel", self)
@@ -24,36 +25,28 @@ function PANEL:Init()
 	self.textbox_search = vgui.Create("WTextbox",self)
 	self.textbox_search:SetDefault("Search..")
 	self.textbox_search.OnChange = self.OnSearch
-	--{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
-	
+
 	//Primary button
 	self.button_primary = vgui.Create("DButton",self)
 	self.button_primary:SetText("Set Primary")
 	self.button_primary.DoClick = self.OnPrimaryClick
-	
-	--{parent=self,text="Set Primary",onclick=self.OnPrimaryClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
 
 	//Delete button
 	self.button_delete = vgui.Create("DButton",self)
 	self.button_delete:SetText("Delete")
 	self.button_delete.DoClick = self.OnDeleteClick
-	
-	--{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
 
 	//Add button
 	self.button_add = vgui.Create("DButton",self)
 	self.button_add:SetText("Add")
 	self.button_add.DoClick = self.OnAddClick
-	
-	--{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
-	
+
 	//Suggestion list
 	self.list_suggestions = vgui.Create("DListView",self)
 	self.list_suggestions:SetMultiSelect(true)
 	self.list_suggestions:AddColumn("Items")
 	self.list_suggestions:SetSortable(true)
-	--{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
-
+	
 	//Items list
 	self.list_items = vgui.Create("WDataView",self)
 	self.list_items:AddColumn("Weapon")
@@ -63,7 +56,13 @@ function PANEL:Init()
 		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
-	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
+	
+	--Progress bar
+	self.progress = vgui.Create("WProgressBar", self)
+	self.progress:SetVisible(false)
+	self.list_items.OnDataUpdate = function() 
+		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
+	end 
 	
 	local sort = function(data)	
 		local primary = data.primary or -1
@@ -109,7 +108,16 @@ function PANEL:PerformLayout()
 	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
 	
-	self.list_items:SetPos(5,5)
+	self.progress:SetPos(5,5)
+	self.progress:SetWide(self:GetWide()-20-self.textbox_search:GetWide())
+	if (self.progress:IsVisible()) then
+		self.progress:SetTall(16)
+	else
+		self.progress:SetTall(0)
+		self.progress.y = 0
+	end
+	
+	self.list_items:SetPos(5,self.progress.y + self.progress:GetTall() + 5)
 	self.list_items:SetSize(self:GetWide()-20-self.textbox_search:GetWide(),self:GetTall()-100)
 	
 	self.helptext_label:SetWide(self.list_items:GetWide())
@@ -232,6 +240,8 @@ function PANEL:OnAddClick()
 	local access = self.Command.Add
 	local data = {suggestions,self:GetPrimaryAmmo() or -1,self:GetSecondaryAmmo() or -1}
 	
+	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
+	
 	WUMA.SendCommand(access,data)
 end
 
@@ -251,6 +261,8 @@ function PANEL:OnDeleteClick()
 	
 	local access = self.Command.Delete
 	local data = {strings}
+	
+	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
 	
 	WUMA.SendCommand(access,data)
 end

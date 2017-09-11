@@ -72,6 +72,8 @@ function PANEL:Init()
 	self.net_send_interval = vgui.Create("DPanel", self.adv_settings)
 	self.net_send_interval.Paint = function(panel, w, h) draw.DrawText("Net send interval", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.net_send_interval.wang = vgui.Create("DNumberWang", self.net_send_interval)
+	self.net_send_interval.wang.Up:SetVisible(false)
+	self.net_send_interval.wang.Down:SetVisible(false)
 	self.net_send_interval.wang:SetMinMax(0,86400)
 	self.net_send_interval.wang:SetDecimals(2)
 	self.net_send_interval.wang.OnChange = function(panel) WUMA.OnSettingsUpdate("net_send_interval",panel:GetValue()) end
@@ -79,6 +81,8 @@ function PANEL:Init()
 	self.net_send_size = vgui.Create("DPanel", self.adv_settings)
 	self.net_send_size.Paint = function(panel, w, h) draw.DrawText("Net send size", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.net_send_size.wang = vgui.Create("DNumberWang", self.net_send_size)
+	self.net_send_size.wang.Up:SetVisible(false)
+	self.net_send_size.wang.Down:SetVisible(false)
 	self.net_send_size.wang:SetMinMax(1,60)
 	self.net_send_size.wang:SetDecimals(2)
 	self.net_send_size.wang.OnChange = function(panel)
@@ -107,10 +111,12 @@ function PANEL:Init()
 	self.data_save_delay = vgui.Create("DPanel", self.adv_settings)
 	self.data_save_delay.Paint = function(panel, w, h) draw.DrawText("Data save delay", "DermaDefault", 0, h/2-7, Color(0,0,0), TEXT_ALIGN_LEFT) end
 	self.data_save_delay.wang = vgui.Create("DNumberWang", self.data_save_delay)
+	self.data_save_delay.wang.Up:SetVisible(false)
+	self.data_save_delay.wang.Down:SetVisible(false)
 	self.data_save_delay.wang:SetMinMax(1,86400)
 	self.data_save_delay.wang:SetDecimals(0)
 	self.data_save_delay.wang.OnChange = function(panel) WUMA.OnSettingsUpdate("data_save_delay",panel:GetValue()) end
-
+	
 	self.client_settings = vgui.Create("DPanel", self)
 	
 	self.client_settings.header = vgui.Create("DPanel", self.client_settings)

@@ -143,15 +143,20 @@ end
 
 function PANEL:SortGroupedData(groups)
 	if not istable(groups) then groups = {groups} end
-	
-	for group, _ in pairs(self.DataGroupRegistry) do
-		if not table.HasValue(groups, group) then
-			for id, _ in pairs(self.GroupedData[group] or {}) do
-				if self.DataRegistry[id] then
-					self:RemoveViewLine(id)
+
+	if (table.Count(self.DataGroupRegistry) == 0) and (table.Count(self.DataRegistry) > 0) then 
+		self:Clear()
+		self.DataRegistry = {}
+	else 
+		for group, _ in pairs(self.DataGroupRegistry) do
+			if not table.HasValue(groups, group) then
+				for id, _ in pairs(self.GroupedData[group] or {}) do
+					if self.DataRegistry[id] then
+						self:RemoveViewLine(id)
+					end
 				end
+				self.DataGroupRegistry[group] = nil
 			end
-			self.DataGroupRegistry[group] = nil
 		end
 	end
 	
@@ -193,7 +198,6 @@ function PANEL:SetDataTable(tbl)
 	end
 	
 	self:GroupBy()
-	
 	self:OnDataUpdate()
 end
 
@@ -221,6 +225,7 @@ end
 function PANEL:GroupItem(item, id) 
 	if not self.GroupFunction then return end
 	local group = self.GroupFunction(item)
+	if not group then return end
 	if not self.GroupedData[group] then self.GroupedData[group] = {} end
 	self.GroupedData[group][id] = 1  --Its really the key we are saving
 end
@@ -255,8 +260,8 @@ function PANEL:UpdateDataTable(tbl)
 			end
 		elseif sort then
 			self.DataTable[id] = data
-			self:AddViewLine(id,sort,sortv)
 			self:GroupItem(data, id)
+			self:AddViewLine(id,sort,sortv)
 		end
 	end
 	

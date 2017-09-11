@@ -74,8 +74,8 @@ function PANEL:Init()
 	--Progress bar
 	self.progress = vgui.Create("WProgressBar", self)
 	self.progress:SetVisible(false)
-	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMALimitsProgressBarCompressedDataRecieved", function(id, msg)
-		if (id ~= Limit:GetID()) then return end
+	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMALimitsProgressUpdate", function(id, msg)
+		if (id ~= self.Command.DataID) then return end
 		if msg and not self.progress:IsVisible() then 
 			self.progress:SetVisible(true) 
 			self:PerformLayout()
@@ -87,7 +87,9 @@ function PANEL:Init()
 		self.progress:SetText(msg or "")
 	end)
 	self.list_items.OnDataUpdate = function() 
-		hook.Call(WUMA.PROGRESSUPDATE, _,Limit:GetID(), nil)
+		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
+		
+		self:GetDataView():SortData(self:GetSelectedUsergroups())
 	end 
 	
 	local highlight = function(line,data,datav)

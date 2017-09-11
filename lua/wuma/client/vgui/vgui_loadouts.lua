@@ -92,8 +92,8 @@ function PANEL:Init()
 	--Progress bar
 	self.progress = vgui.Create("WProgressBar", self)
 	self.progress:SetVisible(false)
-	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMALoadoutsProgressBarCompressedDataRecieved", function(id, msg)
-		if (id ~= Loadout:GetID()) then return end
+	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMALoadoutsProgressUpdate", function(id, msg)
+		if (id ~= self.Command.DataID) then return end
 		if msg and not self.progress:IsVisible() then 
 			self.progress:SetVisible(true) 
 			self:PerformLayout()
@@ -105,7 +105,9 @@ function PANEL:Init()
 		self.progress:SetText(msg or "")
 	end)
 	self.list_items.OnDataUpdate = function() 
-		hook.Call(WUMA.PROGRESSUPDATE, _,Loadout:GetID(), nil)
+		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
+		
+		self:GetDataView():SortData(self:GetSelectedUsergroups())
 	end 
 
 	--Scope list
@@ -535,7 +537,7 @@ function PANEL:OnSetAsClick()
 		local ply = WUMA.ServerUsers[listview:GetLines()[listview:GetSelectedLine()]:GetSortValue(1)].ent
 		if not IsValid(ply) then return end
 		
-		WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
+		WUMA.SetProgress(self_loadout .Command.DataID, "Adding data", 0.2)
 		
 		local weapons = {}
 		local active_wep = ply:GetActiveWeapon()	

@@ -570,12 +570,12 @@ SetPrimaryWeapon:SetAccess("superadmin")
 
 --Set user primary weapon
 local SetUserPrimaryWeapon = WUMA.RegisterAccess{name="setuserprimaryweapon",help="Set a users primary weapon."}
-SetUserPrimaryWeapon:SetFunction(function(caller, users, item)
-	if not users or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
+SetUserPrimaryWeapon:SetFunction(function(caller, target, item)
+	if not target or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
 
 	item = string.lower(item)
 	
-	local sucess = WUMA.SetUserLoadoutPrimaryWeapon(caller, users, item, scope)
+	local sucess = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end

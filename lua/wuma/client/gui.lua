@@ -121,16 +121,12 @@ function WUMA.GUI.Toggle()
 end
 
 function WUMA.SetProgress(id, msg, timeout)
-	WUMADebug("WUMA.SetProgress(%s, %s, %s)", tostring(id), tostring(msg), tostring(timeout))
-
 	timer.Create("WUMARequestTimerBarStuff" .. id, timeout, 1, function()
 		hook.Remove(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id)
 		hook.Call(WUMA.PROGRESSUPDATE, _, id, msg)
-		WUMADebug("Calling hook (id=%s)(msg=%s)", tostring(id), msg)
 	end)
 	hook.Add(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id, function(incid)
 		timer.Remove("WUMARequestTimerBarStuff" .. incid)
-		WUMADebug("Removing timer with id: %s", tostring(incid))
 	end)
 end
 
@@ -347,6 +343,7 @@ function WUMA.GUI.CreateLoadoutSelector()
 		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
 		hook.Remove(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate")
 		hook.Remove(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate")
+		hook.Remove(WUMA.PROGRESSUPDATE, "WUMAPersonalLoadoutProgressUpdate")
 	end
 	frame.Paint = function()
 		draw.RoundedBox(5, 0, 0, frame:GetWide(), frame:GetTall(), Color(59, 59, 59, 255))
@@ -411,6 +408,19 @@ function WUMA.GUI.CreateLoadoutSelector()
 		end
 			
 		loadout:ReloadSuggestions()
+	end)
+	
+	hook.Add(WUMA.PROGRESSUPDATE, "WUMAPersonalLoadoutProgressUpdate", function(id, msg)
+		if (id ~= loadout.Command.DataID) then return end
+		if msg and not loadout.progress:IsVisible() then 
+			loadout.progress:SetVisible(true) 
+			loadout:PerformLayout()
+		elseif not msg then
+			loadout.progress:SetVisible(false) 
+			loadout:PerformLayout()
+		end
+	
+		loadout.progress:SetText(msg or "")
 	end)
 	
 	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")

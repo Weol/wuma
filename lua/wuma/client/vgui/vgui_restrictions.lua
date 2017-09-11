@@ -67,8 +67,8 @@ function PANEL:Init()
 	--Progress bar
 	self.progress = vgui.Create("WProgressBar", self)
 	self.progress:SetVisible(false)
-	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMARestrictionsProgressBarCompressedDataRecieved", function(id, msg)
-		if (id ~= Restriction:GetID()) then return end
+	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMARestrictionsProgressUpdate", function(id, msg)
+		if (id ~= self.Command.DataID) then return end
 		if msg and not self.progress:IsVisible() then 
 			self.progress:SetVisible(true) 
 			self:PerformLayout()
@@ -80,7 +80,13 @@ function PANEL:Init()
 		self.progress:SetText(msg or "")
 	end)
 	self.list_items.OnDataUpdate = function() 
-		hook.Call(WUMA.PROGRESSUPDATE, _,Restriction:GetID(), nil)
+		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
+			
+		local tbl = {}
+		for _, group in pairs(self:GetSelectedUsergroups()) do
+			table.insert(tbl, group..":::"..self:GetSelectedType())
+		end
+		self:GetDataView():SortData(tbl)
 	end 
 
 	--Scope list
