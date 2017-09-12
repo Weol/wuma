@@ -74,6 +74,7 @@ function WUMA.ProcessCompressedData(id, data, await, index)
 		compressedBuffer[id] = compressedBuffer[id] .. data
 		if not await then
 			data = compressedBuffer[id]
+			compressedBuffer[id] = nil
 		else
 			return
 		end
@@ -85,15 +86,18 @@ function WUMA.ProcessCompressedData(id, data, await, index)
 	WUMADebug("Processing compressed data. Size: %s",string.len(data))
 
 	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompressing data")
-	uncompressed_data = util.Decompress(data)
+	
+	local uncompressed_data = util.Decompress(data) 
+	
 	if not uncompressed_data then
 		WUMADebug("Failed to uncompress data! Size: %s",string.len(data)) 
+		hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompress failed! Flush data and try again")
 		return
 	end 
 	WUMADebug("Data sucessfully decompressed. Size: %s",string.len(uncompressed_data))
 	
 	local tbl = util.JSONToTable(uncompressed_data)
-
+	
 	WUMA.ProcessDataUpdate(id, tbl)
 end
 
