@@ -9,7 +9,7 @@ function PANEL:Init()
 	self.Command = {}
 	self.Command.Add = "restrict"
 	self.Command.Delete = "unrestrict"
-	self.Command.Edit = "unrestrict"
+	self.Command.Edit = "restrict"
 	self.Command.DataID = Restriction:GetID()
 	
 	--Restriction types list
