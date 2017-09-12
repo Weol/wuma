@@ -226,6 +226,7 @@ function ENT:AddLimit(limit)
 	
 	if (not old) or (new:IsPersonal() == old:IsPersonal()) then
 		self:GetLimits()[id] = new
+		if old then new:InheritEntities(old) end
 	elseif new:IsPersonal() then
 		new:SetAncestor(old)
 		new:InheritEntities(old)
