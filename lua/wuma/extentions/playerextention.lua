@@ -133,6 +133,10 @@ function ENT:CheckRestriction(type,str)
 	end
 end   
    
+function ENT:SetRestrictions(restrictions)
+	self.Restrictions = restrictions
+end   
+
 function ENT:AddRestriction(restriction) 
 	if not self:GetRestrictions() then self.Restrictions = {} end
 
@@ -212,8 +216,17 @@ function ENT:AddLimit(limit)
 	local old = self:GetLimit(id)
 	local new = limit
 	
+	local cache = self.LimitsCache
+	if (cache) then
+		if (cache[id]) then
+			new:InheritEntities(cache[id])
+			cache[id] = nil
+		end
+	end
+	
 	if (not old) or (new:IsPersonal() == old:IsPersonal()) then
 		self:GetLimits()[id] = new
+		if old then new:InheritEntities(old) end
 	elseif new:IsPersonal() then
 		new:SetAncestor(old)
 		new:InheritEntities(old)
@@ -230,6 +243,11 @@ function ENT:RemoveLimit(id,personal)
 	local limit = self:GetLimit(id)
 	if not limit then return end
 
+	if (limit:GetCount() > 0 ) and not limit:GetAncestor() then
+		if not self.LimitsCache then self.LimitsCache = {} end
+		self.LimitsCache[id] = limit
+	end
+	
 	if (limit:IsPersonal() == personal) then
 		local ancestor = limit:GetAncestor()
 		if ancestor then ancestor:InheritEntities(limit) end
@@ -262,6 +280,23 @@ function ENT:HasLimit(str)
 	local id = Limit:GenerateID(_,str)
 	if self:GetLimits()[id] then return true end
 	return false
+end
+
+function ENT:SetLimitCache(cache)
+	self.LimitsCache = cache
+end
+
+function ENT:CacheLimits()
+	local cache = self.LimitsCache or {}
+	for id, limit in pairs(self:GetLimits() or {}) do
+		if (limit:GetCount() > 0) then
+			cache[limit:GetID(true)] = limit
+			limit:CallOnEmpty("WUMADeleteCache",function(limit) 
+				cache[limit:GetID(true)] = nil
+			end)
+		end
+	end
+	self:SetLimitCache(cache)
 end
 
 function ENT:GiveLoadout()

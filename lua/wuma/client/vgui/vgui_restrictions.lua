@@ -9,110 +9,119 @@ function PANEL:Init()
 	self.Command = {}
 	self.Command.Add = "restrict"
 	self.Command.Delete = "unrestrict"
-	self.Command.Edit = "unrestrict"
+	self.Command.Edit = "restrict"
+	self.Command.DataID = Restriction:GetID()
 	
-	//Restriction types list
+	--Restriction types list
 	self.list_types = vgui.Create("DListView",self)
 	self.list_types:SetMultiSelect(false)
 	self.list_types:AddColumn("Types")
 	self.list_types:SetSortable(false)
 	self.list_types.OnRowSelected = self.OnTypeChange
-	--{parent=self,multiselect=false,text="Types",onrowselected=self.OnTypeChange,populate=Restriction:GetTypes("print"),select="Entity",x=5,y=5,size_to_content_y=true,w=100,sortable=false}
 
-	//Usergroups list
+	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView",self)
 	self.list_usergroups:SetMultiSelect(true)
 	self.list_usergroups:AddColumn("Usergroups")
 	self.list_usergroups.OnRowSelected = self.OnUsergroupChange
-	--{parent=self,multiselect=true,text="Usergroups",onrowselected=self.OnUsergroupChange,populate=WUMA.ServerGroups,select=1,relative=self.list_types,relative_align=3,x=0,y=5,w=self.list_types:GetWide(),h=(self:GetTall()-5)-(self:y(self.list_types)+self.list_types:GetTall()+5),sortable=false} 
-	
-	//Search bar
+
+	--Search bar
 	self.textbox_search = vgui.Create("WTextbox",self)
 	self.textbox_search:SetDefault("Search..")
 	self.textbox_search.OnChange = self.OnSearch
-	--{parent=self,default="Search..",text_changed=self.OnSearch,align=2,x=self:GetWide()-5,y=5,w=130,h=20} 
-	
-	//Settings button
+
+	--Settings button
 	self.button_settings = vgui.Create("DButton",self)
 	self.button_settings:SetIcon("icon16/cog.png")
 	self.button_settings.DoClick = self.OnSettingsClick
-	--{parent=self,icon="icon16/cog.png",onclick=self.OnSettingsClick,align=4,x=self:GetWide()-5,y=self:GetTall()-5,w=25,h=25}
-	
-	//Edit button
+
+	--Edit button
 	self.button_edit = vgui.Create("DButton",self)
 	self.button_edit:SetText("Edit")
 	self.button_edit.DoClick = self.OnEditClick
-	--{parent=self,text="Edit",onclick=self.OnEditClick,relative=self.button_settings,align=2,x=-5,y=0,w=self.textbox_search:GetWide()-30,h=25}
-	
-	//Delete button
+
+	--Delete button
 	self.button_delete = vgui.Create("DButton",self)
 	self.button_delete:SetText("Delete")
 	self.button_delete.DoClick = self.OnDeleteClick
 	
-	--{parent=self,text="Delete",onclick=self.OnDeleteClick,align=3,relative=self.button_edit,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
-
-	//Add button
+	--Add button
 	self.button_add = vgui.Create("DButton",self)
 	self.button_add:SetText("Add")
 	self.button_add.DoClick = self.OnAddClick
 	
-	--{parent=self,text="Add",onclick=self.OnAddClick,align=3,relative=self.button_delete,x=0,y=-5,w=self.textbox_search:GetWide(),h=self.button_edit:GetTall()}
-	
-	//Suggestion list
+	--Suggestion list
 	self.list_suggestions = vgui.Create("DListView",self)
 	self.list_suggestions:SetMultiSelect(true)
 	self.list_suggestions:AddColumn("Items")
 	self.list_suggestions:SetSortable(true)
-	--{parent=self,multiselect=true,text="Items",relative=self.textbox_search,relative_align=3,x=0,y=5,w=self.textbox_search:GetWide(),h=self:GetTall()-((self:y(self.textbox_search)+self.textbox_search:GetTall()+15)+(self:GetTall()-(self:y(self.button_add)+5)))} 
-
-	//Items list
+	
+	--Items list
 	self.list_items = vgui.Create("WDataView",self)
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Item")
 	self.list_items:AddColumn("Scope")
 	self.list_items.OnRowSelected = self.OnItemChange
 	self.list_items.OnViewChanged = self.OnDataViewChanged
-	--{parent=self,multiselect=true,text="Usergroup",relative=self.list_types,relative_align=2,x=5,y=0,w=self:GetWide()-((self.list_types:GetWide()+10)+(self.textbox_search:GetWide()+10)),h=self:GetTall()-10,onrowselected=self.OnItemChange} 
+		
+	--Progress bar
+	self.progress = vgui.Create("WProgressBar", self)
+	self.progress:SetVisible(false)
+	WUMA.GUI.AddHook(WUMA.PROGRESSUPDATE, "WUMARestrictionsProgressUpdate", function(id, msg)
+		if (id ~= self.Command.DataID) then return end
+		if msg and not self.progress:IsVisible() then 
+			self.progress:SetVisible(true) 
+			self:PerformLayout()
+		elseif not msg then
+			self.progress:SetVisible(false) 
+			self:PerformLayout()
+		end
+	
+		self.progress:SetText(msg or "")
+	end)
+	self.list_items.OnDataUpdate = function() 
+		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
+			
+		local tbl = {}
+		for _, group in pairs(self:GetSelectedUsergroups()) do
+			table.insert(tbl, group..":::"..self:GetSelectedType())
+		end
+		self:GetDataView():SortData(tbl)
+	end 
 
-	//Scope list
+	--Scope list
 	self.list_scopes = vgui.Create("DListView",self)
 	self.list_scopes:SetMultiSelect(true)
 	self.list_scopes:AddColumn("Scope")
 	self.list_scopes:SetMultiSelect(false)
 	self.list_scopes.OnRowSelected = self.OnScopeChange
-	--{parent=self,multiselect=false,select="Normal",text="Scope",onrowselected=self.OnScopeChange,populate=table.Add({"Permanent"},Scope:GetTypes("print")),relative=self.list_usergroups,relative_align=4,align=3,x=5,y=0,w=120,visible=false,sortable=false} 
 
-		//date_chooser list
+		--date_chooser list
 		self.date_chooser = vgui.Create("WDatePicker",self)	
 		self.date_chooser:SetVisible(false)
-		--{parent=self,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
-		
-		//time_chooser list
+
+		--time_chooser list
 		self.time_chooser = vgui.Create("WDurationSlider",self)
 		self.time_chooser:SetVisible(false)
-		--{parent=self,decimals=0,min=0,max=1440,relative=self.list_scopes,relative_align=2,x=5,y=0,visible=false}
 
-		//map_chooser 
+		--map_chooser 
 		self.map_chooser = vgui.Create("WMapPicker",self)
 		self.map_chooser:SetVisible(false)
-		--{parent=self,options=WUMA.Maps,relative=self.list_scopes,relative_align=2,x=5,y=0,w=125,visible=false}
 
-	//Allow checkbox
+	--Allow checkbox
 	self.checkbox_allow = vgui.Create("DCheckBoxLabel",self)
 	self.checkbox_allow:SetText("Anti-Restriction")
 	self.checkbox_allow:SetTextColor(Color(0,0,0))
 	self.checkbox_allow:SetValue(false)
 	self.checkbox_allow:SetVisible(false)
 	
-	//All checkbox
+	--All checkbox
 	self.checkbox_all = vgui.Create("DCheckBoxLabel",self)
 	self.checkbox_all:SetText("Restrict type")
 	self.checkbox_all:SetTextColor(Color(0,0,0))
 	self.checkbox_all:SetValue(false)
 	self.checkbox_all:SetVisible(false)
 	self.checkbox_all.OnChange = self.OnRestrictAllCheckboxChanged
-	
-	--{parent=self,text="Anti Restriction",checked=0,align=3,relative=self.list_scopes,x=0,y=-5,visible=false} 
 	
 	local sort = function(data)
 		if not data.usergroup or not data.type then return false end
@@ -127,8 +136,13 @@ function PANEL:Init()
 		
 		return {data.usergroup, data.print or data.string, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup)}
 	end
-		
 	self:GetDataView():SetSortFunction(sort)
+	
+	local group = function(data)
+		if not istable(data) then return end
+		return data:GetUserGroup()..":::"..data:GetType()
+	end
+	self:GetDataView():SetGroupFunction(group)
 
 	local right_click = function(item)
 		local tbl = {}
@@ -183,7 +197,16 @@ function PANEL:PerformLayout()
 	self.list_suggestions:SetPos(self.textbox_search.x,self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(),self.button_add.y-self.list_suggestions.y-5)
 
-	self.list_items:SetPos(self.list_types.x+5+self.list_types:GetWide(),5)
+	self.progress:SetPos(self.list_usergroups.x+5+self.list_usergroups:GetWide(),5)
+	self.progress:SetWide(self.textbox_search.x-self.list_items.x-5)
+	if (self.progress:IsVisible()) then
+		self.progress:SetTall(16)
+	else
+		self.progress:SetTall(0)
+		self.progress.y = 0
+	end
+	
+	self.list_items:SetPos(self.list_types.x+5+self.list_types:GetWide(),self.progress.y + self.progress:GetTall() + 5)
 	
 	if self:GetAdditonalOptionsVisibility() then
 		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5,self:GetTall()-10 - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25)
@@ -396,7 +419,11 @@ function PANEL:OnTypeChange(lineid,line)
 	self.list_suggestions.VBar:SetScroll(0)
 	self.list_suggestions:SelectFirstItem()
 	
-	self.list_items:SortData()
+	local tbl = {}
+	for _, group in pairs(self:GetSelectedUsergroups()) do
+		table.insert(tbl, group..":::"..self:GetSelectedType())
+	end
+	self:GetDataView():SortData(tbl)
 	
 	self.list_types.previous_line = lineid
 	
@@ -405,7 +432,12 @@ end
 function PANEL:OnUsergroupChange()
 	local self = self:GetParent()
 	
-	self:GetDataView():SortData()
+	local tbl = {}
+	for _, group in pairs(self:GetSelectedUsergroups()) do
+		table.insert(tbl, group..":::"..self:GetSelectedType())
+	end
+	
+	self:GetDataView():SortData(tbl)
 end
 
 function PANEL:OnScopeChange(lineid, line)
@@ -455,6 +487,8 @@ function PANEL:OnRestrictAllCheckboxChanged(checked)
 	
 	local data = {usergroups, type, 0, self:GetAntiSelected(), self:GetSelectedScope()}
 	
+	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
+	
 	WUMA.SendCommand(access,data)
 end
 
@@ -474,6 +508,8 @@ function PANEL:OnAddClick()
 	
 	local access = self.Command.Add
 	local data = {usergroups,type,suggestions,self:GetAntiSelected(),self:GetSelectedScope()}
+	
+	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
 	
 	WUMA.SendCommand(access,data)
 end
@@ -501,6 +537,8 @@ function PANEL:OnDeleteClick()
 	local access = self.Command.Delete
 	local data = {usergroups,type,strings}
 	
+	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
+	
 	WUMA.SendCommand(access,data)
 end
 
@@ -512,6 +550,8 @@ function PANEL:OnEditClick()
 	
 	local access = self.Command.Edit
 	local data = {items[1]:GetUserGroup(),items[1]:GetType(),items[1]:GetString(),self:GetAntiSelected(),self:GetSelectedScope()}
+	
+	WUMA.SetProgress(self.Command.DataID, "Editing data", 0.2)
 	
 	WUMA.SendCommand(access,data,true)
 end

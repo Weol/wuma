@@ -570,12 +570,12 @@ SetPrimaryWeapon:SetAccess("superadmin")
 
 --Set user primary weapon
 local SetUserPrimaryWeapon = WUMA.RegisterAccess{name="setuserprimaryweapon",help="Set a users primary weapon."}
-SetUserPrimaryWeapon:SetFunction(function(caller, users, item)
-	if not users or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
+SetUserPrimaryWeapon:SetFunction(function(caller, target, item)
+	if not target or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
 
 	item = string.lower(item)
 	
-	local sucess = WUMA.SetUserLoadoutPrimaryWeapon(caller, users, item, scope)
+	local sucess = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
@@ -595,16 +595,17 @@ ChangeSettings:SetFunction(function(caller, setting, value)
 	if not setting or not value then return WUMADebug("Invalid access arguments (changesettings)!") end
 
 	local actual_value = util.JSONToTable(value)[1]
-
+	local convar = GetConVar("wuma_"..setting)
+	
 	if isstring(actual_value) then
-		GetConVar("wuma_"..setting):SetString(actual_value)
+		convar:SetString(actual_value)
 	elseif isnumber(actual_value) and (math.floor(actual_value) == actual_value) then
-		GetConVar("wuma_"..setting):SetInt(actual_value)
+		convar:SetInt(actual_value)
 	elseif isnumber(actual_value) and (math.floor(actual_value) != actual_value) then
-		GetConVar("wuma_"..setting):SetFloat(actual_value)
+		convar:SetFloat(actual_value)
 	elseif isbool(actual_value) then
 		if actual_value then actual_value = 1 else actual_value = 0 end
-		GetConVar("wuma_"..setting):SetInt(actual_value)
+		convar:SetInt(actual_value)
 	end 
 	
 end)

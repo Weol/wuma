@@ -73,7 +73,7 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 	
 	WUMA.Loadouts[usergroup]:SetPrimary(item)
 	
-	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
 		if tbl[usergroup] then
 			tbl[usergroup]:SetPrimary(item)
 		end
@@ -128,7 +128,7 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
 		if not tbl[usergroup] then
 			tbl[usergroup] = Loadout:new({usergroup=usergroup})
 		end
@@ -159,7 +159,7 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 		return tbl
 	end)
 		
-	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
 		if tbl[usergroup] then 
 			tbl[usergroup]:RemoveWeapon(item)
 			
@@ -194,7 +194,7 @@ function WUMA.ClearLoadout(caller,usergroup)
 		return tbl
 	end)
 	
-	WUMA.ScheduleDataUpdate(Loadout, function(tbl)
+	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
 		tbl[usergroup] = nil
 		
 		return tbl
@@ -229,7 +229,7 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller,user,item)
 		return tbl
 	end, user)
 	
-	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout:GetID(), function(tbl) 
 		tbl:SetPrimary(item)
 
 		return tbl
@@ -261,7 +261,7 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 		return tbl
 	end, user)
 	
-	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout:GetID(), function(tbl) 
 		tbl:AddWeapon(item,primary,secondary,respect,scope)
 
 		return tbl
@@ -285,7 +285,7 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 		return tbl
 	end, user)
 
-	WUMA.ScheduleUserDataUpdate(user,Loadout, function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user,Loadout:GetID(), function(tbl) 
 		tbl:RemoveWeapon(item)
 		
 		return tbl
@@ -347,5 +347,5 @@ function WUMA.RefreshUsergroupLoadout(user, usergroup)
 	WUMA.GiveLoadout(user)
 end
 
-WUMA.RegisterDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts, WUMA.isTableEmpty)
-WUMA.RegisterUserDataID(Loadout, "loadouts.txt", WUMA.GetSavedLoadouts, function(tbl) return (tbl:GetWeaponCount() < 1) end)
+WUMA.RegisterDataID(Loadout:GetID(), "loadouts.txt", WUMA.GetSavedLoadouts, WUMA.isTableEmpty)
+WUMA.RegisterUserDataID(Loadout:GetID(), "loadouts.txt", WUMA.GetSavedLoadouts, function(tbl) return (tbl:GetWeaponCount() < 1) end)

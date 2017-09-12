@@ -40,8 +40,10 @@ end
 
 function WUMA.AssignUsergroupRestrictions(user,usergroup)	
 	local usergroup = usergroup or user:GetUserGroup()
+	local restrictions = WUMA.UsergroupRestrictions[usergroup] or {}
 
-	for _,object in pairs(WUMA.Restrictions) do
+	for id, _ in pairs(restrictions) do
+		local object = WUMA.Restrictions[id]
 		if (object:GetUserGroup() == usergroup) and not user:GetRestriction(object:GetType(), object:GetString()) then
 			user:AddRestriction(object:Clone())
 		end
@@ -62,23 +64,24 @@ function WUMA.AssignUserRestrictions(user)
 end
 
 function WUMA.AssignLimits(user, usergroup)
-	WUMA.AssignUsergroupLimits(user, usergroup)
-	WUMA.AssignUserLimits(user)
-	
 	local cache = WUMA.UserLimitsCache[user:SteamID()]
 	if cache then
-		for _, object in pairs(cache) do
-			object:CallOnEmpty("WUMADeleteCache", nil)
-			user:AddLimit(object)
-		end
-		WUMA.UserLimitsCache[user:SteamID()] = nil
+		user:SetLimitCache(cache)
 	end
+	
+	WUMA.AssignUsergroupLimits(user, usergroup)
+	WUMA.AssignUserLimits(user)
 end
 
 function WUMA.AssignUsergroupLimits(user, usergroup)
 	local usergroup = usergroup or user:GetUserGroup()
+	local limits = WUMA.UsergroupLimits[usergroup] or {}
 
-	for id, object in pairs(WUMA.Limits) do
+	for id, _ in pairs(limits) do
+		local object = WUMA.Limits[id]
+		if not object then
+			WUMADebug(id)
+		end
 		if (object:GetUserGroup() == usergroup) and not user:HasLimit(object:GetID(true)) then
 			user:AddLimit(object:Clone())
 		end
@@ -235,13 +238,8 @@ function WUMA.UserDisconnect(user)
 
 	--Cache users limit data so they cant rejoin to reset limits
 	if (user:GetLimits()) then
-		WUMA.UserLimitsCache[user:SteamID()] = user:GetLimits()
-		for _, limit in pairs(user:GetLimits()) do 
-			limit:CallOnEmpty("WUMADeleteCache",function(limit) 
-				WUMA.UserLimitsCache[limit:GetParentID()][limit:GetID()] = nil
-				if (table.Count(WUMA.UserLimitsCache[limit:GetParentID()]) < 1) then WUMA.UserLimitsCache[limit:GetParentID()] = nil end
-			end)
-		end
+		user:CacheLimits()
+		WUMA.UserLimitsCache[user:SteamID()] = user.LimitsCache
 	end
 
 	WUMA.AddLookup(user)

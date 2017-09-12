@@ -26,6 +26,7 @@ WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
 WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
 WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE = "WUMAPersonalLoadoutRestrictionsUpdate"
 WUMA.CVARLIMITSUPDATE = "WUMACVarLimitsUpdate"
+WUMA.PROGRESSUPDATE = "WUMAProgressUpdate"
 
 WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
 WUMA.LIMITUPDATE = "WUMALimitUpdate"
@@ -39,6 +40,8 @@ CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to re
 --Data update
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
+	
+	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Processing data")
 
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
@@ -61,11 +64,17 @@ end
 
 --Data update
 local compressedBuffer = {}
-function WUMA.ProcessCompressedData(id, data, await)
+function WUMA.ProcessCompressedData(id, data, await, index)
+
+	if await or compressedBuffer[id] then
+		hook.Call(WUMA.PROGRESSUPDATE, _,id, "Recieving data ("..index..")")
+	end
+	
 	if compressedBuffer[id] then
 		compressedBuffer[id] = compressedBuffer[id] .. data
 		if not await then
 			data = compressedBuffer[id]
+			compressedBuffer[id] = nil
 		else
 			return
 		end
@@ -74,17 +83,21 @@ function WUMA.ProcessCompressedData(id, data, await)
 		return
 	end
 
-	WUMADebug("Processing compressed data. Size: %s",data:len())
+	WUMADebug("Processing compressed data. Size: %s",string.len(data))
 
-	uncompressed_data = util.Decompress(data)
+	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompressing data")
+	
+	local uncompressed_data = util.Decompress(data) 
+	
 	if not uncompressed_data then
 		WUMADebug("Failed to uncompress data! Size: %s",string.len(data)) 
+		hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompress failed! Flush data and try again")
 		return
 	end 
 	WUMADebug("Data sucessfully decompressed. Size: %s",string.len(uncompressed_data))
 	
 	local tbl = util.JSONToTable(uncompressed_data)
-
+	
 	WUMA.ProcessDataUpdate(id, tbl)
 end
 
@@ -299,7 +312,7 @@ hook.Add(WUMA.INHERITANCEUPDATE,"WUMAGUIInheritance",function(settings) WUMA.Upd
 function WUMA.OnInheritanceUpdate(enum, target, usergroup)
 	if not WUMA.GUI.Tabs.Settings.DisregardInheritanceChange then
 		local access = "changeinheritance"
-		
+			
 		if (string.lower(usergroup) == "nobody") then usergroup = nil end
 		local data = {enum, target, usergroup}
 		 

@@ -207,6 +207,8 @@ function WUMA.ScheduleDataUpdate(id, func)
 		table.insert(WUMA.DATA.DataSchedule, {id=id, func=func})
 		
 		tick_global = 0
+		
+		WUMA.InvalidateCache(id)
 	else
 		WUMADebug("Tried to schedule unregistered data update (%s)!",id)
 	end
@@ -223,6 +225,7 @@ function WUMA.SaveData(data)
 	for id, tbl in pairs(data) do
 		if (tbl and tbl ~= WUMA.DELETE) then
 			local str = util.TableToJSON(tbl)
+			WUMA.Cache(id, util.Compress(str)) --Cache the compressed data
 			WUMA.Files.Write(WUMA.DataDirectory..dataregistry[id].path, str)	
 		elseif (tbl == WUMA.DELETE) then
 			WUMA.Files.Delete(WUMA.DataDirectory..dataregistry[id].path)
