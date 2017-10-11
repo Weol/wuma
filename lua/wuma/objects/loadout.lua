@@ -21,7 +21,7 @@ function Loadout:new(tbl)
 	
 	obj.usergroup = tbl.usergroup or nil
 	obj.primary = tbl.primary or nil
-	obj.inherit = tbl.inherit or nil
+	obj.supplement = tbl.supplement or nil
 	obj.respect_restrictions = tbl.respect_restrictions or nil
 	obj.parent = tbl.parent or nil
 	if isstring(obj.parent) then obj.parentid = obj.parent elseif obj.parent then obj.parentid = obj.parent:SteamID() end
@@ -61,15 +61,15 @@ end
 
 function object:Clone()
 	local copy = table.Copy(self)
+
 	local origin
-	
 	if self.origin then
 		origin = self.origin
 	else
 		origin = self
 	end
-	
 	copy.origin = origin
+	
 	local obj = Loadout:new(copy)
 
 	return obj
@@ -110,9 +110,9 @@ function object:Give(weapon)
 		return 
 	end
 
-	self:GetParent():StripWeapons()
-
-	if (self:DoesInherit() and self:GetAncestor()) then self:GetAncestor():Give() end
+	if self:GetEnforce() then
+		self:GetParent():StripWeapons()
+	end
 	
 	for class,_ in pairs(self:GetWeapons()) do
 		self:GiveWeapon(class)
@@ -141,11 +141,15 @@ function object:GiveWeapon(class)
 		return 
 	end
 
+	local had_weapon = self:GetParent():HasWeapon(class)
+	
 	if not list.Get("Weapon")[class] then return end
 	self:GetParent():Give(class)
 	
 	local swep = self:GetParent():GetWeapon(class)
 	if not IsValid(swep) then return end
+	
+	if not had_weapon then swep.SpawnedByWUMA = true else return end 
 	
 	local primary_ammo = weapon:GetPrimaryAmmo()
 	if (primary_ammo < 0) then primary_ammo = swep:GetMaxClip1() * 4 end
@@ -183,13 +187,17 @@ end
 function object:TakeWeapon(class)
 	if not self:GetParent() then return end
 	if not self:HasWeapon(class) then return end
+	
+	local swep = self:GetParent():GetWeapon(class)
+	if not IsValid(swep) then return end
+	if not swep.SpawnedByWUMA then return end
 
 	if self:GetParent() and (class == self:GetParent():GetActiveWeapon()) then
 		if self:GetPrimary() then
 			self:GetParent():SelectWeapon(self:GetPrimary())
 		else
-			for _, weapon in pairs(self:GetWeapons()) do
-				self:GetParent():SelectWeapon(weapon)
+			for _, weapon in pairs(self:GetParent():GetWeapons()) do
+				self:GetParent():SelectWeapon(weapon:GetClass())
 				break
 			end
 		end
@@ -233,7 +241,7 @@ function object:AddWeapon(weapon,primary,secondary,respect,scope)
 	
 	if self:GetParent() and isentity(self:GetParent()) then 
 		self:Give(weapon:GetClass())
-		if (self:GetChild() and self:GetChild():DoesInherit() and not(self:GetChild():HasWeapon(weapon))) then
+		if (self:GetChild() and self:GetChild():GetEnforce() and not(self:GetChild():HasWeapon(weapon))) then
 			self:Give(weapon:GetClass())
 		end
 	end
@@ -246,9 +254,7 @@ function object:RemoveWeapon(weapon)
 	
 	if (self:GetParent() and isentity(self:GetParent())) then
 		if (self:HasWeapon(weapon)) then
-			if not(self:DoesInherit() and self:GetAncestor() and self:GetAncestor():HasWeapon(weapon)) then
-				self:TakeWeapon(weapon)
-			end
+			self:TakeWeapon(weapon)
 		end
 	end
 	
@@ -290,10 +296,6 @@ function object:GetParentID()
 	return self.parentid
 end
 
-function object:GetOrigin()
-	return self.m.origin
-end
-
 function object:Disable()
 	self.m.disabled = true
 end
@@ -306,20 +308,12 @@ function object:GetUserGroup()
 	return self.usergroup
 end
 
-function object:SetInherit(boolean)
-	self.inherit = boolean
+function object:SetEnforce(boolean)
+	self.supplement = not boolean
 end
 
-function object:GetInherit()
-	return self.inherit
-end
-
-function object:SetInherit(boolean)
-	self.inherit = boolean
-end
-
-function object:DoesInherit()
-	return self.inherit
+function object:GetEnforce()
+	return not self.supplement
 end
 
 function object:SetRespectRestrictions(boolean)

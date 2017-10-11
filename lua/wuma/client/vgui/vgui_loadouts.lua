@@ -12,6 +12,7 @@ function PANEL:Init()
 	self.Command.Edit = "addloadout"
 	self.Command.Primary = "setprimaryweapon"
 	self.Command.Clear = "clearloadout"
+	self.Command.Enforce = "setenforceloadout"
 	self.Command.DataID = Loadout:GetID()
 
 	--Primary ammo chooser
@@ -83,6 +84,7 @@ function PANEL:Init()
 	self.list_items:AddColumn("Secondary")
 	self.list_items:AddColumn("Scope")
 	self.list_items.OnRowSelected = self.OnItemChange
+	self.list_items.OnViewChanged = self.OnViewChanged
 	
 	local highlight = function(line,data,datav)
 		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
@@ -106,8 +108,6 @@ function PANEL:Init()
 	end)
 	self.list_items.OnDataUpdate = function() 
 		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
-		
-		self:GetDataView():SortData(self:GetSelectedUsergroups())
 	end 
 
 	--Scope list
@@ -129,46 +129,40 @@ function PANEL:Init()
 		self.map_chooser = vgui.Create("WMapPicker",self)
 		self.map_chooser:SetVisible(false)
 
-		--Allow checkbox
+	--Allow checkbox
 	self.checkbox_ignore = vgui.Create("DCheckBoxLabel",self)
 	self.checkbox_ignore:SetText("Ignore Restrictions")
 	self.checkbox_ignore:SetTextColor(Color(0,0,0))
 	self.checkbox_ignore:SetValue(true)
 	self.checkbox_ignore:SetVisible(false)
 	
-	local sort = function(data)
-		if not table.HasValue(self:GetSelectedUsergroups(),data.usergroup) then return false end 
-		
+	--Enforce checkbox
+	self.checkbox_enforce = vgui.Create("DCheckBoxLabel",self)
+	self.checkbox_enforce:SetText("Enforce loadout")
+	self.checkbox_enforce:SetTextColor(Color(0,0,0))
+	self.checkbox_enforce:SetValue(true)
+	self.checkbox_enforce:SetEnabled(false)
+	self.checkbox_enforce:SetVisible(false)
+	self.checkbox_enforce.OnChange = self.OnEnforcelCheckboxChanged
+	
+	local display = function(data)
 		scope = "Permanent"
 		if data.scope then scope = data.scope end
 		
-		local primary = data.primary
+		local primary = data.primary or -1
 		if (tonumber(primary) < 0) then primary = "def" end
 		
-		local secondary = data.secondary
+		local secondary = data.secondary or -1
 		if (tonumber(secondary) < 0) then secondary = "def" end
 
-		return {data.usergroup, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,-data.primary,-data.secondary}
+		return {data.usergroup, data.class, primary, secondary, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,data.primary,data.secondary}
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetDisplayFunction(display)
 	
-	local group = function(data)
-		if not istable(data) then return end
+	local sort = function(data)
 		return data.usergroup
 	end
-	self:GetDataView():SetGroupFunction(group)
-	
-	local right_click = function(item)
-		local tbl = {}
-		tbl[1] = {"Item",item.class}
-		tbl[2] = {"Usergroup",item.usergroup}
-		tbl[3] = {"Primary",item.primary}
-		tbl[4] = {"Secondary",item.secondary}
-		tbl[5] = {"Scope",item.scope or "Permanent"}
-		
-		return tbl
-	end
-	self:GetDataView():SetRightClickFunction(right_click)
+	self:GetDataView():SetSortFunction(sort)
 	
 	self:PopulateList("list_usergroups",WUMA.ServerGroups,true,true)
 	self:PopulateList("list_scopes",table.Add({"Permanent"},Scope:GetTypes("print")),true)
@@ -237,6 +231,8 @@ function PANEL:PerformLayout()
 	end
 	
 	self.checkbox_ignore:SetPos(self.list_items.x,self.list_items.y+self.list_items:GetTall()+5)
+	
+	self.checkbox_enforce:SetPos(self.checkbox_ignore.x + 5 + self.checkbox_ignore:GetWide(), self.list_items.y+self.list_items:GetTall()+5)
 	
 	self.list_scopes:SetPos(self.checkbox_ignore.x,self.checkbox_ignore.y+self.checkbox_ignore:GetTall()+5)
 	self.list_scopes:SizeToContents()
@@ -355,11 +351,13 @@ function PANEL:ToggleAdditionalOptionsVisiblility()
 		
 		self.list_scopes:SetVisible(false)
 		self.checkbox_ignore:SetVisible(false)
+		self.checkbox_enforce:SetVisible(false)
 	else
 		self.additionaloptionsvisibility = true
 		
 		self.list_scopes:SetVisible(true)
 		self.checkbox_ignore:SetVisible(true)
+		self.checkbox_enforce:SetVisible(true)
 	end
 end
 
@@ -379,14 +377,38 @@ function PANEL:OnSearch()
 	
 end
 
-function PANEL:OnItemChange(lineid,line)
+function PANEL:GetCurrentLoadout()
+	return WUMA.Loadouts[self:GetSelectedUsergroups()[1]]
+end
 
+function PANEL:OnItemChange(lineid,line)
+	
+end
+
+function PANEL:OnViewChanged() 
+	self = self:GetParent()
+
+	if (table.Count(self:GetDataView():GetLines()) > 0) then 
+		self.checkbox_enforce:SetDisabled(false)
+		local loadout = self:GetCurrentLoadout()
+		if loadout then
+			local enforce = loadout:GetEnforce()
+			
+			local onchange = self.checkbox_enforce.OnChange 
+			self.checkbox_enforce.OnChange = function() end
+			self.checkbox_enforce:SetValue(enforce)
+			self.checkbox_enforce.OnChange = onchange
+		end
+	else
+		self.checkbox_enforce:SetValue(true)
+		self.checkbox_enforce:SetDisabled(true)
+	end
 end
 
 function PANEL:OnUsergroupChange()
 	local self = self:GetParent()
 	
-	self:GetDataView():SortData(self:GetSelectedUsergroups())
+	self:GetDataView():Show(self:GetSelectedUsergroups())
 end
 
 function PANEL:OnScopeChange(lineid, line)
@@ -417,6 +439,25 @@ function PANEL:OnScopeChange(lineid, line)
 	
 	scope.previous_line = lineid
 end
+
+
+function PANEL:OnEnforcelCheckboxChanged(checked)
+	self = self:GetParent()
+	
+	local access = self.Command.Enforce
+	
+	local usergroups = self:GetSelectedUsergroups()
+	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
+	
+	if checked then checked = 1 else checked = 0 end
+	
+	local data = {usergroups, checked}
+	
+	--WUMA.SetProgress(self.Command.DataID, "Changing data", 0.2)
+	
+	WUMA.SendCommand(access,data)
+end
+
 
 function PANEL:OnPrimaryClick()
 	self = self:GetParent()

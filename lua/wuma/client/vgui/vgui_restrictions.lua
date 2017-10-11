@@ -18,7 +18,7 @@ function PANEL:Init()
 	self.list_types:AddColumn("Types")
 	self.list_types:SetSortable(false)
 	self.list_types.OnRowSelected = self.OnTypeChange
-
+	
 	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView",self)
 	self.list_usergroups:SetMultiSelect(true)
@@ -86,7 +86,7 @@ function PANEL:Init()
 		for _, group in pairs(self:GetSelectedUsergroups()) do
 			table.insert(tbl, group..":::"..self:GetSelectedType())
 		end
-		self:GetDataView():SortData(tbl)
+		self:GetDataView():Show(tbl)
 	end 
 
 	--Scope list
@@ -123,38 +123,26 @@ function PANEL:Init()
 	self.checkbox_all:SetVisible(false)
 	self.checkbox_all.OnChange = self.OnRestrictAllCheckboxChanged
 	
-	local sort = function(data)
-		if not data.usergroup or not data.type then return false end
-		if not table.HasValue(self:GetSelectedUsergroups(),data.usergroup) then return false end 
-		if not (self:GetSelectedType() == data.type) then return false end
-		
-		local scope = "Permanent"
-		if data:GetScope() then
-			scope = data:GetScope():GetPrint2()
-		end
-		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
-		
-		return {data.usergroup, data.print or data.string, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup)}
+	local display = function(data)
+		return {data.usergroup, data.print or data.string, scope or "Permanent"},{table.KeyFromValue(WUMA.ServerGroups, data.usergroup)}
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetDisplayFunction(display)
 	
 	local group = function(data)
-		if not istable(data) then return end
 		return data:GetUserGroup()..":::"..data:GetType()
 	end
-	self:GetDataView():SetGroupFunction(group)
+	self:GetDataView():SetSortFunction(group)
 
 	local right_click = function(item)
 		local tbl = {}
-		tbl[1] = {"Item",item:GetString()}
-		tbl[2] = {"Usergroup",item:GetUserGroup()}
-		tbl[3] = {"Type",item:GetType()}
-		tbl[4] = {"Scope",item:GetScope() or "Permanent"}
+		tbl[1] = {"Item",item.string}
+		tbl[2] = {"Usergroup",item.usergroup}
+		tbl[3] = {"Type",item.type}
+		tbl[4] = {"Scope",item.scope or "Permanent"}
 		if item:GetAllow() then tbl[5] = {"Anti-Restriction"} end
 		
 		return tbl
 	end
-
 	self:GetDataView():SetRightClickFunction(right_click)
 	
 	self:PopulateList("list_types",Restriction:GetTypes("print"),true,true)
@@ -167,7 +155,7 @@ function PANEL:Init()
 	WUMA.GUI.AddHook(WUMA.MAPSUPDATE,"WUMARestrictionsGUIScopeMapsUpdateHook",function() 
 		self.map_chooser:AddOptions(WUMA.Maps)
 	end)
-		
+
 end
 
 function PANEL:PerformLayout()
@@ -267,21 +255,27 @@ end
 
 function PANEL:OnDataViewChanged() 
 	self = self:GetParent()
-
-	if not self:GetDataView() then return end
-	local disable = false
-	for id, _ in pairs(self:GetDataView().DataRegistry) do
-		if (self:GetDataView():GetDataTable()[id] and istable(self:GetDataView():GetDataTable()[id]) and self:GetDataView():GetDataTable()[id]:IsGeneral()) then 
-			disable = true 
-		end
-	end
 	
-	local onchange = self.checkbox_all.OnChange
+	local old_onchange = self.checkbox_all.OnChange
 	self.checkbox_all.OnChange = function() end
-	self.checkbox_all:SetValue(disable)
-	self.checkbox_all.OnChange = onchange
 	
-	self.list_items:SetDisabled(disable)
+	self.checkbox_all:SetValue(false)
+	for group, lns in pairs(self:GetDataView().DataRegistry) do
+		for id, line in pairs(lns) do
+			if self:GetDataView():GetDataTable()[id] and (self:GetDataView():GetDataTable()[id]:IsGeneral()) then
+				self.checkbox_all:SetValue(true)
+				self.checkbox_all.OnChange = old_onchange
+				self:GetDataView():SetDisabled(true)
+				
+				return
+			end
+		end		
+	end
+
+	self.checkbox_all:SetValue(false)
+	self:GetDataView():SetDisabled(false)
+	self.checkbox_all.OnChange = old_onchange
+	
 end
 
 function PANEL:GetSelectedType()
@@ -423,7 +417,7 @@ function PANEL:OnTypeChange(lineid,line)
 	for _, group in pairs(self:GetSelectedUsergroups()) do
 		table.insert(tbl, group..":::"..self:GetSelectedType())
 	end
-	self:GetDataView():SortData(tbl)
+	self:GetDataView():Show(tbl)
 	
 	self.list_types.previous_line = lineid
 	
@@ -437,7 +431,7 @@ function PANEL:OnUsergroupChange()
 		table.insert(tbl, group..":::"..self:GetSelectedType())
 	end
 	
-	self:GetDataView():SortData(tbl)
+	self:GetDataView():Show(tbl)
 end
 
 function PANEL:OnScopeChange(lineid, line)

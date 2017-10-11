@@ -111,7 +111,7 @@ function WUMA.CreateConVar(...)
 		local tbl = {}
 		tbl[convar] = new
 		WUMA.GetAuthorizedUsers(function(users) 
-			WUMA.SendInformation(users,WUMA.NET.SETTINGS,tbl) 
+			WUMA.SendInformation(users,WUMA.GetStream("settings"),tbl)
 		end)
 	end)
 	

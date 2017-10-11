@@ -89,7 +89,7 @@ function PANEL:Init()
 	self.list_items.OnDataUpdate = function() 
 		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
 		
-		self:GetDataView():SortData(self:GetSelectedUsergroups())
+		self:GetDataView():Show(self:GetSelectedUsergroups())
 	end 
 	
 	local highlight = function(line,data,datav)
@@ -127,18 +127,12 @@ function PANEL:Init()
 	self.checkbox_exclusive:SetValue(false)
 	self.checkbox_exclusive:SetVisible(false)
 		
-	local sort = function(data)
-		if not data.usergroup then return false end
-		if not table.HasValue(self:GetSelectedUsergroups(),data.usergroup) then return false end 
-		if not data.limit then return false end
-		
+	local display = function(data)
 		local scope = "Permanent"
 		if data:GetScope() then
 			scope = data:GetScope():GetPrint2()
 		end
 
-		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
-		
 		local limit_sort = tonumber(data.limit) or -1
 		
 		local limit = data.limit
@@ -146,13 +140,12 @@ function PANEL:Init()
 		
 		return {data.usergroup, data.print or data.string, limit, scope},{table.KeyFromValue(WUMA.ServerGroups,data.usergroup),_,limit_sort,0}
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetDisplayFunction(display)
 	
-	local group = function(data)
-		if not istable(data) then return end
+	local sort = function(data)
 		return data:GetUserGroup()
 	end
-	self:GetDataView():SetGroupFunction(group)
+	self:GetDataView():SetSortFunction(sort)
 	
 	local right_click = function(item)
 		local tbl = {}
@@ -429,7 +422,7 @@ end
 function PANEL:OnUsergroupChange()
 	local self = self:GetParent()
 	
-	self:GetDataView():SortData(self:GetSelectedUsergroups())
+	self:GetDataView():Show(self:GetSelectedUsergroups())
 end
 
 function PANEL:OnScopeChange(lineid, line)

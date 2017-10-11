@@ -1,16 +1,16 @@
 
-WUMA_NET_STREAM = {}
+WUMAStream = {}
 
 local object = {}
 local static = {}
 
-WUMA_NET_STREAM._id = "WUMA_NET_STREAM"
-object._id = "WUMA_NET_STREAM"
+WUMAStream._id = "WUMAStream"
+object._id = "WUMAStream"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function WUMA_NET_STREAM:new(tbl)
+function WUMAStream:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
@@ -19,15 +19,14 @@ function WUMA_NET_STREAM:new(tbl)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 
-	obj.hooks = tbl.hooks or {}
-	obj.auto_update = tbl.auto_update or false
+	obj.name = tbl.name or false
 	obj.send = tbl.send or false
 	obj.server = tbl.server or false
 	obj.client = tbl.client or false
 	obj.auth = tbl.auth or false
 	obj.id = tbl.id or false
 	
-	obj._id = WUMA_NET_STREAM._id
+	obj._id = WUMAStream._id
 	
 	return obj
 end 
@@ -36,7 +35,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("NET STREAM [%s]",tostring(self:GetID()))
+	return self.name
 end
  
 function object:__call(...)
@@ -57,7 +56,7 @@ function object:__eq(that)
 end
 
 function object:GetStatic()
-	return WUMA_NET_STREAM
+	return WUMAStream
 end
 
 function object:Send(user,data)
@@ -94,17 +93,8 @@ function object:SetAuthenticationFunction(func)
 	self.auth = func
 end
 
-function object:SetAutoUpdate(auto_update)
-	self.auto_update = auto_update
-end
-
-function object:AddInto(tbl)
-	self.id = table.Count(tbl)+1
-	tbl[table.Count(tbl)+1] = self
-end
-
 function object:Clone()
-	local obj = WUMA_NET_STREAM:new(table.Copy(self))
+	local obj = WUMAStream:new(table.Copy(self))
 
 	if self.origin then
 		obj.m.origin = self.origin
@@ -115,8 +105,12 @@ function object:Clone()
 	return obj
 end
 
-function object:GetID()
-	return self.id
+function object:SetName(name)
+	self.name = name
+end
+
+function object:GetName()
+	return self.name
 end
 
 function object:GetOrigin()
@@ -126,4 +120,4 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(WUMA_NET_STREAM,static) 
+setmetatable(WUMAStream,static) 

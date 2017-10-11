@@ -50,11 +50,18 @@ function PANEL:Init()
 	self.list_items:AddColumn("Last Online")
 	self.list_items.OnRowSelected = self.OnUserSelected
 	self.list_items.OnViewChange = function()
-		self.list_items:SortByColumn()	
+		self.list_items:SortByColumn(4)	
+	end
+	
+	local old_sortby = self.list_items.SortByColumn
+	self.list_items.SortByColumn = function(panel, column)
+		panel.SortedColumn = column
+		old_sortby(panel, column)
 	end
 		
 	local function highlight(line,data,datav)
-		if WUMA.ServerUsers[data[3]] then return Color(0,255,0,120) else return nil end
+		PrintTable(datav)
+		if WUMA.ServerUsers[datav.steamid] then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	
@@ -71,11 +78,7 @@ function PANEL:Init()
 	self.restrictions.Command.Delete = "unrestrictuser"
 	self.restrictions.Command.Edit = "restrictuser"
 	
-	local sort = function(data)
-		if not data.type then return false end
-		if not (self.restrictions:GetSelectedType() == data.type) then return false end
-		if not (self:GetSelectedUser() == data.parent) then return false end
-		
+	local display = function(data)
 		local scope = "Permanent"
 		if data:GetScope() then
 			scope = data:GetScope():GetPrint2()
@@ -87,7 +90,17 @@ function PANEL:Init()
 		
 		return {nick, data.print or data.string, scope}
 	end
-	self.restrictions:GetDataView():SetSortFunction(sort)
+	self.restrictions:GetDataView():SetDisplayFunction(display)
+
+	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersRestrictionUpdate", function(user, type, update)
+		if (user == self:GetSelectedUser()) and (type == Restriction:GetID()) then
+			if not (self.restrictions:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].Restrictions) then
+				self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions)
+			else
+				self.restrictions:GetDataView():UpdateDataTable(update)
+			end
+		end
+	end)
 	
 	//Limits panel
 	self.limits = vgui.Create("WUMA_Limits",self) 
@@ -102,10 +115,7 @@ function PANEL:Init()
 	self.limits.Command.Delete = "unsetuserlimit"
 	self.limits.Command.Edit = "setuserlimit"
 	
-	local sort2 = function(data)
-		if not data.limit then return false end
-		if not (self:GetSelectedUser() == data.parent) then return false end
-		
+	local display = function(data)
 		local scope = "Permanent"
 		if data:GetScope() then
 			scope = data:GetScope():GetPrint2()
@@ -124,7 +134,22 @@ function PANEL:Init()
 		
 		return {nick, data.print or data.string, limit, scope},{_,_,sort_limit,0}
 	end
-	self.limits:GetDataView():SetSortFunction(sort2)
+	self.limits:GetDataView():SetDisplayFunction(display)
+	
+	local sort = function(data)
+		return self:GetSelectedUser()
+	end
+	self.limits:GetDataView():SetSortFunction(sort)
+	
+	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLimitUpdate", function(user, type, update)
+		if (user == self:GetSelectedUser()) and (type == Limit:GetID()) then
+			if not (self.limits:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].Limits) then
+				self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits)
+			else
+				self.limits:GetDataView():UpdateDataTable(update)
+			end
+		end
+	end)
 	
 	//Loadouts panel
 	self.loadouts = vgui.Create("WUMA_Loadouts",self) 
@@ -133,16 +158,21 @@ function PANEL:Init()
 	self.loadouts.GetSelectedUsergroups = function()
 		return {self:GetSelectedUser()}
 	end
+	self.loadouts.GetCurrentLoadout = function()
+		if (WUMA.UserData[self:GetSelectedUser()]) then
+			return WUMA.UserData[self:GetSelectedUser()].Loadouts
+		end
+	end
+
 	
 	self.loadouts.Command.Add = "adduserloadout"
 	self.loadouts.Command.Delete = "removeuserloadout"
 	self.loadouts.Command.Edit = "adduserloadout"
 	self.loadouts.Command.Clear = "clearuserloadout"
 	self.loadouts.Command.Primary = "setuserprimaryweapon"
+	self.loadouts.Command.Enforce = "setuserenforceloadout"
 	
-	local sort3 = function(data)
-		if not (self:GetSelectedUser() == data:GetParent()) then return false end
-		
+	local display = function(data)
 		scope = "Permanent"
 		if data.scope then scope = data.scope end
 
@@ -161,7 +191,22 @@ function PANEL:Init()
 		
 		return {nick, data.class, primary, secondary, scope},{0,_,-(data.primary or 0),-(data.secondary or 0)}
 	end
-	self.loadouts:GetDataView():SetSortFunction(sort3)
+	self.loadouts:GetDataView():SetDisplayFunction(display)
+	
+	local sort = function(data)
+		return self:GetSelectedUser()
+	end
+	self.loadouts:GetDataView():SetSortFunction(sort)
+	
+	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLoadoutUpdate", function(user, type, update)
+		if (user == self:GetSelectedUser()) and (type == Loadout:GetID()) then
+			if not (self.loadouts:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons) then
+				self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Loadouts)
+			else
+				self.loadouts:GetDataView():UpdateDataTable(update)
+			end
+		end
+	end)
 	
 	//User label
 	self.label_user = vgui.Create( "DLabel", self )
@@ -169,61 +214,53 @@ function PANEL:Init()
 	self.label_user:SetTextColor(Color(0,0,0))
 	self.label_user:SetVisible(true)
 	
-	local sort = function(user)
+	local highlight = function(line,data,datav)
+		if WUMA.ServerUsers[datav.steamid] then return Color(0,255,0,120) end
+	end
+	self.list_items:SetHighlightFunction(highlight)
+	
+	local display = function(user)
 		local data, sort
 	
-		if WUMA.ServerUsers[user.steamid] then
-			data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
-			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
-		else 
-			data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
-			sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
-		end
-		
-		local text = string.lower(self.textbox_search:GetValue())
-		if (text != "" and text != string.lower(self.textbox_search:GetDefault())) then
-		
-			local column = 2
-			if (string.Left(text, 6) == "steam_") then column = 3 end
-			
-			local item = data[column]
-			local succ, err = pcall( function() 
-				if not string.match(string.lower(item),text) then
-					return false
-				end
-			end )
-			
-			if not succ then 
-				return false
-			else
-			if not string.match(string.lower(item),text) then
-					return false
-				end
-			end
-		end
+		data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
+		sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
 		
 		return data, sort
 	end
-	self:GetDataView():SetSortFunction(sort)
-	self:GetDataView():SortByColumn(4)
+	self:GetDataView():SetDisplayFunction(display)
 	
-	local function updateUserList(tbl)
-		if tbl and (table.Count(tbl) < 1) then
-			self:GetDataView():SetDataTable({})
-		else
-			local data = table.Merge(table.Copy(WUMA.LookupUsers),WUMA.ServerUsers)
+	local sort = function(data)
+		local text = string.lower(self.textbox_search:GetValue())
+		if (text != "" and text != string.lower(self.textbox_search:GetDefault())) then
+		
+			local column = "nick"
+			if (string.Left(text, 6) == "steam_") then column = "steamid" end
 			
-			self:GetDataView():SetDataTable(data)
-			self:GetDataView():SortData()
+			local item = data[column]
+			local succ, err = pcall( function() 
+				local matched = string.match(string.lower(item),text)
+			end )
 			
-			self:GetDataView():SelectFirstItem()
+			if succ then 
+				if string.match(string.lower(item),text) then
+					return "kek"
+				end
+			end
+			return "false"
 		end
-		self:GetDataView():SortData()
-		self:GetDataView():SortByColumn(4)
+		return "kek"
+	end
+	self:GetDataView():SetSortFunction(sort)
+	
+	local function updateUserList()		
+		self:GetDataView():SetDataTable(self:GetDataView():GetDataTable() or {})
+		self:GetDataView():SortAll()
+		
+		self:GetDataView():Show("kek")
+		self.list_items:SortByColumn(self.list_items.SortedColumn or 4)	
 	end
 	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE,"VGUIUsersUserListHook1",updateUserList)
 	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE,"VGUIUsersUserListHook2",updateUserList)
-	
 	
 end
 
@@ -368,7 +405,6 @@ function PANEL:OnUserSelected(this)
 end
 
 function PANEL:OnExtraChange(id)
-
 end
 
 function PANEL:OnRestrictionsClick()
@@ -379,9 +415,11 @@ function PANEL:OnRestrictionsClick()
 	
 	self.restrictions:SetVisible(true)
 	
-	if WUMA.UserData[self:GetSelectedUser()] and WUMA.UserData[self:GetSelectedUser()].Restrictions then
-		self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions or {})
-	end
+	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
+	WUMA.UserData[self:GetSelectedUser()].Restrictions = WUMA.UserData[self:GetSelectedUser()].Restrictions or {}
+	
+	self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions)
+	self.restrictions:GetDataView():Show(self:GetSelectedUser())
 
 	self:OnExtraChange(Restriction:GetID(),self:GetSelectedUser())
 	
@@ -396,9 +434,11 @@ function PANEL:OnLimitsClick()
 	
 	self.limits:SetVisible(true)
 	
-	if WUMA.UserData[self:GetSelectedUser()] and WUMA.UserData[self:GetSelectedUser()].Limits then
-		self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits or {})
-	end
+	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
+	WUMA.UserData[self:GetSelectedUser()].Limits = WUMA.UserData[self:GetSelectedUser()].Limits or {}
+		
+	self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits)
+	self.limits:GetDataView():Show(self:GetSelectedUser())
 	
 	self:OnExtraChange(Limit:GetID(),self:GetSelectedUser())
 	
@@ -413,9 +453,11 @@ function PANEL:OnLoadoutsClick()
 	
 	self.loadouts:SetVisible(true)
 	
-	if WUMA.UserData[self:GetSelectedUser()] then
-		self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Loadouts)
-	end
+	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
+	WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons = WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons or {}
+
+	self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons)
+	self.loadouts:GetDataView():Show(self:GetSelectedUser())
 	
 	self:OnExtraChange(Loadout:GetID(),self:GetSelectedUser())
 
@@ -442,15 +484,17 @@ function PANEL:OnSearch()
 	self:GetParent().OnLookup(self)
 end
 
-	
 function PANEL:OnLookup()
 	self = self:GetParent()
 	
 	if (self.textbox_search:GetValue() != "") then
-		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),self.textbox_search:GetValue())
-	else
-		self:GetDataView():SetDataTable(WUMA.LookupUsers)
+		WUMA.RequestFromServer("lookup",self.textbox_search:GetValue())
 	end
+	
+	self:GetDataView():SetDataTable(self:GetDataView():GetDataTable() or {})
+	self:GetDataView():SortAll()
+	self:GetDataView():Show("kek")
+	self.list_items:SortByColumn(self.list_items.SortedColumn or 4)
 end
 
 function PANEL:OnItemChange(lineid,line)

@@ -302,7 +302,7 @@ end
 function ENT:GiveLoadout()
 	if self:HasLoadout() then
 		self:GetLoadout():Give()
-		return true
+		if self:GetLoadout():GetEnforce() then return true end
 	end
 end
 
