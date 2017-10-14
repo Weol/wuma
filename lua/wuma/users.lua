@@ -244,12 +244,12 @@ function WUMA.UserDisconnect(user)
 
 	WUMA.AddLookup(user)
 end
-hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect, 0)
+hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect)
 
 function WUMA.PlayerLoadout(user)
 	return user:GiveLoadout()
 end
-hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout, -1)
+hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
 	timer.Simple(1,function() 
@@ -257,7 +257,7 @@ function WUMA.PlayerInitialSpawn(user)
 		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 	end)
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
+hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn)
 
 function WUMA.PlayerUsergroupChanged(user, old, new, source)
 	WUMA.RefreshGroupRestrictions(user,new)

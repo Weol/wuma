@@ -76,7 +76,9 @@ function object:Clone()
 end
 
 function object:Delete()
-	self = nil
+	for class,_ in pairs(self:GetWeapons()) do
+		self:TakeWeapon(class)
+	end
 end
 
 function object:GetBarebones()
@@ -138,6 +140,7 @@ function object:GiveWeapon(class)
 			restriction:AddException(class)
 		end
 	elseif self:GetParent():GetRestriction("swep", class) then 
+		WUMADebug("Not giving!")
 		return 
 	end
 

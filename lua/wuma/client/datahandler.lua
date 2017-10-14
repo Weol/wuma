@@ -7,6 +7,7 @@ WUMA.ServerUsers = WUMA.ServerUsers or {}
 WUMA.LookupUsers = WUMA.LookupUsers or {}
 WUMA.UserData = WUMA.UserData or {}
 WUMA.Restrictions = WUMA.Restrictions or {}
+WUMA.PersonalRestrictions = WUMA.PersonalRestrictions or {}
 WUMA.Limits = WUMA.Limits or {}
 WUMA.Loadouts = WUMA.Loadouts or {}
 WUMA.LoadoutWeapons = WUMA.LoadoutsWeapons or {}
@@ -308,6 +309,7 @@ function WUMA.UpdateUserLoadouts(user, loadout)
 				
 					WUMA.UserData[user].Loadouts:SetWeapon(id, nil)
 					WUMA.UserData[user].LoadoutWeapons[id] = nil
+					
 				end
 			end
 		end
@@ -333,6 +335,10 @@ function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
 			tbl = Restriction:new(tbl)	
 			tbl.usergroup = user
 			tbl.parent = user
+			
+			WUMA.PersonalRestrictions[id] = tbl
+		else
+			WUMA.PersonalRestrictions[id] = nil
 		end
 		
 		update[id] = tbl

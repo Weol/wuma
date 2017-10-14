@@ -192,6 +192,19 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 			user:ClearLoadout()
 		end
 	end)
+	
+	WUMA.AddClientUpdate(Loadout,function(tbl)	
+		if not tbl[usergroup] then
+			tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
+			tbl[usergroup].weapons = {}
+			tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
+			
+			return tbl
+		else
+			tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
+			return tbl
+		end
+	end)
 		
 	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
 		if tbl[usergroup] then 
@@ -206,22 +219,8 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 	end)	
 
 	if (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then 
-		WUMA.ClearLoadout(caller,usergroup)
-	else
-		WUMA.AddClientUpdate(Loadout,function(tbl)	
-			if not tbl[usergroup] then
-				tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
-				tbl[usergroup].weapons = {}
-				tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
-				
-				return tbl
-			else
-				tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
-				return tbl
-			end
-		end)
+		WUMA.Loadouts[usergroup] = nil
 	end
-	
 	return affected
 	
 end
@@ -232,8 +231,6 @@ function WUMA.ClearLoadout(caller,usergroup)
 	WUMA.Loadouts[usergroup] = nil
 	
 	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
-		if not user:HasLoadout() or (user:HasLoadout() and user:GetLoadout():IsPersonal()) then return end
-	
 		user:ClearLoadout()
 	end)
 	
@@ -345,9 +342,11 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) and user:HasLoadout() and user:GetLoadout():IsPersonal() then
+		if (user:GetLoadout():GetWeaponCount() < 1) then 
+			return WUMA.ClearUserLoadout(caller,user)
+		end
+	
 		user:GetLoadout():RemoveWeapon(item)	
-
-		if (user:GetLoadout():GetWeaponCount() < 1) then user:ClearLoadout() end
 	end
 
 	WUMA.AddClientUpdate(Loadout,function(tbl)

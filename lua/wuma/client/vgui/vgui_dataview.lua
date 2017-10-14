@@ -55,7 +55,7 @@ end
 
 function PANEL:AddViewLine(id)
 	local item = self.DataTable[id]
-	Msg(tostring(id) .. " : " .. tostring(self.DataTable[id]) .. "\n")
+
 	if item then
 		local data, datav = self.DisplayFunction(item)
 

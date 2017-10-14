@@ -171,13 +171,13 @@ function PANEL:Init()
 	self.loadouts.Command.Clear = "clearuserloadout"
 	self.loadouts.Command.Primary = "setuserprimaryweapon"
 	self.loadouts.Command.Enforce = "setuserenforceloadout"
-	
+
 	local display = function(data)
 		scope = "Permanent"
 		if data.scope then scope = data.scope end
 
 		local nick = "ERROR"
-		if WUMA.LookupUsers[data:GetParent()] then nick = WUMA.LookupUsers[data:GetParent()].nick elseif WUMA.ServerUsers[data:GetParent()] then nick = WUMA.ServerUsers[data:GetParent()]:Nick() end
+		if WUMA.LookupUsers[data.usergroup] then nick = WUMA.LookupUsers[data.usergroup].nick elseif WUMA.ServerUsers[data.usergroup] then nick = WUMA.ServerUsers[data.usergroup]:Nick() end
 		
 		local secondary = data.secondary or -1
 		if (secondary < 0) then
@@ -189,7 +189,7 @@ function PANEL:Init()
 			primary = "def"
 		end 
 		
-		return {nick, data.class, primary, secondary, scope},{0,_,-(data.primary or 0),-(data.secondary or 0)}
+		return {nick, data.print or data.class, primary, secondary, scope},{0,_,-(data.primary or 0),-(data.secondary or 0)}
 	end
 	self.loadouts:GetDataView():SetDisplayFunction(display)
 	
@@ -420,6 +420,8 @@ function PANEL:OnRestrictionsClick()
 	
 	self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions)
 	self.restrictions:GetDataView():Show(self:GetSelectedUser())
+	
+	self.restrictions.Command.DataID = Restriction:GetID() .. ":::" .. self:GetSelectedUser()
 
 	self:OnExtraChange(Restriction:GetID(),self:GetSelectedUser())
 	
@@ -440,6 +442,8 @@ function PANEL:OnLimitsClick()
 	self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits)
 	self.limits:GetDataView():Show(self:GetSelectedUser())
 	
+	self.limits.Command.DataID = Limit:GetID() .. ":::" .. self:GetSelectedUser()
+	
 	self:OnExtraChange(Limit:GetID(),self:GetSelectedUser())
 	
 	self:ToggleExtra()
@@ -458,6 +462,8 @@ function PANEL:OnLoadoutsClick()
 
 	self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons)
 	self.loadouts:GetDataView():Show(self:GetSelectedUser())
+	
+	self.loadouts.Command.DataID = Loadout:GetID() .. ":::" .. self:GetSelectedUser()
 	
 	self:OnExtraChange(Loadout:GetID(),self:GetSelectedUser())
 

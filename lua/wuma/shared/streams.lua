@@ -302,9 +302,9 @@ Personal:SetServerFunction(function(user,data)
 		WUMA.AddDataSubscription(user,user:SteamID(),Loadout:GetID())
 		
 		hook.Add(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. "_" .. user:AccountID(), function(hook_user, restriction) 
-			if (user == hook_user) and not restriction:IsPersonal() then
+			if (user == hook_user) and (restriction:GetType() == "swep") then
 				local tbl = {}
-				tbl[restriction:GetID()] = restriction
+				tbl[restriction:GetID(true)] = restriction
 				
 				local id = "PersonalLoadoutRestrictions:::" .. user:SteamID()
 				
@@ -313,9 +313,9 @@ Personal:SetServerFunction(function(user,data)
 		end)
 		
 		hook.Add(WUMA.USERRESTRICTIONREMOVED, WUMA.USERRESTRICTIONREMOVED .. "_" .. user:AccountID(), function(hook_user, restriction) 
-			if (user == hook_user) and not restriction:IsPersonal() then
+			if (user == hook_user) and (restriction:GetType() == "swep") then
 				local tbl = {}
-				tbl[restriction:GetID()] = WUMA.DELETE
+				tbl[restriction:GetID(true)] = WUMA.DELETE
 				
 				local id = "PersonalLoadoutRestrictions:::" .. user:SteamID()
 				
@@ -325,13 +325,19 @@ Personal:SetServerFunction(function(user,data)
 	elseif (data[1] == "unsubscribe") then 
 		WUMA.RemoveDataSubscription(user,user:SteamID(),user:SteamID())
 	
-		hook.Remove(WUMA.USERRESTRICTIONADDED, user:SteamID() .. WUMA.USERRESTRICTIONADDED)
-		hook.Remove(WUMA.USERRESTRICTIONREMOVED, user:SteamID() .. WUMA.USERRESTRICTIONREMOVED)
+		hook.Remove(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. user:AccountID())
+		hook.Remove(WUMA.USERRESTRICTIONREMOVED, WUMA.USERRESTRICTIONADDED .. user:AccountID())
 	elseif (data[1] == "restrictions") then
-		return {user, user:GetRestrictions(), "PersonalLoadoutRestrictions:::"..user:SteamID()}
+		local restrictions = {}
+		for id, restriction in pairs(user:GetRestrictions()) do
+			if (restriction:GetType() == "swep") then
+				restrictions[restriction:GetID(true)] = restriction
+			end
+		end
+		return {user, restrictions, "PersonalLoadoutRestrictions:::"..user:SteamID()}
 	elseif (data[1] == "loadouts") then
 		if user:HasLoadout() then
-			Loadout:Send(user, {user:SteamID()})
+			Loadouts:Send(user, {user:SteamID()})
 		end
 	end
 end) 

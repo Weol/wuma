@@ -94,10 +94,6 @@ function WUMA.GUI.Initialize()
 	hook.Add(WUMA.LIMITUPDATE, "WUMALimitDataUpdate", function(update) WGUI.Tabs.Limits:GetDataView():UpdateDataTable(update) end) --Limits
 	hook.Add(WUMA.LOADOUTUPDATE, "WUMALoadoutDataUpdate", function(update) WGUI.Tabs.Loadouts:GetDataView():UpdateDataTable(update) end) --Loadouts
 	
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserRestrictionDataUpdate", function(user, enum, update) if (enum == Restriction:GetID()) then WGUI.Tabs.Users.restrictions:GetDataView():UpdateDataTable(update) end end) --Restriction
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLimitDataUpdate", function(user, enum, update) if (enum == Limit:GetID()) then WGUI.Tabs.Users.limits:GetDataView():UpdateDataTable(update) end end) --Limits
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLoadoutDataUpdate", function(user, enum, update) if (enum == Loadout:GetID()) then WGUI.Tabs.Users.loadouts:GetDataView():UpdateDataTable(update) end end) --Loadouts
-	
 	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
 	
 	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
@@ -378,55 +374,27 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:Dock(TOP)
 	loadout:SetWide(frame:GetWide())
 	loadout:SetTall(frame:GetTall()-35)
-	loadout:GetDataView():SetDataTable((WUMA.UserData[LocalPlayer():SteamID()] or {}).Loadouts or {})
+	
+	WUMA.UserData[LocalPlayer():SteamID()] = WUMA.UserData[LocalPlayer():SteamID()] or {}
+	WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons = WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons or {}
+	loadout:GetDataView():SetDataTable(WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons)
 	
 	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
-		PrintTable(update)
-		
 		if (enum == Loadout:GetID()) then
 			loadout:GetDataView():UpdateDataTable(update)
-		elseif (enum == Restriction:GetID()) then
-			for key, restriction in pairs(update) do
-				if istable(restriction) and (restriction.type == "swep") then
-					table.RemoveByValue(loadout.weapons or {}, restriction.string)
-				else 
-					local exploded = string.Explode("_", key)
-
-					local wep = key
-					for _, shrapnel in pairs(exploded) do
-						if (table.HasValue(WUMA.GetWeapons(),wep)) then
-							table.insert(loadout.weapons or {}, wep)
-							break
-						end
-						
-						wep = string.sub(wep, string.len(shrapnel) + 2)
-					end
-				end
-			end
-				
-			loadout:ReloadSuggestions()
 		end
 	end)
 	
 	hook.Add(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate", function(user, update)
-		for key, restriction in pairs(update) do
-			if istable(restriction) and (restriction.type == "swep") then
-				table.RemoveByValue(loadout.weapons or {}, restriction.string)
-			else 
-				local exploded = string.Explode("_", key)
-
-				local wep = key
-				for _, shrapnel in pairs(exploded) do
-					if (table.HasValue(WUMA.GetWeapons(),wep)) then
-						table.insert(loadout.weapons or {}, wep)
-						break
-					end
-					
-					wep = string.sub(wep, string.len(shrapnel) + 2)
-				end
-			end
+		local weapons = WUMA.GetWeapons()
+		
+		for key, class in pairs(weapons) do
+			if (WUMA.PersonalRestrictions["swep_" .. class]) then weapons[key] = nil end
 		end
 			
+		PrintTable(weapons)
+			
+		loadout.weapons = weapons
 		loadout:ReloadSuggestions()
 	end)
 	
@@ -443,12 +411,16 @@ function WUMA.GUI.CreateLoadoutSelector()
 		loadout.progress:SetText(msg or "")
 	end)
 	
+		WUMA.RequestFromServer("personal","restrictions")
 	WUMA.RequestFromServer("personal","subscribe")
 	WUMA.RequestFromServer("personal","loadouts")
-	WUMA.RequestFromServer("personal","restrictions")
 
+	loadout:GetDataView():Show(LocalPlayer():SteamID())
+	
 	frame:MakePopup()
 	frame:SetVisible(true)
+	
+	WUMA.kek = loadout
 end
 
 concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
