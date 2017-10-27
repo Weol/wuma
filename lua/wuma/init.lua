@@ -35,6 +35,10 @@ function WUMA.Initialize()
 	WUMA.LoadFolder(WUMA.ObjectsDirectory)
 	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
 
+	--Include CAMI before files that depend on it
+	include(WUMA.HomeDirectory.."shared/cami.lua")
+	AddCSLuaFile(WUMA.HomeDirectory.."shared/cami.lua") 
+	
 	--Include core
 	include(WUMA.HomeDirectory.."sql.lua")
 	include(WUMA.HomeDirectory.."util.lua") 	
@@ -64,7 +68,7 @@ function WUMA.Initialize()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
 	WUMA.LoadInheritance()
-		
+	
 	--Load shared files
 	WUMALog("Loading shared files")
 	WUMA.LoadCLFolder(WUMA.SharedDirectroy)

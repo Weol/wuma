@@ -2,9 +2,13 @@
 CAMI - Common Admin Mod Interface.
 Makes admin mods intercompatible and provides an abstract privilege interface
 for third party addons.
+
 IMPORTANT: This is a draft script. It is very much WIP.
+
 Follows the specification on this page:
 https://docs.google.com/document/d/1QIRVcAgZfAYf1aBl_dNV_ewR6P25wze2KmUVzlbFgMI
+
+
 Structures:
 	CAMI_USERGROUP, defines the charactaristics of a usergroup:
 	{
@@ -15,6 +19,7 @@ Structures:
 			string
 			The name of the usergroup this usergroup inherits from
 	}
+
 	CAMI_PRIVILEGE, defines the charactaristics of a privilege:
 	{
 		Name
@@ -23,10 +28,6 @@ Structures:
 		MinAccess
 			string
 			One of the following three: user/admin/superadmin
-		Description
-			string
-			optional
-			A text describing the purpose of the privilege
 		HasAccess
 			function(
 				privilege :: CAMI_PRIVILEGE,
@@ -52,7 +53,7 @@ usergroups
 	Contains the registered CAMI_USERGROUP usergroup structures.
 	Indexed by usergroup name.
 ]]
-local usergroups = CAMI.GetUserGroups and CAMI.GetUserGroups() or {
+local usergroups = CAMI.GetUsergroups and CAMI.GetUsergroups() or {
 	user = {
 		Name = "user",
 		Inherits = "user"
@@ -77,6 +78,7 @@ local privileges = CAMI.GetPrivileges and CAMI.GetPrivileges() or {}
 --[[
 CAMI.RegisterUsergroup
 	Registers a usergroup with CAMI.
+
 	Parameters:
 		usergroup
 			CAMI_USERGROUP
@@ -86,6 +88,9 @@ CAMI.RegisterUsergroup
 			Identifier for your own admin mod. Can be anything.
 			Use this to make sure CAMI.RegisterUsergroup function and the
 			CAMI.OnUsergroupRegistered hook don't cause an infinite loop
+
+
+
 	Return value:
 		CAMI_USERGROUP
 			The usergroup given as argument.
@@ -101,7 +106,9 @@ end
 CAMI.UnregisterUsergroup
 	Unregisters a usergroup from CAMI. This will call a hook that will notify
 	all other admin mods of the removal.
+
 	Call only when the usergroup is to be permanently removed.
+
 	Parameters:
 		usergroupName
 			string
@@ -111,6 +118,7 @@ CAMI.UnregisterUsergroup
 			Identifier for your own admin mod. Can be anything.
 			Use this to make sure CAMI.UnregisterUsergroup function and the
 			CAMI.OnUsergroupUnregistered hook don't cause an infinite loop
+
 	Return value:
 		bool
 			Whether the unregistering succeeded.
@@ -127,23 +135,25 @@ function CAMI.UnregisterUsergroup(usergroupName, source)
 end
 
 --[[
-CAMI.GetUserGroups
+CAMI.GetUsergroups
 	Retrieves all registered usergroups.
+
 	Return value:
 		Table of CAMI_USERGROUP, indexed by their names.
 ]]
-function CAMI.GetUserGroups()
+function CAMI.GetUsergroups()
 	return usergroups
 end
 
 --[[
-CAMI.GetUserGroup
+CAMI.GetUsergroup
 	Receives information about a usergroup.
+
 	Return value:
 		CAMI_USERGROUP
 			Returns nil when the usergroup does not exist.
 ]]
-function CAMI.GetUserGroup(usergroupName)
+function CAMI.GetUsergroup(usergroupName)
 	return usergroups[usergroupName]
 end
 
@@ -152,6 +162,7 @@ CAMI.UsergroupInherits
 	Returns true when usergroupName1 inherits usergroupName2.
 	Note that usergroupName1 does not need to be a direct child.
 	Every usergroup trivially inherits itself.
+
 	Parameters:
 		usergroupName1
 			string
@@ -160,6 +171,7 @@ CAMI.UsergroupInherits
 			string
 			The name of the usergroup of which is queried whether usergroupName1
 			inherits from.
+
 	Return value:
 		bool
 			Whether usergroupName1 inherits usergroupName2.
@@ -184,13 +196,16 @@ CAMI.InheritanceRoot
 	All usergroups must eventually inherit either user, admin or superadmin.
 	Regardless of what inheritance mechism an admin may or may not have, this
 	always applies.
+
 	This method always returns either user, admin or superadmin, based on what
 	usergroups eventually inherit.
+
 	Parameters:
 		usergroupName
 			string
 			The name of the usergroup of which the root of inheritance is
 			requested
+
 	Return value:
 		string
 			The name of the root usergroup (either user, admin or superadmin)
@@ -213,10 +228,12 @@ CAMI.RegisterPrivilege
 	This function is for third party addons to register privileges
 	with admin mods, not for admin mods sharing the privileges amongst one
 	another.
+
 	Parameters:
 		privilege
 			CAMI_PRIVILEGE
 			See CAMI_PRIVILEGE structure.
+
 	Return value:
 		CAMI_PRIVILEGE
 			The privilege given as argument.
@@ -233,11 +250,14 @@ end
 CAMI.UnregisterPrivilege
 	Unregisters a privilege from CAMI. This will call a hook that will notify
 	all other admin mods of the removal.
+
 	Call only when the privilege is to be permanently removed.
+
 	Parameters:
 		privilegeName
 			string
 			The name of the privilege.
+
 	Return value:
 		bool
 			Whether the unregistering succeeded.
@@ -256,6 +276,7 @@ end
 --[[
 CAMI.GetPrivileges
 	Retrieves all registered privileges.
+
 	Return value:
 		Table of CAMI_PRIVILEGE, indexed by their names.
 ]]
@@ -266,6 +287,7 @@ end
 --[[
 CAMI.GetPrivilege
 	Receives information about a privilege.
+
 	Return value:
 		CAMI_PRIVILEGE when the privilege exists.
 			nil when the privilege does not exist.
@@ -279,6 +301,7 @@ CAMI.PlayerHasAccess
 	Queries whether a certain player has the right to perform a certain action.
 	Note: this function does NOT return an immediate result!
 	The result is in the callback!
+
 	Parameters:
 		actorPly
 			Player
@@ -309,6 +332,7 @@ CAMI.PlayerHasAccess
 				CommandArguments
 					table
 					Extra arguments that were given to the privilege command.
+
 	Return value:
 		None, the answer is given in the callback function in order to allow
 		for the admin mod to perform e.g. a database lookup.
@@ -353,6 +377,7 @@ CAMI.GetPlayersWithAccess
 	certain action.
 	NOTE: this function will NOT return an immediate result!
 	The result is in the callback!
+
 	Parameters:
 		privilegeName
 			string
@@ -405,8 +430,10 @@ CAMI.SteamIDHasAccess
 	action.
 	Note: the player does not need to be in the server for this to
 	work.
+
 	Note: this function does NOT return an immediate result!
 	The result is in the callback!
+
 	Parameters:
 		actorSteam
 			Player
@@ -433,6 +460,7 @@ CAMI.SteamIDHasAccess
 				CommandArguments
 					table
 					Extra arguments that were given to the privilege command.
+
 	Return value:
 		None, the answer is given in the callback function in order to allow
 		for the admin mod to perform e.g. a database lookup.
@@ -448,7 +476,9 @@ CAMI.SignalUserGroupChanged
 	Signify that your admin mod has changed the usergroup of a player. This
 	function communicates to other admin mods what it thinks the usergroup
 	of a player should be.
+
 	Listen to the hook to receive the usergroup changes of other admin mods.
+
 	Parameters:
 		ply
 			Player
@@ -472,7 +502,9 @@ CAMI.SignalSteamIDUserGroupChanged
 	Signify that your admin mod has changed the usergroup of a disconnected
 	player. This communicates to other admin mods what it thinks the usergroup
 	of a player should be.
+
 	Listen to the hook to receive the usergroup changes of other admin mods.
+
 	Parameters:
 		ply
 			string
