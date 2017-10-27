@@ -6,7 +6,7 @@ WUMA.ConVars.CVarLimits = WUMA.ConVars.CVarLimits or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
-WUMA.VERSION = "1.2"
+WUMA.VERSION = "1.2.1"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
@@ -25,8 +25,6 @@ WUMA.WUMAGUI = "wuma gui"
 
 function WUMA.Initialize()
    
-	Msg("WUMA.Initialize()\n")
- 
 	include(WUMA.HomeDirectory.."files.lua")
 	include(WUMA.HomeDirectory.."log.lua")
 	  

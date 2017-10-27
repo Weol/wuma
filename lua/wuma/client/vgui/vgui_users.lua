@@ -494,9 +494,10 @@ function PANEL:OnLookup()
 	
 	if (self.textbox_search:GetValue() != "") then
 		WUMA.RequestFromServer("lookup",self.textbox_search:GetValue())
+	else
+		self:GetDataView():ClearView()
 	end
 	
-	self:GetDataView():SetDataTable(function() return self:GetDataView():GetDataTable() or {} end)
 	self:GetDataView():SortAll()
 	self:GetDataView():Show("kek")
 	self.list_items:SortByColumn(self.list_items.SortedColumn or 4)

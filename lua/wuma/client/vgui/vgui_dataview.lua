@@ -166,6 +166,14 @@ function PANEL:Show(id)
 	end
 end
 
+function PANEL:ClearView()
+	self.SortedData = {}
+	self.DataRegistry = {}
+	self:Clear()
+	
+	self:SortAll()
+end
+
 function PANEL:SetDataTable(func)
 	self.DataTable = func
 	self.SortedData = {}
