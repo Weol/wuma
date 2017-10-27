@@ -28,24 +28,24 @@ function WUMA.GUI.Initialize()
 
 	//Requests
 	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
-		WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID())
-		WUMA.RequestFromServer(WUMA.NET.INHERITANCE:GetID())
-		WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
+		WUMA.RequestFromServer("settings")
+		WUMA.RequestFromServer("inheritance")
+		WUMA.RequestFromServer("groups")
 		
 		if GetConVar("wuma_request_on_join"):GetBool() then
-			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
-			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
-			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
-			WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.INHERITANCE:GetID())
-			WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),200)
+			WUMA.RequestFromServer("restrictions")
+			WUMA.RequestFromServer("limits")
+			WUMA.RequestFromServer("cvarlimits")
+			WUMA.RequestFromServer("loadouts")
+			WUMA.RequestFromServer("users")
+			WUMA.RequestFromServer("groups")
+			WUMA.RequestFromServer("maps")
+			WUMA.RequestFromServer("inheritance")
+			WUMA.RequestFromServer("lookup",200)
 			 
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID())
+			WUMA.RequestFromServer("subscription",Restriction:GetID())
+			WUMA.RequestFromServer("subscription",Limit:GetID())
+			WUMA.RequestFromServer("subscription",Loadout:GetID())
 			
 			WUMA.Subscriptions.info = true
 			WUMA.Subscriptions.restrictions = true
@@ -81,16 +81,18 @@ function WUMA.GUI.Initialize()
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Restrictions.TabName, WGUI.Tabs.Restrictions, WGUI.Tabs.Restrictions.TabIcon) --Restriction
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Limits.TabName, WGUI.Tabs.Limits, WGUI.Tabs.Limits.TabIcon) --Limit
 	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Loadouts.TabName, WGUI.Tabs.Loadouts, WGUI.Tabs.Loadouts.TabIcon) --Loadout
-	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player
+	WGUI.PropertySheet:AddSheet(WGUI.Tabs.Users.TabName, WGUI.Tabs.Users, WGUI.Tabs.Users.TabIcon) --Player 
+	
+	--Setting datatables
+	WGUI.Tabs.Restrictions:GetDataView():SetDataTable(function() return WUMA.Restrictions end)
+	WGUI.Tabs.Limits:GetDataView():SetDataTable(function() return WUMA.Limits end)
+	WGUI.Tabs.Loadouts:GetDataView():SetDataTable(function() return WUMA.LoadoutWeapons end)
+	WGUI.Tabs.Users:GetDataView():SetDataTable(function() return WUMA.LookupUsers end)
 	
 	--Adding data update hooks
 	hook.Add(WUMA.RESTRICTIONUPDATE, "WUMARestrictionDataUpdate", function(update) WGUI.Tabs.Restrictions:GetDataView():UpdateDataTable(update) end) --Restriction
 	hook.Add(WUMA.LIMITUPDATE, "WUMALimitDataUpdate", function(update) WGUI.Tabs.Limits:GetDataView():UpdateDataTable(update) end) --Limits
 	hook.Add(WUMA.LOADOUTUPDATE, "WUMALoadoutDataUpdate", function(update) WGUI.Tabs.Loadouts:GetDataView():UpdateDataTable(update) end) --Loadouts
-	
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserRestrictionDataUpdate", function(user, enum, update) if (enum == Restriction:GetID()) then WGUI.Tabs.Users.restrictions:GetDataView():UpdateDataTable(update) end end) --Restriction
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLimitDataUpdate", function(user, enum, update) if (enum == Limit:GetID()) then WGUI.Tabs.Users.limits:GetDataView():UpdateDataTable(update) end end) --Limits
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAUserLoadoutDataUpdate", function(user, enum, update) if (enum == Loadout:GetID()) then WGUI.Tabs.Users.loadouts:GetDataView():UpdateDataTable(update) end end) --Loadouts
 	
 	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
 	
@@ -133,9 +135,9 @@ end
 function WUMA.OnTabChange(_,tabname)
 	
 	if not WUMA.Subscriptions.info then
-		WUMA.RequestFromServer(WUMA.NET.USERS:GetID())
-		WUMA.RequestFromServer(WUMA.NET.MAPS:GetID())
-		WUMA.RequestFromServer(WUMA.NET.INHERITANCE:GetID())
+		WUMA.RequestFromServer("users")
+		WUMA.RequestFromServer("maps")
+		WUMA.RequestFromServer("inheritance")
 		
 		WUMA.Subscriptions.info = true
 	end
@@ -147,7 +149,7 @@ function WUMA.OnTabChange(_,tabname)
 	elseif (tabname == WUMA.GUI.Tabs.Loadouts.TabName and not WUMA.Subscriptions.loadouts) then
 		WUMA.FetchData(Loadout:GetID())
 	elseif (tabname == WUMA.GUI.Tabs.Users.TabName and not WUMA.Subscriptions.users) then
-		WUMA.RequestFromServer(WUMA.NET.LOOKUP:GetID(),50)
+		WUMA.RequestFromServer("lookup",50)
 		
 		WUMA.Subscriptions.users = true
 	end
@@ -175,25 +177,25 @@ end
 function WUMA.FetchData(typ)
 	if typ then
 		if (typ == Restriction:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID())
+			WUMA.RequestFromServer("restrictions")
+			WUMA.RequestFromServer("subscription",Restriction:GetID())
 			
-			WUMA.SetProgress(WUMA.NET.RESTRICTION:GetID(), "Requesting data", 0.2)
+			WUMA.SetProgress(Restriction:GetID(), "Requesting data", 0.2)
 			
 			WUMA.Subscriptions.restrictions = true
 		elseif (typ == Limit:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID())
-			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID())
+			WUMA.RequestFromServer("limits")
+			WUMA.RequestFromServer("cvarlimits")
+			WUMA.RequestFromServer("subscription",Limit:GetID())
 			
-			WUMA.SetProgress(WUMA.NET.LIMIT:GetID(), "Requesting data", 0.2)
+			WUMA.SetProgress(Limit:GetID(), "Requesting data", 0.2)
 			
 			WUMA.Subscriptions.limits = true
 		elseif (typ == Loadout:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID())
+			WUMA.RequestFromServer("loadouts")
+			WUMA.RequestFromServer("subscription",Loadout:GetID())
 			
-			WUMA.SetProgress(WUMA.NET.LOADOUT:GetID(), "Requesting data", 0.2)
+			WUMA.SetProgress(Loadout:GetID(), "Requesting data", 0.2)
 			
 			WUMA.Subscriptions.loadouts = true
 		end
@@ -206,30 +208,31 @@ end
 
 function WUMA.FetchUserData(typ, steamid) 
 	if typ then
+		if WUMA.Subscriptions.user[steamid] and WUMA.Subscriptions.user[steamid][typ] then return end
 		if (typ == Restriction:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.RESTRICTION:GetID(), steamid)
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			WUMA.RequestFromServer("restrictions", steamid)
+			WUMA.RequestFromServer("subscription", {steamid,false,typ})
 			
-			WUMA.SetProgress(WUMA.NET.RESTRICTION:GetID()..":::"..steamid, "Requesting data", 0.2)
+			WUMA.SetProgress(Restriction:GetID()..":::"..steamid, "Requesting data", 0.2)
 			
 			if timer.Exists(typ..":::"..steamid) then
 				timer.Remove(typ..":::"..steamid)
 			end
 		elseif (typ == Limit:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.LIMIT:GetID(), steamid)
-			WUMA.RequestFromServer(WUMA.NET.CVARLIMITS:GetID())
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			WUMA.RequestFromServer("limits", steamid)
+			WUMA.RequestFromServer("cvarlimits")
+			WUMA.RequestFromServer("subscription", {steamid,false,typ})
 			
-			WUMA.SetProgress(WUMA.NET.LIMIT:GetID()..":::"..steamid, "Requesting data", 0.2)
+			WUMA.SetProgress(Limit:GetID()..":::"..steamid, "Requesting data", 0.2)
 			
 			if timer.Exists(typ..":::"..steamid) then
 				timer.Remove(typ..":::"..steamid)
 			end
 		elseif (typ == Loadout:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.LOADOUT:GetID(), steamid)
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(), {steamid,false,typ})
+			WUMA.RequestFromServer("loadouts", steamid)
+			WUMA.RequestFromServer("subscription", {steamid,false,typ})
 			
-			WUMA.SetProgress(WUMA.NET.LOADOUT:GetID()..":::"..steamid, "Requesting data", 0.2)
+			WUMA.SetProgress(Loadout:GetID()..":::"..steamid, "Requesting data", 0.2)
 			
 			if timer.Exists(typ..":::"..steamid) then
 				timer.Remove(typ..":::"..steamid)
@@ -246,30 +249,19 @@ end
 function WUMA.FlushData(typ)
 	if typ then
 		if (typ == Restriction:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Restriction:GetID(),true)
+			WUMA.RequestFromServer("subscription",{Restriction:GetID(),true})
 			WUMA.Restrictions = {}
-			
-			if WUMA.GUI.Tabs.Restrictions then
-				WUMA.GUI.Tabs.Restrictions:GetDataView():SetDataTable({})
-			end
 			
 			WUMA.Subscriptions.restrictions = false
 		elseif (typ == Limit:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Limit:GetID(),true)
+			WUMA.RequestFromServer("subscription",{Limit:GetID(),true})
 			WUMA.Limits = {}
-			
-			if WUMA.GUI.Tabs.Limits then
-				WUMA.GUI.Tabs.Limits:GetDataView():SetDataTable({})
-			end
 			 
 			WUMA.Subscriptions.loadouts = false
 		elseif (typ == Loadout:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),Loadout:GetID(),true)
+			WUMA.RequestFromServer("subscription",{Loadout:GetID(),true})
 			WUMA.Loadouts = {}
-			
-			if WUMA.GUI.Tabs.Loadouts then
-				WUMA.GUI.Tabs.Loadouts:GetDataView():SetDataTable({})
-			end
+			WUMA.LoadoutWeapons = {}
 			
 			WUMA.Subscriptions.limits = false
 		end
@@ -284,26 +276,26 @@ end
 function WUMA.FlushUserData(steamid,typ)
 	if typ and steamid then
 		if (typ == Restriction:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Restriction:GetID()})
+			WUMA.RequestFromServer("subscription",{steamid,true,Restriction:GetID()})
 			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Restrictions = nil end
 			
-			WUMA.GUI.Tabs.Users.restrictions:GetDataView():SetDataTable({})
+			WUMA.GUI.Tabs.Users.restrictions:GetDataView():SetDataTable(function() return {} end)
 			if WUMA.GUI.Tabs.Users.restrictions:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.restrictions) end
 			
 			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
 		elseif (typ == Limit:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Limit:GetID()})
+			WUMA.RequestFromServer("subscription",{steamid,true,Limit:GetID()})
 			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Limits = nil end
 			
-			WUMA.GUI.Tabs.Users.limits:GetDataView():SetDataTable({})
+			WUMA.GUI.Tabs.Users.limits:GetDataView():SetDataTable(function() return {} end)
 			if WUMA.GUI.Tabs.Users.limits:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.limits) end
 			
 			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
 		elseif (typ == Loadout:GetID()) then
-			WUMA.RequestFromServer(WUMA.NET.SUBSCRIPTION:GetID(),{steamid,true,Loadout:GetID()})
+			WUMA.RequestFromServer("subscription",{steamid,true,Loadout:GetID()})
 			if WUMA.UserData[steamid] then WUMA.UserData[steamid].Loadouts = nil end
 			
-			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable({})
+			WUMA.GUI.Tabs.Users.loadouts:GetDataView():SetDataTable(function() return {} end)
 			if WUMA.GUI.Tabs.Users.loadouts:IsVisible() then WUMA.GUI.Tabs.Users.OnBackClick(WUMA.GUI.Tabs.Users.loadouts) end
 			
 			if WUMA.Subscriptions.user[steamid] then WUMA.Subscriptions.user[steamid][typ] = nil end
@@ -329,7 +321,7 @@ function WUMA.GUI.AddHook(h,name,func)
 end
 
 function WUMA.GUI.CreateLoadoutSelector() 
-	
+
 	if not LocalPlayer():GetNWBool(WUMA.HasUserPersonalLoadoutAccess) then 
 		LocalPlayer():ChatPrint("You do not have access to this command!")
 		return 
@@ -340,7 +332,7 @@ function WUMA.GUI.CreateLoadoutSelector()
 	frame:SetPos(ScrW()/2-frame:GetWide()/2,ScrH()/2-frame:GetTall()/2)
 	frame:SetTitle("Select your loadout")
 	frame.OnClose = function() 
-		WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"unsubscribe")
+		WUMA.RequestFromServer("personal","unsubscribe")
 		hook.Remove(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate")
 		hook.Remove(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate")
 		hook.Remove(WUMA.PROGRESSUPDATE, "WUMAPersonalLoadoutProgressUpdate")
@@ -358,55 +350,27 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:Dock(TOP)
 	loadout:SetWide(frame:GetWide())
 	loadout:SetTall(frame:GetTall()-35)
-	loadout:GetDataView():SetDataTable((WUMA.UserData[LocalPlayer():SteamID()] or {}).Loadouts or {})
 	
-	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, enum, update)
-		PrintTable(update)
-		
-		if (enum == Loadout:GetID()) then
+	WUMA.UserData[LocalPlayer():SteamID()] = WUMA.UserData[LocalPlayer():SteamID()] or {}
+	WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons = WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons or {}
+	loadout:GetDataView():SetDataTable(function() return WUMA.UserData[LocalPlayer():SteamID()].LoadoutWeapons end)
+	
+	hook.Add(WUMA.USERDATAUPDATE, "WUMAPersonalLoadoutUpdate", function(user, type, update)
+		if (user == LocalPlayer():SteamID()) and (type == Loadout:GetID()) then
 			loadout:GetDataView():UpdateDataTable(update)
-		elseif (enum == Restriction:GetID()) then
-			for key, restriction in pairs(update) do
-				if istable(restriction) and (restriction.type == "swep") then
-					table.RemoveByValue(loadout.weapons or {}, restriction.string)
-				else 
-					local exploded = string.Explode("_", key)
-
-					local wep = key
-					for _, shrapnel in pairs(exploded) do
-						if (table.HasValue(WUMA.GetWeapons(),wep)) then
-							table.insert(loadout.weapons or {}, wep)
-							break
-						end
-						
-						wep = string.sub(wep, string.len(shrapnel) + 2)
-					end
-				end
-			end
-				
-			loadout:ReloadSuggestions()
 		end
 	end)
 	
 	hook.Add(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate", function(user, update)
-		for key, restriction in pairs(update) do
-			if istable(restriction) and (restriction.type == "swep") then
-				table.RemoveByValue(loadout.weapons or {}, restriction.string)
-			else 
-				local exploded = string.Explode("_", key)
-
-				local wep = key
-				for _, shrapnel in pairs(exploded) do
-					if (table.HasValue(WUMA.GetWeapons(),wep)) then
-						table.insert(loadout.weapons or {}, wep)
-						break
-					end
-					
-					wep = string.sub(wep, string.len(shrapnel) + 2)
-				end
-			end
+		local weapons = WUMA.GetWeapons()
+		
+		for key, class in pairs(weapons) do
+			if (WUMA.PersonalRestrictions["swep_" .. class]) then weapons[key] = nil end
 		end
 			
+		PrintTable(weapons)
+			
+		loadout.weapons = weapons
 		loadout:ReloadSuggestions()
 	end)
 	
@@ -423,12 +387,16 @@ function WUMA.GUI.CreateLoadoutSelector()
 		loadout.progress:SetText(msg or "")
 	end)
 	
-	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"subscribe")
-	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"loadout")
-	WUMA.RequestFromServer(WUMA.NET.PERSONAL:GetID(),"restrictions")
+		WUMA.RequestFromServer("personal","restrictions")
+	WUMA.RequestFromServer("personal","subscribe")
+	WUMA.RequestFromServer("personal","loadouts")
 
+	loadout:GetDataView():Show(LocalPlayer():SteamID())
+	
 	frame:MakePopup()
 	frame:SetVisible(true)
+	
+	WUMA.kek = loadout
 end
 
 concommand.Add( "wuma_menu", WUMA.GUI.Toggle)

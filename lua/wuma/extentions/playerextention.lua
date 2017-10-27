@@ -302,12 +302,23 @@ end
 function ENT:GiveLoadout()
 	if self:HasLoadout() then
 		self:GetLoadout():Give()
-		return true
+
+		if self:GetLoadout():GetEnforce() then
+			return true
+		elseif self:GetLoadout():GetAncestor() and self:GetLoadout():GetAncestor():GetEnforce() then 
+			return true 
+		else
+			if (self:GetLoadout():GetPrimary()) then
+				self:ConCommand(string.format("cl_defaultweapon %s"), self:GetLoadout():GetPrimary())
+			end
+		end
 	end
 end
 
 function ENT:SetPrimaryWeapon(weapon)
-	self:GetLoadout():SetPrimaryWeapon(weapon)
+	if self:HasLoadout() then
+		self:GetLoadout():SetPrimaryWeapon(weapon)
+	end
 end
 
 function ENT:SetLoadout(loadout)
@@ -325,19 +336,20 @@ function ENT:ClearLoadout()
 			local ancestor = self.Loadout:GetAncestor()
 			
 			self.Loadout = ancestor
+			ancestor.child = nil
 			
 			self.Loadout:Give()
 		else
 			self.Loadout:Delete()
 			self.Loadout = nil
 			
-			WUMA.GiveDefaultLoadout(self)
+			WUMA.GiveLoadout(self)
 		end
 	elseif self.Loadout then
 		self.Loadout:Delete()
 		self.Loadout = nil 
 		
-		WUMA.GiveDefaultLoadout(self)
+		WUMA.GiveLoadout(self)
 	end
 end
 

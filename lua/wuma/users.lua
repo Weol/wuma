@@ -234,7 +234,7 @@ end
 hook.Add("PlayerSay", "WUMAChatCommand", WUMA.UserChatCommand)
 
 function WUMA.UserDisconnect(user)
-	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end)
+	WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 
 	--Cache users limit data so they cant rejoin to reset limits
 	if (user:GetLimits()) then
@@ -244,20 +244,20 @@ function WUMA.UserDisconnect(user)
 
 	WUMA.AddLookup(user)
 end
-hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect, 0)
+hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect)
 
 function WUMA.PlayerLoadout(user)
 	return user:GiveLoadout()
 end
-hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout, -1)
+hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
 	timer.Simple(1,function() 
 		WUMA.InitializeUser(user) 
-		WUMA.GetAuthorizedUsers(function(users) WUMA.NET.USERS:Send(users) end)
+		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 	end)
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn, -2)
+hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn)
 
 function WUMA.PlayerUsergroupChanged(user, old, new, source)
 	WUMA.RefreshGroupRestrictions(user,new)
@@ -268,17 +268,21 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 		WUMA.HasAccess(user, function(bool) 
 			user:SetNWBool(WUMA.HasUserAccessNetworkBool, bool)
 			user:SendLua([[
-				WUMA.RequestFromServer(WUMA.NET.SETTINGS:GetID());
-				WUMA.RequestFromServer(WUMA.NET.INHERITANCE:GetID());
-				WUMA.RequestFromServer(WUMA.NET.GROUPS:GetID());
+				WUMA.RequestFromServer("settings");
+				WUMA.RequestFromServer("inheritance");
+				WUMA.RequestFromServer("groups")
 		]])
 		end)
+		
+		WUMA.HasAccess(user, function(bool) 
+			user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
+		end, "wuma personalloadout")
 	end)	
 end
 hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)
 
 function WUMA.UsergroupsChanged()
-	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.GROUPS:Send(users) end)
+	WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("groups"):Send(users) end)
 end
 hook.Add("CAMI.OnUsergroupRegistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)
 hook.Add("CAMI.OnUsergroupUnregistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)

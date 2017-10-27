@@ -6,7 +6,7 @@ WUMA.ConVars.CVarLimits = WUMA.ConVars.CVarLimits or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
-WUMA.VERSION = "1.1"
+WUMA.VERSION = "1.2"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums
@@ -111,7 +111,7 @@ function WUMA.CreateConVar(...)
 		local tbl = {}
 		tbl[convar] = new
 		WUMA.GetAuthorizedUsers(function(users) 
-			WUMA.SendInformation(users,WUMA.NET.SETTINGS,tbl) 
+			WUMA.SendInformation(users,WUMA.GetStream("settings"),tbl)
 		end)
 	end)
 	

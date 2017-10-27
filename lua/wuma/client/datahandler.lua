@@ -7,14 +7,15 @@ WUMA.ServerUsers = WUMA.ServerUsers or {}
 WUMA.LookupUsers = WUMA.LookupUsers or {}
 WUMA.UserData = WUMA.UserData or {}
 WUMA.Restrictions = WUMA.Restrictions or {}
+WUMA.PersonalRestrictions = WUMA.PersonalRestrictions or {}
 WUMA.Limits = WUMA.Limits or {}
 WUMA.Loadouts = WUMA.Loadouts or {}
+WUMA.LoadoutWeapons = WUMA.LoadoutsWeapons or {}
 WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
 WUMA.CVarLimits = WUMA.CVarLimits or {}
 WUMA.Inheritance = {}
-WUMA.AggregateInheritance = {}
 
 //Hooks
 WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
@@ -41,8 +42,10 @@ CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to re
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
 	
+	PrintTable(data)
+	
 	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Processing data")
-
+	
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
 	end
@@ -136,28 +139,68 @@ end
 
 function WUMA.UpdateLoadouts(update)
 
-	for id, weapon in pairs(update) do
-		if istable(weapon) then
-			local usergroup = weapon.usergroup
-			update[id] = Loadout_Weapon:new(weapon)
-			update[id].usergroup = usergroup
-			
-			if (update[id]:IsPrimary()) then
-				for k, v in pairs(WUMA.Loadouts) do
-					if ((v.usergroup == usergroup) and v:IsPrimary()) then
-						WUMA.Loadouts[k]:SetIsPrimary(false)
-						update[k] = WUMA.Loadouts[k]
-					end
-				end
-			end
-			
-			WUMA.Loadouts[id] = update[id]
-		else
-			WUMA.Loadouts[id] = nil
-		end
+	if (table.Count(update) < 1) then 
+		hook.Call(WUMA.LOADOUTUPDATE, _, {})
+		return
 	end
 	
-	hook.Call(WUMA.LOADOUTUPDATE, _, update)
+	for usergroup, loadout in pairs(update) do
+		local weapons = {}
+		local deletions = {}
+		
+		if istable(loadout) and (table.Count(loadout) > 0) then
+			for class, weapon in pairs(loadout.weapons) do
+				if isstring(weapon) then
+					deletions[usergroup.."_"..class] = weapon
+					WUMA.LoadoutWeapons[usergroup.."_"..class] = nil
+					WUMA.Loadouts[usergroup]:SetWeapon(class, nil)
+				end
+			end
+		
+			local loadout = Loadout:new(loadout)
+			
+			if not WUMA.Loadouts[usergroup] then
+				WUMA.Loadouts[usergroup] = loadout
+				
+				for class, weapon in pairs(loadout:GetWeapons()) do
+					weapon.usergroup = usergroup
+					WUMA.LoadoutWeapons[usergroup.."_"..class] = weapon
+					weapons[usergroup.."_"..class] = weapon
+				end
+			else
+				for k, v in pairs(WUMA.Loadouts[usergroup]) do
+					if not istable(v) then
+						WUMA.Loadouts[usergroup][k] = loadout[k]
+					end
+				end
+				
+				for k, v in pairs(loadout) do
+					if not istable(v) and not WUMA.Loadouts[usergroup][k] then
+						WUMA.Loadouts[usergroup][k] = loadout[k]
+					end
+				end
+			
+				for class, weapon in pairs(loadout:GetWeapons()) do
+					weapon.usergroup = usergroup
+					WUMA.LoadoutWeapons[usergroup.."_"..class] = weapon
+					WUMA.Loadouts[usergroup]:SetWeapon(class, weapon)
+					weapons[usergroup.."_"..class] = weapon
+				end
+			end
+		elseif not istable(loadout) then
+			WUMA.Loadouts[usergroup] = nil
+			for class, v in pairs(WUMA.Loadouts[usergroup]:GetWeapons()) do
+				weapons[class] = WUMA.DELETE
+				WUMA.LoadoutWeapons[usergroup.."_"..class] = nil
+			end
+		end
+		
+		if WUMA.Loadouts[usergroup] and (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then
+			WUMA.Loadouts[usergroup] = nil
+		end
+		
+		hook.Call(WUMA.LOADOUTUPDATE, _, table.Merge(weapons, deletions))
+	end
 
 end
 
@@ -223,32 +266,63 @@ function WUMA.UpdateUserLimits(user, update)
 	
 end
 
-function WUMA.UpdateUserLoadouts(user, update)
-	WUMA.UserData[user].Loadouts = WUMA.UserData[user].Loadouts or {}
+function WUMA.UpdateUserLoadouts(user, loadout)
+	WUMA.UserData[user].LoadoutWeapons = WUMA.UserData[user].LoadoutWeapons or {}
+	local weapons = {}
+	local deletions = {}
 	
-	for class, weapon in pairs(update) do
-		if istable(weapon) then
-			update[class].parent = user
-			update[class] = Loadout_Weapon:new(update[class])
-			update[class].usergroup = user
-
-			if (update[class]:IsPrimary()) then
-				for k, v in pairs(WUMA.UserData[user].Loadouts) do
-					if ((v.usergroup == user) and v:IsPrimary()) then
-						WUMA.UserData[user].Loadouts[k]:SetIsPrimary(false)
-						
-						update[k] = WUMA.UserData[user].Loadouts[k]
-					end
+	if istable(loadout) and (table.Count(loadout) > 0) then
+		for class, weapon in pairs(loadout.weapons) do
+			if isstring(weapon) then
+				deletions[class] = weapon
+				WUMA.UserData[user].LoadoutWeapons[class] = nil
+				if WUMA.UserData[user].Loadouts then WUMA.UserData[user].Loadouts:SetWeapon(class, nil) end
+			end
+		end
+	
+		local loadout = Loadout:new(loadout)
+		
+		if not WUMA.UserData[user].Loadouts then
+			WUMA.UserData[user].Loadouts = loadout
+			
+			for class, weapon in pairs(loadout:GetWeapons()) do
+				weapon.usergroup = user
+				WUMA.UserData[user].LoadoutWeapons[class] = weapon
+				weapons[class] = weapon
+			end
+		else
+			for k, v in pairs(WUMA.UserData[user].Loadouts) do
+				if not istable(v) then
+					WUMA.UserData[user].Loadouts[k] = loadout[k]
 				end
 			end
 			
-			WUMA.UserData[user].Loadouts[class] = update[class]
-		else
-			WUMA.UserData[user].Loadouts[class] = nil
+			for k, v in pairs(loadout) do
+				if not istable(v) and not WUMA.UserData[user].Loadouts[k] then
+					WUMA.UserData[user].Loadouts[k] = loadout[k]
+				end
+			end
+		
+			for class, weapon in pairs(loadout:GetWeapons()) do
+				weapon.usergroup = user
+				WUMA.UserData[user].LoadoutWeapons[class] = weapon
+				WUMA.UserData[user].Loadouts:SetWeapon(class, weapon)
+				weapons[class] = weapon
+			end
+		end
+	elseif not istable(loadout) then
+		WUMA.UserData[user].Loadouts = nil
+		for class, v in pairs(WUMA.UserData[user].Loadouts:GetWeapons()) do
+			weapons[class] = WUMA.DELETE
+			WUMA.UserData[user].LoadoutWeapons[class] = nil
 		end
 	end
 	
-	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), update)
+	if WUMA.UserData[user].Loadouts and (WUMA.UserData[user].Loadouts:GetWeaponCount() < 1) then
+		WUMA.UserData[user].Loadouts = nil
+	end
+	PrintTable(table.Merge(weapons, deletions))
+	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), table.Merge(weapons, deletions))
 end
 
 function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
@@ -257,6 +331,10 @@ function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
 			tbl = Restriction:new(tbl)	
 			tbl.usergroup = user
 			tbl.parent = user
+			
+			WUMA.PersonalRestrictions[id] = tbl
+		else
+			WUMA.PersonalRestrictions[id] = nil
 		end
 		
 		update[id] = tbl
@@ -270,8 +348,8 @@ end
 function WUMA.ProcessInformationUpdate(enum,data)
 	WUMADebug("Process Information Update:")
 
-	if WUMA.NET.ENUMS[enum] then
-		WUMA.NET.ENUMS[enum](data)
+	if WUMA.GetStream(enum) then
+		WUMA.GetStream(enum)(data)
 	else	
 		WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
 	end

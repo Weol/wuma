@@ -53,7 +53,7 @@ function PANEL:Init()
 	self.list_items.OnRowSelected = self.OnItemChange
 	
 	local highlight = function(line,data,datav)
-		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
+		if datav:GetParent():GetPrimary() and datav:GetParent():GetPrimary() == datav:GetClass() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	
@@ -64,16 +64,20 @@ function PANEL:Init()
 		hook.Call(WUMA.PROGRESSUPDATE, _,self.Command.DataID, nil)
 	end 
 	
-	local sort = function(data)	
+	local display = function(data)	
 		local primary = data.primary or -1
 		if (tonumber(primary) < 0) then primary = "def" end
 		
 		local secondary = data.secondary or -1
 		if (tonumber(secondary) < 0) then secondary = "def" end
 	
-		return {data.class},{_}
+		return {data.print or data.class},{_}
 	end
-		
+	self:GetDataView():SetDisplayFunction(display)
+	
+	local sort = function(data)
+		return self:GetSelectedUsergroups()
+	end
 	self:GetDataView():SetSortFunction(sort)
 	
 	local right_click = function(item)

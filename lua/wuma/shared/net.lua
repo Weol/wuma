@@ -106,35 +106,38 @@ if SERVER then
 	net.Receive("WUMAAccessStream", WUMA.RecieveCommand)
 	
 	util.AddNetworkString("WUMAInformationStream")
-	function WUMA.SendInformation(user,enum,data)
-		if not enum then 
-			WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
-			return			
+	function WUMA.SendInformation(user,stream,data)
+		if (istable(user)) then 
+			for _, v in pairs(user) do 
+				WUMA.SendInformation(v,stream,data) 
+			end 
+			return
 		end
-
-		if (istable(user)) then for _, v in pairs(user) do WUMA.SendInformation(v,enum,data) end end
 		
 		if not data then return end
 		if not istable(data) then data = {data} end
 
+		local name = stream:GetName()
+		
 		net.Start("WUMAInformationStream")
-			net.WriteInt(enum:GetID(),WUMA.NET.INTSIZE)
+			net.WriteString(name)
 			net.WriteTable(data)
 		net.Send(user)	
 	end
 	
 	util.AddNetworkString("WUMARequestStream")
-	function WUMA.RecieveClientRequest(lenght,user)
-		local enum = net.ReadInt(WUMA.NET.INTSIZE)
+	function WUMA.RecieveClientRequest(length,user)
+		local name = net.ReadString()
 		local data = net.ReadTable()
 		
-		WUMADebug("Request recieved! (ENUM: %s) (SIZE: %s bits)",tostring(enum),tostring(lenght))
+		WUMADebug("Request recieved! (NAME: %s) (SIZE: %s bits)",tostring(name),tostring(length))
 		
-		WUMA.NET.ENUMS[enum]:IsAuthorized(user, function(allowed)
+		local stream = WUMA.GetStream(name)
+		stream:IsAuthorized(user, function(allowed)
 			if allowed then
-				WUMA.NET.ENUMS[enum]:Send(user,data)
+				stream:Send(user,data)
 			else
-				WUMALog("An unauthorized user(%s) tried to request! (ENUM: %s)",user:SteamID(),tostring(enum))
+				WUMALog("An unauthorized user (%s) tried to request! (NAME: %s)",user:SteamID(),tostring(name))
 			end
 		end)
 	end
@@ -143,13 +146,13 @@ if SERVER then
 else
 	
 	//RECIVE INFORMATION
-	function WUMA.RecieveInformation(lenght,ply)
-		local enum = net.ReadInt(WUMA.NET.INTSIZE)
+	function WUMA.RecieveInformation(length,ply)
+		local name = net.ReadString()
 		local data = net.ReadTable()
 		
-		WUMADebug("Information recieved! (ENUM: %s) (SIZE: %s bits)",tostring(enum),tostring(lenght))
+		WUMADebug("Information recieved! (NAME: %s) (SIZE: %s bits)",tostring(name),tostring(length))
 		
-		WUMA.ProcessInformationUpdate(enum,data)
+		WUMA.ProcessInformationUpdate(name,data)
 	end
 	net.Receive("WUMAInformationStream", WUMA.RecieveInformation)
 	
@@ -180,12 +183,12 @@ else
 	end
 	
 	//SEND REQUEST
-	function WUMA.RequestFromServer(enum,data)
-		WUMADebug("Sending request! (ENUM: %s)",tostring(enum))
-		
+	function WUMA.RequestFromServer(name,data)
+		WUMADebug("Sending request! (NAME: %s)",tostring(name))
+
 		if data and not istable(data) then data = {data} end
 		net.Start("WUMARequestStream")
-			net.WriteInt(enum,WUMA.NET.INTSIZE)
+			net.WriteString(name)
 			net.WriteTable(data or {})
 		net.SendToServer()
 	end
