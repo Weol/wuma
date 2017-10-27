@@ -41,9 +41,7 @@ CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to re
 --Data update
 function WUMA.ProcessDataUpdate(id,data)
 	WUMADebug("Process Data Update: (%s)",id)
-	
-	PrintTable(data)
-	
+
 	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Processing data")
 	
 	if (id == Restriction:GetID()) then
@@ -321,7 +319,7 @@ function WUMA.UpdateUserLoadouts(user, loadout)
 	if WUMA.UserData[user].Loadouts and (WUMA.UserData[user].Loadouts:GetWeaponCount() < 1) then
 		WUMA.UserData[user].Loadouts = nil
 	end
-	PrintTable(table.Merge(weapons, deletions))
+
 	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), table.Merge(weapons, deletions))
 end
 

@@ -60,7 +60,6 @@ function PANEL:Init()
 	end
 		
 	local function highlight(line,data,datav)
-		PrintTable(datav)
 		if WUMA.ServerUsers[datav.steamid] then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)

@@ -179,8 +179,6 @@ function PANEL:SortAll()
 	self.Groups = {}
 	self.Keys = {}
 
-	PrintTable(self.DataTable())
-	
  	for k, v in pairs(self.DataTable()) do
 		self:Sort(k, v)
 	end

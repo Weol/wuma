@@ -2,6 +2,7 @@
 WUMA = WUMA or {}
 
 WUMA.Log = {}
+WUMA.Log.EnableDebug = false
 
 function WUMA.Log.ServerLog(msg,...)
 	local args = { ... }
@@ -23,6 +24,7 @@ end
 WUMAChatPrint = WUMA.Log.ChatPrint --To save my fingers
 
 function WUMA.Log.DebugLog(msg,...)
+	if not WUMA.Log.EnableDebug then return end
 	local args = { ... }
 	if args then
 		msg = WUMA.SafeFormat(msg,args)

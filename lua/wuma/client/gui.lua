@@ -368,8 +368,6 @@ function WUMA.GUI.CreateLoadoutSelector()
 			if (WUMA.PersonalRestrictions["swep_" .. class]) then weapons[key] = nil end
 		end
 			
-		PrintTable(weapons)
-			
 		loadout.weapons = weapons
 		loadout:ReloadSuggestions()
 	end)
