@@ -329,7 +329,7 @@ Personal:SetServerFunction(function(user,data)
 		hook.Remove(WUMA.USERRESTRICTIONREMOVED, WUMA.USERRESTRICTIONADDED .. user:AccountID())
 	elseif (data[1] == "restrictions") then
 		local restrictions = {}
-		for id, restriction in pairs(user:GetRestrictions()) do
+		for id, restriction in pairs(user:GetRestrictions() or {}) do
 			if (restriction:GetType() == "swep") then
 				restrictions[restriction:GetID(true)] = restriction
 			end

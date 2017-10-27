@@ -29,8 +29,10 @@ function Loadout:new(tbl)
 	
 	if tbl.weapons then
 		for class, wep in pairs(tbl.weapons) do
-			wep.parent = obj
-			obj.weapons[class] = Loadout_Weapon:new(wep)
+			if istable(wep) then
+				wep.parent = obj
+				obj.weapons[class] = Loadout_Weapon:new(wep)
+			end
 		end
 	end
 	
@@ -92,7 +94,7 @@ function object:GetBarebones()
 end
 
 function object:GetUniqueID()
-	return obj.m._uniqueid or false
+	return self.m._uniqueid or false
 end
 
 function object:GetID()
@@ -107,13 +109,19 @@ function object:Give(weapon)
 
 	if not self:GetParent() then return end
 
+	if self:GetChild() and self:GetChild():GetEnforce() then
+		return
+	end
+	
 	if weapon then
 		self:GiveWeapon(weapon)
 		return 
 	end
-
+	
 	if self:GetEnforce() then
 		self:GetParent():StripWeapons()
+	elseif self:GetAncestor() then
+		self:GetAncestor():Give()
 	end
 	
 	for class,_ in pairs(self:GetWeapons()) do
@@ -128,7 +136,9 @@ end
 
 function object:GiveWeapon(class)
 
-	if not self:HasWeapon(class) then return end
+	if not self:HasWeapon(class) then 
+		if self:GetAncestor() then return self:GetAncestor():GiveWeapon(class) end
+	end
 	if not self:GetParent() then return end
 	
 	local weapon = self:GetWeapon(class)
@@ -140,19 +150,18 @@ function object:GiveWeapon(class)
 			restriction:AddException(class)
 		end
 	elseif self:GetParent():GetRestriction("swep", class) then 
-		WUMADebug("Not giving!")
 		return 
 	end
 
 	local had_weapon = self:GetParent():HasWeapon(class)
 	
 	if not list.Get("Weapon")[class] then return end
-	self:GetParent():Give(class)
+	if not had_weapon then self:GetParent():Give(class) end
 	
 	local swep = self:GetParent():GetWeapon(class)
 	if not IsValid(swep) then return end
 	
-	if not had_weapon then swep.SpawnedByWUMA = true else return end 
+	if not had_weapon then return end
 	
 	local primary_ammo = weapon:GetPrimaryAmmo()
 	if (primary_ammo < 0) then primary_ammo = swep:GetMaxClip1() * 4 end
@@ -189,11 +198,13 @@ end
 
 function object:TakeWeapon(class)
 	if not self:GetParent() then return end
-	if not self:HasWeapon(class) then return end
 	
 	local swep = self:GetParent():GetWeapon(class)
 	if not IsValid(swep) then return end
-	if not swep.SpawnedByWUMA then return end
+	if not self:HasWeapon(class) then return end
+	
+	if self:GetAncestor() and not self:GetEnforce() and self:GetAncestor():GetWeapons()[class] then return end
+	if self:GetChild() and self:GetChild():GetWeapons()[class] then return end
 
 	if self:GetParent() and (class == self:GetParent():GetActiveWeapon()) then
 		if self:GetPrimary() then
@@ -244,9 +255,6 @@ function object:AddWeapon(weapon,primary,secondary,respect,scope)
 	
 	if self:GetParent() and isentity(self:GetParent()) then 
 		self:Give(weapon:GetClass())
-		if (self:GetChild() and self:GetChild():GetEnforce() and not(self:GetChild():HasWeapon(weapon))) then
-			self:Give(weapon:GetClass())
-		end
 	end
 end
 
@@ -270,6 +278,9 @@ end
 
 
 function object:SetWeapon(weapon,value)
+	if istable(value) then
+		value:SetParent(self)
+	end
 	self.weapons[weapon] = value
 end
 
@@ -334,17 +345,24 @@ function object:SetAncestor(ancestor)
 		ancestor.ancestor = nil
 	end
 	
+	ancestor:SetParent(self:GetParent())
+	ancestor.child = self
 	self.ancestor = ancestor
 end
 
 function object:PurgeAncestor()
 	if not self:GetAncestor() then return end
-	for weapon,_ in pairs (self:GetAncestor()) do
-		if not self:HasWeapon(weapon) then
-			self:TakeWeapon(class)
+	
+	local weapons =  self:GetAncestor():GetWeapons()
+	
+	self.ancestor.child = nil
+	self.ancestor = nil
+	
+	for weapon,_ in pairs (weapons) do
+		if not self:GetWeapon(weapon) then
+			self:TakeWeapon(weapon)
 		end
 	end
-	self.ancestor = nil
 end
 
 function object:GetAncestor()

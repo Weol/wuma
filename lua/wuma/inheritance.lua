@@ -25,7 +25,7 @@ function WUMA.SetUsergroupInheritance(enum, target, usergroup)
 	
 	WUMA.Inheritance[enum][target] = usergroup
 	
-	WUMA.GetAuthorizedUsers(function(users) WUMA.NET.INHERITANCE:Send(users) end)
+	WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("inheritance"):Send(users) end)
 	
 	WUMA.UpdateUsergroup(target, function(user) 
 		if (enum == Restriction:GetID()) then

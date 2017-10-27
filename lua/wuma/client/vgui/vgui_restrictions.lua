@@ -488,9 +488,9 @@ end
 
 function PANEL:OnAddClick()
 	self = self:GetParent()
-	if not self:GetSelectedUsergroups() then return end
 	if not self:GetSelectedType() then return end
-	if not self:GetSelectedSuggestions() then return end
+	if (table.Count(self:GetSelectedUsergroups()) < 1) then return end
+	if (table.Count(self:GetSelectedSuggestions()) < 1) then return end
 	
 	local usergroups = self:GetSelectedUsergroups()
 	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
@@ -514,26 +514,13 @@ function PANEL:OnDeleteClick()
 	local items = self:GetDataView():GetSelectedItems()
 	if (table.Count(items) < 1) then return end
 	
-	local usergroups = {}
 	local type = self:GetSelectedType()
-	local strings = {}
-	
-	for _, v in pairs(items) do
-		if not table.HasValue(usergroups,v:GetUserGroup()) then
-			table.insert(usergroups,v:GetUserGroup())	
-		end
-		
-		if not table.HasValue(strings,v:GetString()) then
-			table.insert(strings,v:GetString())	
-		end
-	end
-	
-	local access = self.Command.Delete
-	local data = {usergroups,type,strings}
 	
 	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
 	
-	WUMA.SendCommand(access,data)
+	for _, v in pairs(items) do
+		WUMA.SendCommand(self.Command.Delete,{v:GetUserGroup(),type,v:GetString()})
+	end
 end
 
 function PANEL:OnEditClick()

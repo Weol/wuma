@@ -53,7 +53,7 @@ function PANEL:Init()
 	self.list_items.OnRowSelected = self.OnItemChange
 	
 	local highlight = function(line,data,datav)
-		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
+		if datav:GetParent():GetPrimary() and datav:GetParent():GetPrimary() == datav:GetClass() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	

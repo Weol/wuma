@@ -87,7 +87,7 @@ function PANEL:Init()
 	self.list_items.OnViewChanged = self.OnViewChanged
 	
 	local highlight = function(line,data,datav)
-		if datav:IsPrimary() then return Color(0,255,0,120) else return nil end
+		if datav:GetParent():GetPrimary() and datav:GetParent():GetPrimary() == datav:GetClass() then return Color(0,255,0,120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	
@@ -400,8 +400,11 @@ function PANEL:OnViewChanged()
 			self.checkbox_enforce.OnChange = onchange
 		end
 	else
+		local onchange = self.checkbox_enforce.OnChange 
+		self.checkbox_enforce.OnChange = function() end
 		self.checkbox_enforce:SetValue(true)
 		self.checkbox_enforce:SetDisabled(true)
+		self.checkbox_enforce.OnChange = onchange
 	end
 end
 
@@ -605,8 +608,8 @@ end
 
 function PANEL:OnAddClick()
 	self = self:GetParent()
-	if not self:GetSelectedUsergroups() then return end
-	if not self:GetSelectedSuggestions() then return end
+	if (table.Count(self:GetSelectedUsergroups()) < 1) then return end
+	if (table.Count(self:GetSelectedSuggestions()) < 1) then return end
 	
 	local usergroups = self:GetSelectedUsergroups()
 	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
@@ -628,25 +631,11 @@ function PANEL:OnDeleteClick()
 	local items = self:GetDataView():GetSelectedItems()
 	if (table.Count(items) < 1) then return end
 	
-	local usergroups = {}
-	local strings = {}
-	
-	for _, v in pairs(items) do
-		if not table.HasValue(usergroups,v.usergroup) then
-			table.insert(usergroups,v.usergroup)	
-		end
-		
-		if not table.HasValue(strings,v.class) then
-			table.insert(strings,v.class)	
-		end
-	end
-	
-	local access = self.Command.Delete
-	local data = {usergroups,strings}
-	
 	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
 	
-	WUMA.SendCommand(access,data)
+	for _, v in pairs(items) do
+		WUMA.SendCommand(self.Command.Delete,{v.usergroup, v.class})
+	end
 end
 
 function PANEL:OnEditClick()

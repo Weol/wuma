@@ -95,7 +95,7 @@ function PANEL:Init()
 	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersRestrictionUpdate", function(user, type, update)
 		if (user == self:GetSelectedUser()) and (type == Restriction:GetID()) then
 			if not (self.restrictions:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].Restrictions) then
-				self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions)
+				self.restrictions:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].Restrictions end)
 			else
 				self.restrictions:GetDataView():UpdateDataTable(update)
 			end
@@ -144,7 +144,7 @@ function PANEL:Init()
 	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLimitUpdate", function(user, type, update)
 		if (user == self:GetSelectedUser()) and (type == Limit:GetID()) then
 			if not (self.limits:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].Limits) then
-				self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits)
+				self.limits:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].Limits end)
 			else
 				self.limits:GetDataView():UpdateDataTable(update)
 			end
@@ -201,7 +201,7 @@ function PANEL:Init()
 	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLoadoutUpdate", function(user, type, update)
 		if (user == self:GetSelectedUser()) and (type == Loadout:GetID()) then
 			if not (self.loadouts:GetDataView():GetDataTable() == WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons) then
-				self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Loadouts)
+				self.loadouts:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons end)
 			else
 				self.loadouts:GetDataView():UpdateDataTable(update)
 			end
@@ -253,7 +253,7 @@ function PANEL:Init()
 	self:GetDataView():SetSortFunction(sort)
 	
 	local function updateUserList()		
-		self:GetDataView():SetDataTable(self:GetDataView():GetDataTable() or {})
+		self:GetDataView():SetDataTable(function() return WUMA.LookupUsers end)
 		self:GetDataView():SortAll()
 		
 		self:GetDataView():Show("kek")
@@ -418,7 +418,7 @@ function PANEL:OnRestrictionsClick()
 	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
 	WUMA.UserData[self:GetSelectedUser()].Restrictions = WUMA.UserData[self:GetSelectedUser()].Restrictions or {}
 	
-	self.restrictions:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Restrictions)
+	self.restrictions:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].Restrictions end)
 	self.restrictions:GetDataView():Show(self:GetSelectedUser())
 	
 	self.restrictions.Command.DataID = Restriction:GetID() .. ":::" .. self:GetSelectedUser()
@@ -439,7 +439,7 @@ function PANEL:OnLimitsClick()
 	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
 	WUMA.UserData[self:GetSelectedUser()].Limits = WUMA.UserData[self:GetSelectedUser()].Limits or {}
 		
-	self.limits:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].Limits)
+	self.limits:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].Limits end)
 	self.limits:GetDataView():Show(self:GetSelectedUser())
 	
 	self.limits.Command.DataID = Limit:GetID() .. ":::" .. self:GetSelectedUser()
@@ -460,7 +460,7 @@ function PANEL:OnLoadoutsClick()
 	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
 	WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons = WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons or {}
 
-	self.loadouts:GetDataView():SetDataTable(WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons)
+	self.loadouts:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons end)
 	self.loadouts:GetDataView():Show(self:GetSelectedUser())
 	
 	self.loadouts.Command.DataID = Loadout:GetID() .. ":::" .. self:GetSelectedUser()
@@ -477,9 +477,9 @@ function PANEL:OnBackClick()
 	self.limits:SetVisible(false)
 	self.loadouts:SetVisible(false)
 	
-	self.restrictions:GetDataView():SetDataTable({})
-	self.limits:GetDataView():SetDataTable({})
-	self.loadouts:GetDataView():SetDataTable({})
+	self.restrictions:GetDataView():SetDataTable(function() return {} end)
+	self.limits:GetDataView():SetDataTable(function() return {} end)
+	self.loadouts:GetDataView():SetDataTable(function() return {} end)
 	
 	self:OnExtraChange("default",self:GetSelectedUser())
 	
@@ -497,7 +497,7 @@ function PANEL:OnLookup()
 		WUMA.RequestFromServer("lookup",self.textbox_search:GetValue())
 	end
 	
-	self:GetDataView():SetDataTable(self:GetDataView():GetDataTable() or {})
+	self:GetDataView():SetDataTable(function() return self:GetDataView():GetDataTable() or {} end)
 	self:GetDataView():SortAll()
 	self:GetDataView():Show("kek")
 	self.list_items:SortByColumn(self.list_items.SortedColumn or 4)

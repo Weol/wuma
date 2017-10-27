@@ -6,7 +6,7 @@ WUMA.ConVars.CVarLimits = WUMA.ConVars.CVarLimits or {}
 WUMA.ConVars.CVars = WUMA.ConVars.CVars or {}
 WUMA.ConVars.ToClient = WUMA.ConVars.ToClient or {}
 
-WUMA.VERSION = "1.1"
+WUMA.VERSION = "1.2"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
  
 --Enums

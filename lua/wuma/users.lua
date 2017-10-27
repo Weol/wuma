@@ -268,11 +268,15 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 		WUMA.HasAccess(user, function(bool) 
 			user:SetNWBool(WUMA.HasUserAccessNetworkBool, bool)
 			user:SendLua([[
-				WUMA.RequestFromServer(WUMA.GetStream("settings"));
-				WUMA.RequestFromServer(WUMA.GetStream("inheritance"));
-				WUMA.RequestFromServer(WUMA.GetStream("groups"))
+				WUMA.RequestFromServer("settings");
+				WUMA.RequestFromServer("inheritance");
+				WUMA.RequestFromServer("groups")
 		]])
 		end)
+		
+		WUMA.HasAccess(user, function(bool) 
+			user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
+		end, "wuma personalloadout")
 	end)	
 end
 hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)

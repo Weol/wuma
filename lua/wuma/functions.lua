@@ -588,10 +588,14 @@ SetPrimaryWeapon:SetFunction(function(caller, usergroup, item)
 
 	usergroup = string.lower(usergroup)
 
-	local sucess = WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item, scope)
+	local sucess, set = WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item, scope)
 	
 	if not (sucess == false) then
-		return {"%s set %s as %s primary weapons", item, usergroup}, sucess, caller
+		if not set then
+			return {"%s unset primary weapon for %s", usergroup}, sucess, caller
+		else
+			return {"%s set %s as primary weapon for %s", item, usergroup}, sucess, caller
+		end
 	end
 end)
 SetPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
@@ -610,11 +614,15 @@ SetUserPrimaryWeapon:SetFunction(function(caller, target, item)
 
 	item = string.lower(item)
 	
-	local sucess = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
+	local sucess, set = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
 	
 	if not (sucess == false) then
 		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s set %s as %s primary weapons", item, nick}, sucess, caller
+		if not set then
+			return {"%s unset primary weapon for %s", nick}, sucess, caller
+		else
+			return {"%s set %s as primary weapon for %s", item, nick}, sucess, caller
+		end
 	end
 end)
 SetUserPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
