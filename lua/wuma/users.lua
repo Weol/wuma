@@ -252,8 +252,8 @@ end
 hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
+	WUMA.InitializeUser(user) 
 	timer.Simple(1,function() 
-		WUMA.InitializeUser(user) 
 		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 	end)
 end
