@@ -18,13 +18,15 @@ function WUMA.InitializeUser(user)
 
 	WUMA.AddLookup(user)
 	
-	WUMA.HasAccess(user, function(bool) 
-		user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
-	end)	
-	
-	WUMA.HasAccess(user, function(bool) 
-		user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
-	end, "wuma personalloadout")
+	timer.Simple(2, function()
+		WUMA.HasAccess(user, function(bool) 
+			user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
+		end)	
+		
+		WUMA.HasAccess(user, function(bool) 
+			user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
+		end, "wuma personalloadout")
+	end)
 end
 
 function WUMA.AssignUserRegulations(user)
