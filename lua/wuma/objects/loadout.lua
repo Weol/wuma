@@ -120,6 +120,7 @@ function object:Give(weapon)
 	
 	if self:GetEnforce() then
 		self:GetParent():StripWeapons()
+		self:GetParent():StripAmmo()
 	elseif self:GetAncestor() then
 		self:GetAncestor():Give()
 	end
@@ -156,12 +157,16 @@ function object:GiveWeapon(class)
 	local had_weapon = self:GetParent():HasWeapon(class)
 	
 	if not list.Get("Weapon")[class] then return end
-	if not had_weapon then self:GetParent():Give(class) end
+	if not had_weapon then 
+		self:GetParent():Give(class)
+	else
+		return
+	end
 	
 	local swep = self:GetParent():GetWeapon(class)
 	if not IsValid(swep) then return end
 	
-	if not had_weapon then return end
+	swep.SpawnedByWUMA = true
 	
 	local primary_ammo = weapon:GetPrimaryAmmo()
 	if (primary_ammo < 0) then primary_ammo = swep:GetMaxClip1() * 4 end
@@ -205,6 +210,7 @@ function object:TakeWeapon(class)
 	
 	if self:GetAncestor() and not self:GetEnforce() and self:GetAncestor():GetWeapons()[class] then return end
 	if self:GetChild() and self:GetChild():GetWeapons()[class] then return end
+	if not swep.SpawnedByWUMA then return end
 
 	if self:GetParent() and (class == self:GetParent():GetActiveWeapon()) then
 		if self:GetPrimary() then
