@@ -247,6 +247,10 @@ function WUMA.UpdateGlobal()
 			tbl[update.id] = update.func(tbl[update.id] or dataregistry[update.id].init())
 		end
 		
+		for _, update in pairs(WUMA.DATA.DataSchedule) do
+			tbl[update.id].m = nil
+		end
+		
 		for id, update in pairs(dataregistry) do
 			if (WUMA.isTableEmpty(tbl[id]) and tbl[id] ~= nil) then 
 				tbl[id] = WUMA.DELETE 
@@ -313,6 +317,12 @@ function WUMA.UpdateUser()
 		for _, update in pairs(WUMA.DATA.UserDataSchedule) do
 			tbl[update.user] = tbl[update.user] or {}
 			tbl[update.user][update.id] = update.func(tbl[update.user][update.id] or dataregistry[update.id].init(update.user))
+		end
+		
+		for _, update in pairs(WUMA.DATA.UserDataSchedule) do
+			if tbl[update.user] then
+				tbl[update.user][update.id].m = nil
+			end
 		end
 		
 		for id, data in pairs(dataregistry) do

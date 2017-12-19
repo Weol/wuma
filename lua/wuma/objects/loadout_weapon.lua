@@ -12,10 +12,9 @@ object._id = "WUMA_Loadout_Weapon"
 /////////////////////////////////////////////////////////
 function Loadout_Weapon:new(tbl)
 	tbl = tbl or {}
-	local mt = table.Copy(object)
-	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({},object)
+	obj.m = {}
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	

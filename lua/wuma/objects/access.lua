@@ -51,10 +51,11 @@ object._id = "WUMA_Command"
 /////////////////////////////////////////////////////////
 function WUMAAccess:new(tbl)
 	tbl = tbl or {}
-	local mt = table.Copy(object)
-	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({},object)
+	obj.m = {}
+	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
 	obj.func = tbl.func or false
 	obj.cmd = tbl.name or false
@@ -65,8 +66,6 @@ function WUMAAccess:new(tbl)
 	obj.log = tbl.log or false
 	obj.strict = tbl.strict or false
 	obj.log_function = tbl.log_function or false
-
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
 	return obj
 end 
