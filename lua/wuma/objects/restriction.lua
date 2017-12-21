@@ -322,4 +322,3 @@ function object:GetID(short)
 end
 
 Restriction = UserObject:Inherit(static, object)
-

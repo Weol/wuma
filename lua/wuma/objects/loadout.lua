@@ -15,7 +15,7 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function selfect:Construct(tbl)
+function object:Construct(tbl)
 	self.usergroup = tbl.usergroup or nil
 	self.primary = tbl.primary or nil
 	self.supplement = tbl.supplement or nil
@@ -383,4 +383,3 @@ function object:GetPrimary()
 end
 
 Loadout = WUMAObject:Inherit(static, object)
-

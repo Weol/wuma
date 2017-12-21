@@ -171,4 +171,3 @@ function object:DoesRespectRestriction()
 end
 
 Loadout_Weapon = WUMAObject:Inherit(static, object)
-

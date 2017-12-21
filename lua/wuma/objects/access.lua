@@ -54,7 +54,7 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function WUMAAccess:Construct(tbl)
+function object:Construct(tbl)
 	self.func = tbl.func or false
 	self.cmd = tbl.name or false
 	self.arguments = tbl.arguments or {}

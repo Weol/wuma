@@ -1,6 +1,4 @@
 
-WUMAStream = {}
-
 local object = {}
 local static = {}
 
@@ -14,7 +12,7 @@ static._id = "WUMAStream"
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function WUMAStream:Construct(tbl)
+function object:Construct(tbl)
 	self.name = tbl.name or false
 	self.send = tbl.send or false
 	self.server = tbl.server or false

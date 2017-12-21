@@ -17,7 +17,15 @@ function WUMA.Initialize()
 	include("gui.lua")
 	
 	//Load object folder
-	WUMA.IncludeFolder("wuma/objects/")
+	include("wuma/objects/".."object.lua")
+	include("wuma/objects/".."userobject.lua") 	
+	include("wuma/objects/".."access.lua") 	
+	include("wuma/objects/".."limit.lua") 	
+	include("wuma/objects/".."stream.lua") 	
+	include("wuma/objects/".."scope.lua") 	
+	include("wuma/objects/".."loadout.lua") 	
+	include("wuma/objects/".."loadout_weapon.lua") 	
+	include("wuma/objects/".."restriction.lua") 	
 	
 	//Load shared folder
 	WUMA.IncludeFolder("wuma/shared/")

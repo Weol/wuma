@@ -22,7 +22,7 @@ end
 function static:Inherit(static, object)
 	static._object = object
 	setmetatable(static, self)
-	local tbl = setmetatable(tbl, static)
+	local tbl = setmetatable({}, static)
 	
 	getmetatable(tbl).__index = function(tbl, key)
 		while (tbl) do
@@ -38,7 +38,7 @@ function static:Inherit(static, object)
 		table.insert(stack, metatable._object)
 		metatable = getmetatable(metatable)
 	end
-	
+
 	local count = table.Count
 	getmetatable(tbl).new = function(self, tbl)
 		local object = {}
@@ -53,17 +53,20 @@ function static:Inherit(static, object)
 		local m = {}
 		
 		getmetatable(object).__index = function(self, key)
+			if (key == "m") then return m end
+
 			local value = rawget(m, key)
 			if value then return value end
-		
-			while (self) do
-				local value = rawget(self, key)
+			
+			local tbl = self
+			while (tbl) do
+				local value = rawget(tbl, key)
 				if value then return value end
-				self = getmetatable(self)
+				tbl = getmetatable(tbl)
 			end
 		end
 
-		object.m.super = 
+		object.m.super = getmetatable(object)
 		object.m._uniqueid = WUMA.GenerateUniqueID()
 		
 		object:Construct(tbl)
@@ -71,7 +74,7 @@ function static:Inherit(static, object)
 	end
 	getmetatable(tbl).New = getmetatable(tbl).new
 	
-	return static
+	return tbl
 end
 
 /////////////////////////////////////////////////////////

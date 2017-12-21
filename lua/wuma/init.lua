@@ -32,8 +32,16 @@ function WUMA.Initialize()
 	WUMA.Files.Initialize()
 
 	--Load objects
-	WUMA.LoadFolder(WUMA.ObjectsDirectory)
 	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
+	include(WUMA.ObjectsDirectory.."object.lua")
+	include(WUMA.ObjectsDirectory.."userobject.lua") 	
+	include(WUMA.ObjectsDirectory.."access.lua") 	
+	include(WUMA.ObjectsDirectory.."limit.lua") 	
+	include(WUMA.ObjectsDirectory.."stream.lua") 	
+	include(WUMA.ObjectsDirectory.."scope.lua") 	
+	include(WUMA.ObjectsDirectory.."loadout.lua") 	
+	include(WUMA.ObjectsDirectory.."loadout_weapon.lua") 	
+	include(WUMA.ObjectsDirectory.."restriction.lua") 	
 
 	--Include CAMI before files that depend on it
 	include(WUMA.HomeDirectory.."shared/cami.lua")
@@ -124,6 +132,20 @@ function WUMA.GetTime()
 	return os.time()
 end
 
+local runners = {}
+function WUMA.RunAfter(name, fn)
+	runners[name] = runners[name] or {}
+	table.insert(runners[name], fn)
+end
+
+function WUMA.Run(name)
+	if runners[name] then
+		for _, fn in pairs(runners[name]) do
+			fn()
+		end
+	end
+end
+
 function WUMA.LoadFolder(dir)
 	local files, directories = file.Find(dir.."*", "LUA")
 	
@@ -151,4 +173,5 @@ function WUMA.LoadCLFolder(dir)
 		WUMA.LoadCLFolder(dir..directory.."/")
 	end
 end
+
 WUMA.Initialize()

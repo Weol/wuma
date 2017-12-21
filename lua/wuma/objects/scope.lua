@@ -37,7 +37,7 @@ static.UNTIL = {
 	end,
 	arguments={WUMAAccess.NUMBER} 
 }
-static.types.UNTIL = Scope.UNTIL
+static.types.UNTIL = static.UNTIL
 
 static.DURATION = {
 	print="Duration",
@@ -76,7 +76,7 @@ static.DURATION = {
 	end,
 	arguments={WUMAAccess.NUMBER}
 }
-static.types.DURATION = Scope.DURATION
+static.types.DURATION = static.DURATION
 
 static.MAP = {
 	print="Map",
@@ -91,7 +91,7 @@ static.MAP = {
 	end,
 	arguments={WUMAAccess.STRING}, 
 }
-static.types.MAP = Scope.MAP
+static.types.MAP = static.MAP
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
