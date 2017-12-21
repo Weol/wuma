@@ -1,13 +1,11 @@
 
-Restriction = {}
-
 local object = {}
 local static = {}
 
-Restriction._id = "WUMA_Restriction"
 object._id = "WUMA_Restriction"
+static._id = "WUMA_Restriction"
 
-Restriction.types = {
+static.types = {
 	entity = {print="Entity",print2="Entities",search="Search..",items=function() return WUMA.GetEntities() end},
 	prop = {print="Prop",print2="Props",search="Model"},
 	npc = {print="NPC",print2="NPCs",search="Search..",items=function() return WUMA.GetNPCs() end},
@@ -27,33 +25,7 @@ Restriction.types = {
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function Restriction:new(tbl)
-	tbl = tbl or {}
-
-	local obj = setmetatable({},object)
-	obj.m = {}
-	
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-	
-	obj.usergroup = tbl.usergroup or nil
-	obj.type = tbl.type or nil
-	obj.string = tbl.string or nil
-	obj.print = tbl.print or tbl.string
-	obj.allow = tbl.allow or nil 
-	
-	obj.m._id = Restriction._id
-	
-	obj.m.origin = tbl.origin or nil
-	obj.m.parent = tbl.parent or nil 
-	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
-	obj.m.exceptions = {} 
-	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-  
-	return obj
-end 
-
-function Restriction:GenerateID(type,usergroup,str)
+function static:GenerateID(type,usergroup,str)
 	if usergroup then
 		if str then
 			return string.lower(type.."_"..usergroup.."_"..str)
@@ -105,6 +77,20 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function object:Construct(tbl)
+	self.usergroup = tbl.usergroup or nil
+	self.type = tbl.type or nil
+	self.string = tbl.string or nil
+	self.print = tbl.print or tbl.string
+	self.allow = tbl.allow or nil 
+
+	self.m.parent = tbl.parent or nil 
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
+	self.m.exceptions = {} 
+	
+	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permanent" end
+end 
+
 function object:__eq(v1, v2)
 	return ((v1.usergroup == v2.usergroup) and (v1.type == v2.type) and (v1.string == v2.string) and (v1.allow == v2.allow))
 end
@@ -335,8 +321,5 @@ function object:GetID(short)
 	end
 end
 
-object.__index = object
-static.__index = static
-
-setmetatable(Restriction,static)
+Restriction = UserObject:Inherit(static, object)
 

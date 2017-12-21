@@ -1,11 +1,13 @@
- 
-Scope = {}
-Scope.types = {}
 
 local object = {}
 local static = {}
 
-Scope.UNTIL = {
+object._id = "WUMA_Scope"
+static._id = "WUMA_Scope"
+
+static.types = {}
+
+static.UNTIL = {
 	print="Until date",
 	print2=function(obj) return string.format("%s/%s/%s",obj:GetData().day,obj:GetData().month,obj:GetData().year) end,
 	log_prefix="until",
@@ -35,9 +37,9 @@ Scope.UNTIL = {
 	end,
 	arguments={WUMAAccess.NUMBER} 
 }
-Scope.types.UNTIL = Scope.UNTIL
+static.types.UNTIL = Scope.UNTIL
 
-Scope.DURATION = {
+static.DURATION = {
 	print="Duration",
 	print2=function(obj)
 		local time = obj:GetData()-WUMA.GetTime()
@@ -74,9 +76,9 @@ Scope.DURATION = {
 	end,
 	arguments={WUMAAccess.NUMBER}
 }
-Scope.types.DURATION = Scope.DURATION
+static.types.DURATION = Scope.DURATION
 
-Scope.MAP = {
+static.MAP = {
 	print="Map",
 	print2=function(obj) return string.format("%s",obj:GetData()) end,
 	log_prefix="on",
@@ -89,35 +91,11 @@ Scope.MAP = {
 	end,
 	arguments={WUMAAccess.STRING}, 
 }
-Scope.types.MAP = Scope.MAP
- 
-Scope._id = "WUMA_Scope"
-Scope.Objects = Scope.Objects or {}
+static.types.MAP = Scope.MAP
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function Scope:new(tbl)
-	tbl = tbl or {}
-	
-	local obj = setmetatable({},object)
-	obj.m = {}
-	
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-	
-	obj.type = tbl.type or "Permanent"
-	obj.data = tbl.data or false
-	obj.class = tbl.class or false
-	
-	obj.m.parent = tbl.parent or false
-	
-	if (obj:GetType() != "MAP") then 
-		hook.Add("WUMAScopeThink","WUMAScopeThink_"..tostring(obj:GetUniqueID()),function() obj:Think() end)
-	end
-  
-	return obj
-end 
-
 function static:StartThink()
 	if not timer.Exists("WUMAScopeStaticThinkTimer") then
 		timer.Create("WUMAScopeStaticThinkTimer",1,0,Scope.Think)
@@ -161,6 +139,18 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function object:Construct(tbl)
+	self.type = tbl.type or "Permanent"
+	self.data = tbl.data or false
+	self.class = tbl.class or false
+	
+	self.m.parent = tbl.parent or false
+	
+	if (self:GetType() != "MAP") then 
+		hook.Add("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()),function() self:Think() end)
+	end
+end 
+
 function object:__tostring()
 	local scope = Scope.types[self:GetType()]
 	if scope.print2 then 
@@ -292,7 +282,4 @@ function object:GetOrigin()
 	return self.m.origin
 end
 
-object.__index = object
-static.__index = static 
-
-setmetatable(Scope,static)
+Scope = WUMAObject:Inherit(static, object)

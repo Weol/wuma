@@ -4,35 +4,25 @@ WUMAStream = {}
 local object = {}
 local static = {}
 
-WUMAStream._id = "WUMAStream"
 object._id = "WUMAStream"
+static._id = "WUMAStream"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function WUMAStream:new(tbl)
-	tbl = tbl or {}
-
-	local obj = setmetatable({},object)
-	obj.m = {}
-	
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-
-	obj.name = tbl.name or false
-	obj.send = tbl.send or false
-	obj.server = tbl.server or false
-	obj.client = tbl.client or false
-	obj.auth = tbl.auth or false
-	obj.id = tbl.id or false
-	
-	obj._id = WUMAStream._id
-	
-	return obj
-end 
 
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function WUMAStream:Construct(tbl)
+	self.name = tbl.name or false
+	self.send = tbl.send or false
+	self.server = tbl.server or false
+	self.client = tbl.client or false
+	self.auth = tbl.auth or false
+	self.id = tbl.id or false
+end 
+
 function object:__tostring()
 	return self.name
 end
@@ -116,7 +106,4 @@ function object:GetOrigin()
 	return self.origin
 end
 
-object.__index = object
-static.__index = static
-
-setmetatable(WUMAStream,static) 
+WUMAStream = WUMAObject:Inherit(static, object)

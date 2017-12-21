@@ -1,51 +1,13 @@
 
-Limit = {}
-
 local object = {}
 local static = {}
 
-Limit._id = "WUMA_Limit"
 object._id = "WUMA_Limit"
+static._id = "WUMA_Limit"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
-/////////////////////////////////////////////////////////
-function Limit:new(tbl)
-	tbl = tbl or {}
-	
-	local obj = setmetatable({},object)
-	obj.m = {}
-
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-	
-	obj.string = tbl.string or nil
-	obj.limit = tbl.limit or 0
-	obj.usergroup = tbl.usergroup or nil
-	obj.exclusive = tbl.exclusive or nil
-	
-	obj._id = Limit._id
-	
-	obj.m.origin = tbl.origin or nil
-	obj.m.parent = tbl.parent or nil
-	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
-	obj.m.count = tbl.count or 0
-	obj.m.entities = tbl.entities or {}
-	obj.m.callonempty = tbl.callonempty or {}
-	
-	--No numeric adv. limits
-	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
-	
-	--Make sure limit and string cannot be the same
-	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
-	
-	--Parse limit
-	if (tonumber(obj.limit) != nil) then obj.limit = tonumber(obj.limit) end
-	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-  
-	return obj
-end 
- 
+///////////////////////////////////////////////////////// 
 function static:GetID()
 	return Limit._id
 end
@@ -66,6 +28,33 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function object:Construct(tbl)
+	self.string = tbl.string or nil
+	self.limit = tbl.limit or 0
+	self.usergroup = tbl.usergroup or nil
+	self.exclusive = tbl.exclusive or nil
+	
+	self.m.origin = tbl.origin or nil
+	self.m.parent = tbl.parent or nil
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
+	self.m.count = tbl.count or 0
+	self.m.entities = tbl.entities or {}
+	self.m.callonempty = tbl.callonempty or {}
+	
+	--No numeric adv. limits
+	if (tonumber(self.string) != nil) then self.string = ":"..self.string..":" end
+	
+	--Make sure limit and string cannot be the same
+	if (self.limit == self.string) then self.limit = self.limit..":" end
+	
+	--Parse limit
+	if (tonumber(self.limit) != nil) then self.limit = tonumber(self.limit) end
+	
+	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permanent" end
+  
+	return obj
+end 
+
 function object:__tostring()
 	return string.format("Limit [%s][%s/%s]",self:GetString(),tostring(self:GetCount()),tostring(self:Get()))
 end
@@ -343,7 +332,4 @@ function object:Add(entity)
 	self.m.entities[entity:GetCreationID()] = entity
 end
 
-object.__index = object
-static.__index = static
-
-setmetatable(Limit,static) 
+Limit = UserObject:Inherit(static, object)

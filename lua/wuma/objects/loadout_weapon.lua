@@ -1,38 +1,13 @@
 
-Loadout_Weapon = {}
-
 local object = {}
 local static = {}
 
-Loadout_Weapon._id = "WUMA_Loadout_Weapon"
 object._id = "WUMA_Loadout_Weapon"
+static._id = "WUMA_Loadout_Weapon"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function Loadout_Weapon:new(tbl)
-	tbl = tbl or {}
-	
-	local obj = setmetatable({},object)
-	obj.m = {}
-	
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-	
-	obj.m.origin = tbl.origin or nil
-	obj.m.parent = tbl.parent or nil
-	obj.m.isprimary = tbl.isprimary or nil
-	obj.class = tbl.class or nil
-	obj.primary = tbl.primary or -1
-	obj.secondary = tbl.secondary or -1
-	obj.respect_restrictions = tbl.respect_restrictions or nil
-	
-	obj.m._id = Loadout_Weapon._id
-	
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permenant" end
-
-	return obj
-end 
-
 function static:GetID()
 	return Loadout_Weapon._id
 end
@@ -40,6 +15,20 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
+function object:Construct(tbl)
+	self.m.origin = tbl.origin or nil
+	self.m.parent = tbl.parent or nil
+	self.m.isprimary = tbl.isprimary or nil
+	self.class = tbl.class or nil
+	self.primary = tbl.primary or -1
+	self.secondary = tbl.secondary or -1
+	self.respect_restrictions = tbl.respect_restrictions or nil
+	
+	self.m._id = Loadout_Weapon._id
+	
+	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permenant" end
+end 
+
 function object:__tostring()
 	return string.format("Loadout_Weapon [%s]",self.class)
 end
@@ -181,8 +170,5 @@ function object:DoesRespectRestriction()
 	return self.respect_restrictions
 end
 
-object.__index = object
-static.__index = static
-
-setmetatable(Loadout_Weapon,static) 
+Loadout_Weapon = WUMAObject:Inherit(static, object)
 

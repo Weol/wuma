@@ -2,6 +2,7 @@
 WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
+
 WUMA.Restrictions = WUMA.Restrictions or {}
 WUMA.UsergroupRestrictions = WUMA.UsergroupRestrictions or {}
 
