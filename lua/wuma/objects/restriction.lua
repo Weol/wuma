@@ -78,6 +78,8 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
+	self.super("Construct", tbl)
+
 	self.usergroup = tbl.usergroup or nil
 	self.type = tbl.type or nil
 	self.string = tbl.string or nil

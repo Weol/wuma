@@ -8,39 +8,47 @@ static._id = "WUMA_WUMAObject"
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
+local function staticIndex(tbl, key)
+	while (tbl) do
+		local value = rawget(tbl, key)
+		if value then return value end
+		tbl = getmetatable(tbl)
+	end
+end
+
 function static:Inherit(static, object)
 	static._object = object
-	setmetatable(static, self)
+	setmetatable(static, getmetatable(self))
 	local tbl = setmetatable({}, static)
 	
-	getmetatable(tbl).__index = function(tbl, key)
-		while (tbl) do
-			local value = rawget(tbl, key)
-			if value then return value end
-			tbl = getmetatable(tbl)
-		end
-	end
-	
+	getmetatable(tbl).__index = staticIndex
+
 	local stack = {}
 	local metatable = static
 	while (metatable) do
-		table.insert(stack, metatable._object)
+		table.insert(stack, rawget(metatable, "_object"))
+		Msg((rawget(metatable, "_id") or "NO_ID").. " -> ")
+
 		metatable = getmetatable(metatable)
 	end
+	Msg("\n")
 
 	local count = table.Count
 	getmetatable(tbl).new = function(self, tbl)
 		local object = {}
-		
-		local metatable = {}
+
+		local metatable = object
 		for i = 1, count(stack) do
 			setmetatable(metatable, stack[i])
+
+			Msg(stack[i]._id .. " -> ")
 			
 			metatable = getmetatable(metatable)
 		end
-		setmetatable(object, metatable)
+		Msg("\n")
 		
 		local m = {}
+
 		getmetatable(object).__index = function(self, key)
 			if (key == "m") then return m end
 
@@ -55,10 +63,10 @@ function static:Inherit(static, object)
 			end
 		end
 
-		object.m.super = getmetatable(object)
+		object.m.super = function(fn, ...) getmetatable(getmetatable(object))[fn](object, ...) end
 		object.m._uniqueid = WUMA.GenerateUniqueID()
 		
-		object:Construct(tbl)
+		object:Construct(tbl or {})
 		return object
 	end
 	getmetatable(tbl).New = getmetatable(tbl).new
@@ -98,5 +106,6 @@ function object:GetOrigin()
 end
 
 static.__index = static 
+static._object = object
 
 WUMAObject = setmetatable({},static)
