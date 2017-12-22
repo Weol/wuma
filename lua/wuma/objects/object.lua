@@ -8,17 +8,6 @@ static._id = "WUMA_WUMAObject"
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function static:new(_, tbl)
-	tbl = tbl or {}
-	
-	local obj = setmetatable({},object)
-	obj.m = {}
-	
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-  
-	return obj
-end 
-
 function static:Inherit(static, object)
 	static._object = object
 	setmetatable(static, self)
@@ -50,8 +39,8 @@ function static:Inherit(static, object)
 			metatable = getmetatable(metatable)
 		end
 		setmetatable(object, metatable)
-		local m = {}
 		
+		local m = {}
 		getmetatable(object).__index = function(self, key)
 			if (key == "m") then return m end
 

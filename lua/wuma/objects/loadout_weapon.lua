@@ -170,4 +170,4 @@ function object:DoesRespectRestriction()
 	return self.respect_restrictions
 end
 
-Loadout_Weapon = WUMAObject:Inherit(static, object)
+Loadout_Weapon = UserObject:Inherit(static, object)

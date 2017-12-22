@@ -106,10 +106,6 @@ function object:Clone()
 	return obj
 end
 
-function object:GetUniqueID()
-	return self.m._uniqueid or false
-end
-
 function object:Delete()
 	--So that no entities point here
 	for id, entity in pairs(self.m.entities)  do
@@ -185,15 +181,6 @@ function object:SetCount(c)
 	self.m.count = c
 end
 
-function object:GetParent()
-	return self.m.parent
-end
-
-function object:SetParent(user)
-	self.m.parent = user
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
-end
-
 function object:GetUserGroup()
 	return self.usergroup
 end
@@ -216,51 +203,6 @@ end
 
 function object:SetExclusive(bool)
 	self.exclusive = str
-end
-
-function object:GetParentID()
-	return self.m.parentid
-end
-
-function object:GetScope()
-	return self.scope
-end
-
-function object:SetScope(scope)	
-	if not self:GetOrigin() then
-		self.scope = scope
-		if not scope.m then self.scope = Scope:new(scope) end
-	
-		self.scope:SetParent(self)
-		
-		self.scope:AllowThink()
-	end
-end
-
-function object:DeleteScope()
-	self.scope:Delete()
-	self.scope = nil
-end
-
-function object:Disable()
-	self.m.disabled = true
-end
-
-function object:Enable()
-	self.m.disabled = false
-end
-
-function object:IsDisabled() 
-	if self.m and self.m.disabled then return true end
-	return false
-end
-
-function object:SetAncestor(ancestor)
-	self.m.ancestor = ancestor
-end
-
-function object:GetAncestor()
-	return self.m.ancestor
 end
 
 function object:InheritEntities(limit)

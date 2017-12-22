@@ -84,11 +84,7 @@ function object:Construct(tbl)
 	self.print = tbl.print or tbl.string
 	self.allow = tbl.allow or nil 
 
-	self.m.parent = tbl.parent or nil 
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
 	self.m.exceptions = {} 
-	
-	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permanent" end
 end 
 
 function object:__eq(v1, v2)
