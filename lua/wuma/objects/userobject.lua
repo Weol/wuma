@@ -26,15 +26,14 @@ function object:SetScope(scope)
 	end
 end
 
+function object:GetScope()
+	return self.scope
+end
+
 function object:DeleteScope()
 	self.scope:Delete()
 	self.scope = nil
 end
-
-function object:GetParentID()
-	return self.m.parentid
-end
-
 
 function object:Disable()
 	self.m.disabled = true
@@ -56,6 +55,11 @@ end
 function object:GetAncestor()
 	return self.m.ancestor
 end
+
+function object:GetParentID()
+	return self.m.parentid
+end
+
 
 function object:GetParent()
 	return self.m.parent

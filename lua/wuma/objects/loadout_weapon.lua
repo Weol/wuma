@@ -16,6 +16,8 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
+	self.super("Construct", tbl)
+
 	self.m.origin = tbl.origin or nil
 	self.m.parent = tbl.parent or nil
 	self.m.isprimary = tbl.isprimary or nil
@@ -38,48 +40,14 @@ function object:__eq(v1,v2)
 	return false
 end
 
-function object:Clone()
-	local copy = table.Copy(self)
-	local origin
-	
-	if self.origin then
-		origin = self.origin
-	else
-		origin = self
-	end
-	
-	copy.origin = origin
-	local obj = Loadout_Weapon:new(copy)
-
-	return obj
-end
-
 function object:Delete()
 	if self.scope then
 		self.scope:Delete()
 	end
 end
 
-function object:GetBarebones()
-	local tbl = {}
-	for k,v in pairs(self) do
-		if v then
-			tbl[k] = v
-		end
-	end
-	return tbl
-end
-
-function object:GetUniqueID()
-	return obj.m._uniqueid or false
-end
-
 function object:GetID()
 	return string.lower(string.format("loadout_weapon_%s",self.class))
-end
-
-function object:GetStatic()
-	return Loadout_Weapon
 end
 
 function object:SetClass(parent)
@@ -104,29 +72,6 @@ end
 
 function object:GetSecondaryAmmo()
 	return self.secondary
-end
-
-function object:GetParent()
-	return self.m.parent
-end
-
-function object:SetParent(parent)
-	self.m.parent = parent
-end
-
-function object:GetOrigin()
-	return self.origin
-end
-
-function object:SetScope(scope)	
-	if not self:GetOrigin() then
-		self.scope = scope
-		if not scope.m then self.scope = Scope:new(scope) end
-	
-		self.scope:SetParent(self)
-		
-		self.scope:AllowThink()
-	end
 end
 
 function object:Disable()

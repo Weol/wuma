@@ -29,6 +29,8 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
+	self.super("Construct", tbl)
+
 	self.string = tbl.string or nil
 	self.limit = tbl.limit or 0
 	self.usergroup = tbl.usergroup or nil
@@ -90,22 +92,6 @@ function object:__le(that)
 	return false
 end
 
-function object:Clone()
-	local copy = table.Copy(self)
-	local origin
-	
-	if self.origin then
-		origin = self.origin
-	else
-		origin = self
-	end
-	
-	copy.origin = origin
-	local obj = Limit:new(copy)
-
-	return obj
-end
-
 function object:Delete()
 	--So that no entities point here
 	for id, entity in pairs(self.m.entities)  do
@@ -127,16 +113,6 @@ end
 
 function object:IsPersonal()
 	if self.usergroup then return nil else return true end
-end
-	
-function object:GetBarebones()
-	local tbl = {}
-	for k,v in pairs(self) do
-		if v or (v == 0) then
-			tbl[k] = v
-		end
-	end
-	return tbl
 end
 	
 function object:CallOnEmpty(id, f)
@@ -168,10 +144,6 @@ function object:GetID(short)
 	end
 end
 
-function object:GetStatic()
-	return Limit
-end
-
 function object:GetCount()
 	return self.m.count
 end
@@ -183,14 +155,6 @@ end
 
 function object:GetUserGroup()
 	return self.usergroup
-end
-
-function object:GetOrigin()
-	return self.m.origin
-end
-
-function object:GetString()
-	return self.string
 end
 
 function object:SetString(str)

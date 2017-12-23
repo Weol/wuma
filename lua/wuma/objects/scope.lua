@@ -160,14 +160,6 @@ function object:__tostring()
 	end
 end
 
-function object:GetUniqueID()
-	return self.m._uniqueid or false
-end
-
-function object:GetStatic()
-	return Scope
-end
-
 function object:Delete()
 	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
 end	
@@ -211,18 +203,6 @@ function object:SetProperty(id, value)
 	self[id] = value
 end
 
-function object:Clone()
-	local obj = Scope:new(table.Copy(self))
-
-	if self.origin then
-		obj.m.origin = self.origin
-	else
-		obj.m.origin = self
-	end
-
-	return obj
-end
-
 function object:AllowThink()
 	self.m.allowed_think = true
 	self:Think()
@@ -242,10 +222,6 @@ end
 
 function object:GetData()
 	return self.data
-end
-
-function object:GetUniqueID()
-	return self.m._uniqueid or false
 end
 
 function object:GetPrint2()
@@ -276,10 +252,6 @@ end
 
 function object:GetType()
 	return self.type
-end
-
-function object:GetOrigin()
-	return self.m.origin
 end
 
 Scope = WUMAObject:Inherit(static, object)

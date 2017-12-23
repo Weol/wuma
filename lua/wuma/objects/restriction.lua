@@ -41,10 +41,6 @@ function static:GenerateID(type,usergroup,str)
 	end
 end 
 
-function static:GetID()
-	return Restriction._id
-end
-
 function static:GetTypes(field)
 	if field then
 		local tbl = {}
@@ -94,7 +90,6 @@ function object:__eq(v1, v2)
 end
 
 function object:__call(type,str)
-
 	if self:IsDisabled() then return end
 
 	if (self:HasException(str)) then 
@@ -112,10 +107,6 @@ function object:__tostring()
 	return string.format("Restriction [%s][%s]",self:GetType(),self:GetString())
 end
 
-function object:GetStatic()
-	return Restriction
-end
-
 function object:Delete()
 	if self.scope then
 		self.scope:Delete()
@@ -128,19 +119,6 @@ function object:Shred()
 	else
 		WUMA.RemoveRestriction(_,self:GetUserGroup(),self:GetType(),self:GetString())
 	end
-end
-
-function object:Disable()
-	self.m.disabled = true
-end
-
-function object:Enable()
-	self.m.disabled = false
-end
-
-function object:IsDisabled() 
-	if self.m and self.m.disabled then return true end
-	return false
 end
 
 function object:Hit()
@@ -168,41 +146,12 @@ function object:Hit()
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
-function object:GetUniqueID()
-	return self.m._uniqueid or false
-end
-
 function object:IsPersonal()
 	if self.usergroup then return nil else return true end
 end
 
 function object:IsGeneral()
 	if self.string then return nil else return true end
-end
-
-function object:Clone()
-	local copy = table.Copy(self)
-	local origin
-	
-	if self.origin then
-		origin = self.origin
-	else
-		origin = self
-	end
-	
-	copy.origin = origin
-	local obj = Restriction:new(copy)
-
-	return obj
-end
-function object:GetBarebones()
-	local tbl = {}
-	for k,v in pairs(self) do
-		if v then
-			tbl[k] = v
-		end
-	end
-	return tbl
 end
 
 function object:AddException(str)
@@ -242,57 +191,12 @@ function object:SetPrint(str)
 	self.print = str
 end
 
-function object:GetScope()
-	return self.scope
-end
-
-function object:SetScope(scope)	
-	if not self:GetOrigin() then
-		self.scope = scope
-		if not scope.m then self.scope = Scope:new(scope) end
-	
-		self.scope:SetParent(self)
-		
-		self.scope:AllowThink()
-	end
-end
-
-function object:DeleteScope()
-	self.scope:Delete()
-	self.scope = nil
-end
-
 function object:GetString()
 	return self.string
 end
 
 function object:SetString(str)
 	self.string = string
-end
-
-function object:SetParent(ply)
-	self.m.parent = ply
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
-end
-
-function object:GetParent()
-	return self.m.parent
-end
-
-function object:GetParentID()
-	return self.m.parentid
-end
-
-function object:GetOrigin()
-	return self.m.origin
-end
-
-function object:SetAncestor(ancestor)
-	self.m.ancestor = ancestor
-end
-
-function object:GetAncestor()
-	return self.m.ancestor
 end
 
 function object:SetAllow(boolean)

@@ -42,10 +42,6 @@ function object:__eq(that)
 	return false
 end
 
-function object:GetStatic()
-	return WUMAStream
-end
-
 function object:Send(user,data)
 	if not self.server then return false end
 	local arguments = self.server(user,data)
@@ -64,10 +60,6 @@ function object:IsAuthorized(user, callback)
 	end
 end
 
-function object:GetUniqueID()
-	return obj.m._uniqueid or false
-end
-
 function object:SetServerFunction(func)
 	self.server = func
 end
@@ -80,28 +72,12 @@ function object:SetAuthenticationFunction(func)
 	self.auth = func
 end
 
-function object:Clone()
-	local obj = WUMAStream:new(table.Copy(self))
-
-	if self.origin then
-		obj.m.origin = self.origin
-	else
-		obj.m.origin = self
-	end
-
-	return obj
-end
-
 function object:SetName(name)
 	self.name = name
 end
 
 function object:GetName()
 	return self.name
-end
-
-function object:GetOrigin()
-	return self.origin
 end
 
 WUMAStream = WUMAObject:Inherit(static, object)

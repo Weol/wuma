@@ -16,6 +16,8 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
+	self.super("Construct", tbl)
+
 	self.usergroup = tbl.usergroup or nil
 	self.primary = tbl.primary or nil
 	self.supplement = tbl.supplement or nil
@@ -47,48 +49,14 @@ function object:__eq(v1,v2)
 	return false
 end
 
-function object:Clone()
-	local copy = table.Copy(self)
-
-	local origin
-	if self.origin then
-		origin = self.origin
-	else
-		origin = self
-	end
-	copy.origin = origin
-	
-	local obj = Loadout:new(copy)
-
-	return obj
-end
-
 function object:Delete()
 	for class,_ in pairs(self:GetWeapons()) do
 		self:TakeWeapon(class)
 	end
 end
 
-function object:GetBarebones()
-	local tbl = {}
-	for k,v in pairs(self) do
-		if v then
-			tbl[k] = v
-		end
-	end
-	return tbl
-end
-
-function object:GetUniqueID()
-	return self.m._uniqueid or false
-end
-
 function object:GetID()
 	return string.lower(string.format("loadout_%s",self.usergroup or "user"))
-end
-
-function object:GetStatic()
-	return Loadout
 end
 
 function object:Give(weapon)
@@ -268,7 +236,6 @@ function object:GetWeaponCount()
 	return table.Count(self:GetWeapons())
 end
 
-
 function object:SetWeapon(weapon,value)
 	if istable(value) then
 		value:SetParent(self)
@@ -287,27 +254,6 @@ end
 
 function object:GetWeapons()
 	return self.weapons
-end
-
-function object:SetParent(parent)
-	self.parent = parent
-	if isstring(self.parent) then self.parentid = self.parent elseif self.parent then self.parentid = self.parent:SteamID() end
-end
-
-function object:GetParent()
-	return self.parent
-end
-
-function object:GetParentID()
-	return self.parentid
-end
-
-function object:Disable()
-	self.m.disabled = true
-end
-
-function object:Enable()
-	self.m.disabled = false
 end
 
 function object:GetUserGroup()

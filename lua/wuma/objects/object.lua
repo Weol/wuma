@@ -18,6 +18,7 @@ end
 
 function static:Inherit(static, object)
 	static._object = object
+	object._static = static
 	setmetatable(static, getmetatable(self))
 	local tbl = setmetatable({}, static)
 	
@@ -63,7 +64,8 @@ function static:Inherit(static, object)
 			end
 		end
 
-		object.m.super = function(fn, ...) getmetatable(getmetatable(object))[fn](object, ...) end
+		local super = getmetatable(getmetatable(object)) or {}
+		object.m.super = function(fn, ...) super[fn](object, ...) end
 		object.m._uniqueid = WUMA.GenerateUniqueID()
 		
 		object:Construct(tbl or {})
@@ -74,11 +76,19 @@ function static:Inherit(static, object)
 	return tbl
 end
 
+function static:GetID()
+	return self._id
+end
+
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
 	
+end
+
+function object:GetStatic()
+	return self._static
 end
 
 function object:__tostring()
@@ -89,14 +99,20 @@ function object:GetUniqueID()
 	return self.m._uniqueid or false
 end
 
-function object:Clone()
-	local obj = static:new(table.Copy(self))
-
-	if self.origin then
-		obj.m.origin = self.origin
-	else
-		obj.m.origin = self
+function object:GetBarebones()
+	local tbl = {}
+	for k, v in pairs(self) do
+		if v then
+			tbl[k] = v
+		end
 	end
+	return tbl
+end
+
+function object:Clone()
+	local obj = self:GetStatic():new(table.Copy(self))
+
+	obj.m.origin = self.origin or self
 
 	return obj
 end

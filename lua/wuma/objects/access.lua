@@ -82,16 +82,6 @@ function object:__call(...)
 	end)
 end
 
-function object:Clone()
-	local obj = WUMAAccess:new(table.Copy(self))
-	
-	return obj
-end
-
-function object:GetUniqueID()
-	return obj.m._uniqueid or false
-end
-
 function object:Delete()
 	self = nil
 end
