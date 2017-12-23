@@ -16,7 +16,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-	self.super("Construct", tbl)
+	self:super("Construct", tbl)
 
 	self.m.origin = tbl.origin or nil
 	self.m.parent = tbl.parent or nil

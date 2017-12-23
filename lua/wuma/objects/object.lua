@@ -16,6 +16,12 @@ local function staticIndex(tbl, key)
 	end
 end
 
+local uniqueIds = 0
+local function generateUniqueId()
+	uniqueIds = uniqueIds + 1
+	return uniqueIds
+end
+
 function static:Inherit(static, object)
 	static._object = object
 	object._static = static
@@ -28,9 +34,10 @@ function static:Inherit(static, object)
 	local metatable = static
 	while (metatable) do
 		table.insert(stack, rawget(metatable, "_object"))
-		Msg((rawget(metatable, "_id") or "NO_ID").. " -> ")
+		Msg((rawget(metatable, "_id") or "NO_ID"))
 
 		metatable = getmetatable(metatable)
+		if metatable then Msg(" -> ")
 	end
 	Msg("\n")
 
@@ -66,7 +73,7 @@ function static:Inherit(static, object)
 
 		local super = getmetatable(getmetatable(object)) or {}
 		object.m.super = function(fn, ...) super[fn](object, ...) end
-		object.m._uniqueid = WUMA.GenerateUniqueID()
+		object.m._uniqueid = generateUniqueId()
 		
 		object:Construct(tbl or {})
 		return object

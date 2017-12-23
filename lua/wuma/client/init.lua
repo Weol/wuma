@@ -51,13 +51,6 @@ function WUMA.IncludeFolder(dir)
 	end
 end
 
-WUMA.UniqueIDs = 0
-function WUMA.GenerateUniqueID()
-	local id = WUMA.UniqueIDs
-	WUMA.UniqueIDs = WUMA.UniqueIDs + 1
-	return id
-end
-
 function WUMA.IsSteamID(steamid)
 	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
 end
