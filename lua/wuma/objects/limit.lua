@@ -29,7 +29,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-	self:super("Construct", tbl)
+	self.super:Construct(tbl)
 
 	self.string = tbl.string or nil
 	self.limit = tbl.limit or 0
@@ -155,6 +155,10 @@ end
 
 function object:GetUserGroup()
 	return self.usergroup
+end
+
+function object:GetString()
+	return self.string
 end
 
 function object:SetString(str)

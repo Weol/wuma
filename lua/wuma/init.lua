@@ -44,8 +44,8 @@ function WUMA.Initialize()
 	include(WUMA.ObjectsDirectory.."restriction.lua") 	
 
 	--Include CAMI before files that depend on it
-	include(WUMA.HomeDirectory.."shared/cami.lua")
 	AddCSLuaFile(WUMA.HomeDirectory.."shared/cami.lua") 
+	include(WUMA.HomeDirectory.."shared/cami.lua")
 	
 	--Include core
 	include(WUMA.HomeDirectory.."sql.lua")

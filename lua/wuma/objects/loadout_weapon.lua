@@ -16,8 +16,6 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-	self:super("Construct", tbl)
-
 	self.m.origin = tbl.origin or nil
 	self.m.parent = tbl.parent or nil
 	self.m.isprimary = tbl.isprimary or nil
@@ -47,7 +45,7 @@ function object:Delete()
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_weapon_%s",self.class))
+	return string.lower(string.format("loadout_weapon [%s]",self.class))
 end
 
 function object:SetClass(parent)

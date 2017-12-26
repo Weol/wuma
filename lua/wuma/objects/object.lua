@@ -37,7 +37,7 @@ function static:Inherit(static, object)
 		Msg((rawget(metatable, "_id") or "NO_ID"))
 
 		metatable = getmetatable(metatable)
-		if metatable then Msg(" -> ")
+		if metatable then Msg(" -> ") end
 	end
 	Msg("\n")
 
@@ -70,9 +70,12 @@ function static:Inherit(static, object)
 				tbl = getmetatable(tbl)
 			end
 		end
-
-		local super = getmetatable(getmetatable(object)) or {}
-		object.m.super = function(fn, ...) super[fn](object, ...) end
+        
+		object.m.super = setmetatable({}, {__index = function(_, key) 
+			return function(_, ...) 
+				(getmetatable(getmetatable(object)) or {})[key](object, ...) 
+			end 
+		end})
 		object.m._uniqueid = generateUniqueId()
 		
 		object:Construct(tbl or {})
@@ -91,7 +94,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-	
+
 end
 
 function object:GetStatic()
