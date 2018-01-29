@@ -98,12 +98,12 @@ end
 hook.Add("PlayerCanPickupWeapon", "WUMAPlayerCanPickupWeapon", WUMA.PlayerCanPickupWeapon, -1)
 
 function WUMA.PlayerSpawnVehicle(ply, mdl, name, vehicle_table)
-	if (ply:CheckRestriction("vehicle",string.lower(name)) == false) then return false end
-	if (ply:CheckLimit("vehicles",string.lower(name)) == false) then return false end
+	if (ply:CheckRestriction("vehicle",name) == false) then return false end
+	if (ply:CheckLimit("vehicles",name) == false) then return false end
 end
 hook.Add("PlayerSpawnVehicle", "WUMAPlayerSpawnVehicle", WUMA.PlayerSpawnVehicle, -1)
 
 function WUMA.PlayerSpawnedVehicle(ply, ent)
-	ply:AddCount("vehicles",ent,string.lower(ent:GetTable().VehicleName))
+	ply:AddCount("vehicles",ent,ent:GetTable().VehicleName)
 end
 hook.Add("PlayerSpawnedVehicle", "WUMAPlayerSpawnedVehicle", WUMA.PlayerSpawnedVehicle, -2)

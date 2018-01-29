@@ -182,7 +182,7 @@ function WUMA.GetUsers(group)
 	if isstring(group) then
 		local tbl = {}
 		for _,ply in pairs(player.GetAll()) do 
-			if (string.lower(ply:GetUserGroup()) == string.lower(group)) then 
+			if (ply:GetUserGroup() == group) then 
 				tbl[ply:SteamID()] = ply
 			end
 		end
@@ -210,7 +210,7 @@ function WUMA.HasAccess(user, callback, access)
 end
 
 function WUMA.UserToTable(user)
-	if (string.lower(type(user)) == "table") then
+	if istable(user) then
 		return user
 	else
 		return {user}
@@ -284,7 +284,9 @@ end
 hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)
 
 function WUMA.UsergroupsChanged()
-	WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("groups"):Send(users) end)
+	timer.Simple(2, function()
+		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("groups"):Send(users) end)
+	end)
 end
 hook.Add("CAMI.OnUsergroupRegistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)
 hook.Add("CAMI.OnUsergroupUnregistered", "WUMAPlayerUsergroupChanged", WUMA.UsergroupsChanged)

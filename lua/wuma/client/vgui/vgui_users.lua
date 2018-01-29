@@ -229,19 +229,19 @@ function PANEL:Init()
 	self:GetDataView():SetDisplayFunction(display)
 	
 	local sort = function(data)
-		local text = string.lower(self.textbox_search:GetValue())
-		if (text != "" and text != string.lower(self.textbox_search:GetDefault())) then
+		local text = self.textbox_search:GetValue()
+		if (text != "" and text != self.textbox_search:GetDefault()) then
 		
 			local column = "nick"
 			if (string.Left(text, 6) == "steam_") then column = "steamid" end
 			
 			local item = data[column]
 			local succ, err = pcall( function() 
-				local matched = string.match(string.lower(item),text)
+				local matched = string.match(item,text)
 			end )
 			
 			if succ then 
-				if string.match(string.lower(item),text) then
+				if string.match(item,text) then
 					return "kek"
 				end
 			end

@@ -370,7 +370,7 @@ function PANEL:OnSearch()
 	
 	for k, line in pairs(self.list_suggestions:GetLines()) do
 		local item = line:GetValue(1)
-		if not string.match(string.lower(item),string.lower(text)) then
+		if not string.match(item,text) then
 			self.list_suggestions:RemoveLine(k)
 		end
 	end
@@ -563,8 +563,8 @@ function PANEL:OnSetAsClick()
 	textbox.OnChange = function()
 		populatePlayerList()
 		for k, v in pairs(listview:GetLines()) do
-			local text = string.lower(textbox:GetValue())
-			local item = string.lower(v:GetValue(1))
+			local text = textbox:GetValue()
+			local item = v:GetValue(1)
 			if not string.match(item,text) then
 				listview:RemoveLine(k)
 			end

@@ -374,7 +374,7 @@ function WUMA.DeleteUserFile(user,enum)
 end
 
 function WUMA.DeleteUserFolder(user)
-	local path = string.lower(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user))
+	local path = WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)
 	WUMA.Files.Delete(string.Left(path,string.len(path)-1))
 end
  

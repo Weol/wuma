@@ -9,9 +9,8 @@ static._id = "UserObject"
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-	self.m.parent = tbl.parent or nil 
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
-
+	self:SetParent(tbl.parent)
+	
 	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permanent" end
 end
 
@@ -28,6 +27,10 @@ end
 
 function object:GetScope()
 	return self.scope
+end
+
+function object:HasScope()
+	return self.scope and not isstring(self.scope)
 end
 
 function object:DeleteScope()
@@ -59,7 +62,6 @@ end
 function object:GetParentID()
 	return self.m.parentid
 end
-
 
 function object:GetParent()
 	return self.m.parent

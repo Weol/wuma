@@ -56,7 +56,7 @@ function object:Delete()
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_%s",self.usergroup or "user"))
+	return string.format("loadout_%s",self.usergroup or "user")
 end
 
 function object:Give(weapon)
@@ -200,9 +200,9 @@ function object:IsPersonal()
 end
 
 function object:ParseWeapon(weapon)
-	if (string.lower(type(weapon)) == "string") then
+	if isstring(weapon) then
 		return weapon
-	elseif (string.lower(type(weapon)) == "entity") then
+	elseif isentity(weapon) then
 		return weapon:GetClass()
 	end
 	return weapon

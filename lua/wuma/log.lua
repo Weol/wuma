@@ -10,7 +10,6 @@ function WUMA.Log.ServerLog(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	WUMA.Files.Append("log.txt",msg)
 	msg = "[WUMA] " .. msg 
 	if game.IsDedicated() then
 		Msg(msg.."\n")
@@ -41,8 +40,6 @@ function WUMA.Log.DebugLog(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
-	
-	WUMA.Files.Append("log.txt",msg)
 	if game.IsDedicated() then
 		Msg(msg.."\n")
 	else

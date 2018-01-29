@@ -382,7 +382,7 @@ function PANEL:OnSearch()
 	
 		for k, line in pairs(self.list_suggestions:GetLines()) do
 			local item = line:GetValue(1)
-			if not string.match(string.lower(item),string.lower(text)) then
+			if not string.match(item,text) then
 				self.list_suggestions:RemoveLine(k)
 			end
 		end

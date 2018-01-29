@@ -8,7 +8,7 @@ static._id = "WUMA_WUMAObject"
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-local function staticIndex(tbl, key)
+local function index(tbl, key)
 	while (tbl) do
 		local value = rawget(tbl, key)
 		if value then return value end
@@ -25,63 +25,60 @@ end
 function static:Inherit(static, object)
 	static._object = object
 	object._static = static
-	setmetatable(static, getmetatable(self))
-	local tbl = setmetatable({}, static)
 	
-	getmetatable(tbl).__index = staticIndex
+	local getmeta = getmetatable --We use this like, alot
+	local setmeta = setmetatable --We use this like, alot
+	
+	setmeta(static, getmeta(self))
+	local tbl = setmeta({}, static)
+	
+	getmeta(tbl).__index = index
 
-	local stack = {}
+	local metatableStack = {}
+	local metamethodStack = {}
 	local metatable = static
 	while (metatable) do
-		table.insert(stack, rawget(metatable, "_object"))
-		Msg((rawget(metatable, "_id") or "NO_ID"))
-
-		metatable = getmetatable(metatable)
-		if metatable then Msg(" -> ") end
-	end
-	Msg("\n")
-
-	local count = table.Count
-	getmetatable(tbl).new = function(self, tbl)
-		local object = {}
-
-		local metatable = object
-		for i = 1, count(stack) do
-			setmetatable(metatable, stack[i])
-
-			Msg(stack[i]._id .. " -> ")
-			
-			metatable = getmetatable(metatable)
-		end
-		Msg("\n")
-		
-		local m = {}
-
-		getmetatable(object).__index = function(self, key)
-			if (key == "m") then return m end
-
-			local value = rawget(m, key)
-			if value then return value end
-			
-			local tbl = self
-			while (tbl) do
-				local value = rawget(tbl, key)
-				if value then return value end
-				tbl = getmetatable(tbl)
+		local entry = rawget(metatable, "_object")
+		table.insert(metatableStack, entry)
+		for k, v in pairs(entry) do
+			if string.StartWith(k, "__") then
+				metamethodStack[k] = v
 			end
 		end
-        
-		object.m.super = setmetatable({}, {__index = function(_, key) 
+		
+		metatable = getmeta(metatable)
+	end
+
+	local count = table.Count
+	getmeta(tbl).new = function(_, tbl)
+		local object = setmeta({}, {m = {}})
+		
+		local metatable = getmeta(object)
+		for i = 1, count(metatableStack) do
+			setmeta(metatable, metatableStack[i])
+			
+			metatable = getmeta(metatable)
+		end
+		
+		local metatable = getmeta(object)
+		for k, v in pairs(metamethodStack) do
+			metatable[k] = v
+		end
+
+		metatable.__index = index 
+		
+		metatable.super = setmeta({}, {__index = function(_, key) 
 			return function(_, ...) 
-				(getmetatable(getmetatable(object)) or {})[key](object, ...) 
+				getmeta(getmeta(metatable))[key](object, ...) 
 			end 
 		end})
+		
 		object.m._uniqueid = generateUniqueId()
 		
 		object:Construct(tbl or {})
 		return object
 	end
-	getmetatable(tbl).New = getmetatable(tbl).new
+	getmeta(tbl).New = getmeta(tbl).new
 	
 	return tbl
 end
@@ -94,7 +91,7 @@ end
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
 function object:Construct(tbl)
-
+	
 end
 
 function object:GetStatic()

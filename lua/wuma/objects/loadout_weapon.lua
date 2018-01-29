@@ -39,13 +39,13 @@ function object:__eq(v1,v2)
 end
 
 function object:Delete()
-	if self.scope then
+	if self:HasScope() then
 		self.scope:Delete()
 	end
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_weapon [%s]",self.class))
+	return string.format("loadout_weapon [%s]",self.class)
 end
 
 function object:SetClass(parent)

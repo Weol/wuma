@@ -28,15 +28,15 @@ static.types = {
 function static:GenerateID(type,usergroup,str)
 	if usergroup then
 		if str then
-			return string.lower(type.."_"..usergroup.."_"..str)
+			return type.."_"..usergroup.."_"..str
 		else
-			return string.lower(type.."_"..usergroup)
+			return type.."_"..usergroup
 		end
 	else
 		if str then
-			return string.lower(type.."_"..str)
+			return type.."_"..str
 		else
-			return string.lower(type)
+			return type
 		end
 	end
 end 
@@ -45,7 +45,7 @@ function static:GetTypes(field)
 	if field then
 		local tbl = {}
 		
-		for _, type in pairs(Restriction.types) do 
+		for _, type in pairs(self.types) do 
 			for key,value in pairs(type) do 
 				if (key == field) then
 					table.insert(tbl,value)
@@ -56,7 +56,7 @@ function static:GetTypes(field)
 		return tbl
 	end
 
-	return Restriction.types
+	return self.types
 end
 
 function static:GetAllResitrictableItems()
@@ -108,7 +108,7 @@ function object:__tostring()
 end
 
 function object:Delete()
-	if self.scope then
+	if self:HasScope() then
 		self.scope:Delete()
 	end
 end
@@ -141,7 +141,7 @@ function object:Hit()
 	else
 		self:GetParent():SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
-		]],string.lower(Restriction:GetTypes()[self:GetType()].print), str))
+		]],Restriction:GetTypes()[self:GetType()].print), str)
 	end
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
@@ -210,15 +210,15 @@ end
 function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
 		if self:GetString() then
-			return string.lower(string.format("%s_%s",self.type,self.string))
+			return string.format("%s_%s",self.type,self.string)
 		else
-			return string.lower(self.type)
+			return self.type
 		end
 	else
 		if self:GetString() then
-			return string.lower(string.format("%s_%s_%s",self.type,self.usergroup,self.string))
+			return string.format("%s_%s_%s",self.type,self.usergroup,self.string)
 		else
-			return string.lower(string.format("%s_%s",self.type,self.usergroup))
+			return string.format("%s_%s",self.type,self.usergroup)
 		end
 	end
 end

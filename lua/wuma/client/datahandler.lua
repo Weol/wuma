@@ -347,6 +347,7 @@ function WUMA.ProcessInformationUpdate(enum,data)
 	WUMADebug("Process Information Update:")
 
 	if WUMA.GetStream(enum) then
+		PrintTable(getmetatable(WUMA.GetStream(enum)))
 		WUMA.GetStream(enum)(data)
 	else	
 		WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))

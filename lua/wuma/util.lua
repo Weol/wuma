@@ -16,7 +16,7 @@ function WUMA.RemoveLookup(user)
 end
 
 function WUMA.Lookup(user)
-	if (string.lower(type(user)) == "string") then
+	if isstring(user) then
 		if WUMA.IsSteamID(user) then
 			return WUMASQL("SELECT * FROM %s WHERE steamid LIKE '%s%s LIMIT 50;", WUMA.WUMALookupTable, sql.SQLStr(user,true), "%'")
 		else

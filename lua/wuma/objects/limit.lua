@@ -14,9 +14,9 @@ end
  
 function static:GenerateID(usergroup,str)
 	if usergroup then
-		return string.lower(string.format("%s_%s",usergroup,str))
+		return string.format("%s_%s",usergroup,str)
 	else
-		return string.lower(str)
+		return str
 	end
 end
 
@@ -51,9 +51,7 @@ function object:Construct(tbl)
 	
 	--Parse limit
 	if (tonumber(self.limit) != nil) then self.limit = tonumber(self.limit) end
-	
-	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permanent" end
-  
+
 	return obj
 end 
 
@@ -98,7 +96,7 @@ function object:Delete()
 		entity:RemoveWUMAParent(entity)
 	end
 	
-	if self.scope then
+	if self:HasScope() then
 		self.scope:Delete()
 	end
 end
@@ -138,9 +136,9 @@ end
 
 function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
-		return string.lower(self.string)
+		return self.string
 	else
-		return string.lower(string.format("%s_%s",self:GetUserGroup(),self:GetString()))
+		return string.format("%s_%s",self:GetUserGroup(),self:GetString())
 	end
 end
 

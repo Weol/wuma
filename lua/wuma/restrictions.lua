@@ -77,6 +77,8 @@ end
 
 function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 
+	WUMADebug("WUMA.AddRestriction(%s, %s, %s, %s, %s, %s)", caller or "NIL",usergroup or "NIL",type or "NIL",item or "NIL",anti or "NIL",scope or "NIL")
+
 	local restriction = Restriction:new({type=type,string=item,usergroup=usergroup,allow=anti,scope=scope})
 	
 	WUMA.Restrictions[restriction:GetID()] = restriction

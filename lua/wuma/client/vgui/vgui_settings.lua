@@ -425,19 +425,19 @@ function PANEL:UpdateInheritance(inheritance)
 			if (selected == target) then
 				if (enum == Restriction:GetID()) then
 					for k, v in pairs(self.inheritance_restriction.combobox.Choices) do
-						if (string.lower(v) == string.lower(usergroup)) then 
+						if (v == usergroup) then 
 							self.inheritance_restriction.combobox:ChooseOptionID(k)
 						end
 					end
 				elseif (enum == Loadout:GetID()) then
 					for k, v in pairs(self.inheritance_loadout.combobox.Choices) do
-						if (string.lower(v) == string.lower(usergroup)) then 
+						if (v == usergroup) then 
 							self.inheritance_loadout.combobox:ChooseOptionID(k)
 						end
 					end
 				elseif (enum == Limit:GetID()) then
 					for k, v in pairs(self.inheritance_limit.combobox.Choices) do
-						if (string.lower(v) == string.lower(usergroup)) then 
+						if (v == usergroup) then 
 							self.inheritance_limit.combobox:ChooseOptionID(k)
 						end
 					end

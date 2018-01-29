@@ -98,8 +98,14 @@ static.types.MAP = static.MAP
 /////////////////////////////////////////////////////////
 function static:StartThink()
 	if not timer.Exists("WUMAScopeStaticThinkTimer") then
-		timer.Create("WUMAScopeStaticThinkTimer",1,0,Scope.Think)
+		timer.Create("WUMAScopeStaticThinkTimer",1,0,function() self:Think() end)
+		self.ThinkActive = true
+		self:ExecuteThinkQueue()
 	end
+end
+
+function static:IsThinking() 
+	return (self.ThinkActive == true)
 end
 
 function static:GetTypes(field)
@@ -129,12 +135,36 @@ function static:__eq(v1, v2)
 	if v1._id and v2._id then return (v1._id == v2.__id) end
 end
 
+static.ScopeThinkHooks = {}
 function static:Think()
 	if SERVER then
-		hook.Call("WUMAScopeThink")
+		for id, scope in pairs(self.ScopeThinkHooks) do
+			scope:Think()
+		end
 	end
 end
 
+function static:AddScopeThinkHook(scope)
+	self.ScopeThinkHooks[scope:GetUniqueID()] = scope
+end
+
+function static:RemoveScopeThinkHook(scope)
+	self.ScopeThinkHooks[scope:GetUniqueID()] = nil
+end
+
+function static:ExecuteThinkQueue()
+	if self.thinkQueue then
+		for id, scope in pairs(self.thinkQueue) do
+			scope:Think()
+		end
+		self.thinkQueue = false
+	end
+end
+
+function static:QueueThink(scope)
+	self.thinkQueue = self.thinkQueue or {}
+	self.thinkQueue[scope:GetUniqueID()] = scope
+end
 
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
@@ -147,7 +177,7 @@ function object:Construct(tbl)
 	self.m.parent = tbl.parent or false
 	
 	if (self:GetType() != "MAP") then 
-		hook.Add("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()),function() self:Think() end)
+		self:GetStatic():AddScopeThinkHook(self)
 	end
 end 
 
@@ -161,11 +191,11 @@ function object:__tostring()
 end
 
 function object:Delete()
-	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
+	self:GetStatic():RemoveScopeThinkHook(self)
 end	
 
 function object:Shred()
-	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
+	self:GetStatic():RemoveScopeThinkHook(self)
 	self:GetParent():Shred()
 end
 
@@ -205,7 +235,11 @@ end
 
 function object:AllowThink()
 	self.m.allowed_think = true
-	self:Think()
+	if self:GetStatic():IsThinking() then
+		self:Think()
+	else
+		self:GetStatic():QueueThink(self)
+	end
 end
 
 function object:DisallowThink()

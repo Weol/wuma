@@ -71,16 +71,16 @@ function WUMA.Initialize()
 	--Initialize database
 	WUMA.SQL.Initialize()
 	
+	--Load shared files
+	WUMALog("Loading shared files")
+	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
+	WUMA.LoadFolder(WUMA.SharedDirectroy) 
+	
 	--Load data 
 	WUMA.LoadRestrictions()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
 	WUMA.LoadInheritance()
-	
-	--Load shared files
-	WUMALog("Loading shared files")
-	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
-	WUMA.LoadFolder(WUMA.SharedDirectroy) 
 	
 	--Load client files
 	WUMALog("Loading client files")
