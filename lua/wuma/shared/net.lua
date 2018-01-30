@@ -95,8 +95,8 @@ if SERVER then
 		local tbl = util.JSONToTable(util.Decompress(data))
 		local cmd = tbl[1]
 		
-		WUMADebug(cmd)
-		PrintTable(tbl)
+		--WUMADebug(cmd)
+		--PrintTable(tbl)
 		
 		local data = {user}
 		table.Add(data,tbl[2])
