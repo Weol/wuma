@@ -1,6 +1,5 @@
 
 local ENT = FindMetaTable("Entity")
-local self = ENT
 
 function ENT:AddWUMAParent(limit)
 	self.WUMAParents = self.WUMAParents or {}

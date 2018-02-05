@@ -563,8 +563,8 @@ function PANEL:OnSetAsClick()
 	textbox.OnChange = function()
 		populatePlayerList()
 		for k, v in pairs(listview:GetLines()) do
-			local text = string.lower(textbox:GetValue())
-			local item = string.lower(v:GetValue(1))
+			local text = textbox:GetValue()
+			local item = v:GetValue(1)
 			if not string.match(item,text) then
 				listview:RemoveLine(k)
 			end

@@ -87,7 +87,7 @@ function object:GetUniqueID()
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_weapon_%s",self.class))
+	return string.format("loadout_weapon_%s",self.class)
 end
 
 function object:GetStatic()

@@ -1,28 +1,24 @@
  
 local ENT = FindMetaTable("Player")
   
+ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
 function ENT:CheckLimit(str, WUMA) 
 
-	if (game.SinglePlayer()) then return true end
-	
 	if (WUMA and self:HasLimit(WUMA)) then
 		local limithit = self:GetLimit(WUMA):Check() 
 		if (limithit != nil) then return limithit end
 	end	
-	
+	 
 	if (self:HasLimit(str)) then
 		local limithit = self:GetLimit(str):Check()
 		if (limithit != nil) then return limithit end
 	end
 
-	local c = cvars.Number("sbox_max"..str, 0)
-
-	if (c < 0) then return true end
-	if (self:GetCount(str) > c-1) then self:LimitHit(str) return false end
-	return true
-	
+	--Fall back to whichever system we overrode
+	return self.old_CheckLimit(self, str)	
 end 
   
+ENT.old_AddCount = ENT.old_AddCount or ENT.AddCount
 function ENT:AddCount(str, ent, WUMA)
 
 	if (WUMA and self:HasLimit(WUMA)) then 
@@ -30,33 +26,19 @@ function ENT:AddCount(str, ent, WUMA)
 	elseif (self:HasLimit(str)) then
 		self:GetLimit(str):Add(ent)
 	elseif str then
-
-		if (SERVER) then
-
-			local key = self:UniqueID()
-			g_SBoxObjects[ key ] = g_SBoxObjects[ key ] or {}
-			g_SBoxObjects[ key ][ str ] = g_SBoxObjects[ key ][ str ] or {}
-			
-			local tab = g_SBoxObjects[ key ][ str ]
-			
-			table.insert(tab, ent)
-			
-			-- Update count (for client)
-			self:GetCount(str)
-			
-			ent:CallOnRemove("GetCountUpdate", function (ent, ply, str) ply:GetCount(str, 1) end, self, str)
-		
-		end
-	
+		self.old_AddCount(self, str, ent)
 	end 
-		 
 	
 end 
      
+ENT.old_GetCount = ENT.old_GetCount or ENT.GetCount
 function ENT:GetCount(str, minus, WUMA)
 	
 	minus = minus or 0 
 
+	--Lets not do anything if we are running at client, let the sandbox function handle that
+	if CLIENT then return self.old_GetCount(self, str, minus) end
+	
 	if (WUMA and self:HasLimit(WUMA)) then 
 		local l = self:GetLimit(WUMA):GetCount()
 		if (minus > 0) then self:GetLimit(WUMA):Subtract(minus) end
@@ -66,51 +48,17 @@ function ENT:GetCount(str, minus, WUMA)
 		if (minus > 0) then self:GetLimit(str):Subtract(minus) end
 		return l
 	else
-		
-		if (CLIENT) then
-			return self:GetNetworkedInt("Count."..str, 0)
-		end
-		
-		if (!self:IsValid()) then return end
-
-		local key = self:UniqueID()
-		local tab = g_SBoxObjects[ key ]
-		
-		if (!tab || !tab[ str ]) then  
-		
-			self:SetNetworkedInt("Count."..str, 0)
-			return 0 
-			
-		end
-		
-		local c = 0
-
-		for k, v in pairs(tab[ str ]) do
-		
-			if (v:IsValid()) then 
-				c = c + 1
-			else
-				tab[ str ][ k ] = nil
-			end
-		
-		end
-		
-		self:SetNetworkedInt("Count."..str, c - minus)
-
-		return c
-			
+		return self.old_GetCount(self, str, minus)	
 	end
 	
 end
 
 function ENT:LimitHit(str)
-
 	if self:HasLimit(str) then
 		self:GetLimit(str):Hit()
 	else
 		Limit:GenerateHit(str,self)
 	end
-
 end
 
 function ENT:GetWUMAData()

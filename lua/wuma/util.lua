@@ -14,6 +14,7 @@ function WUMA.GenerateUniqueID()
 	return id
 end
 
+
 function WUMA.AddLookup(user)
 	WUMASQL("REPLACE INTO %s (steamid, nick, usergroup, t) values ('%s','%s','%s',%s);",WUMA.SQL.WUMALookupTable,user:SteamID(),user:Nick(),user:GetUserGroup(),tostring(os.time()))
 end
@@ -23,7 +24,7 @@ function WUMA.RemoveLookup(user)
 end
 
 function WUMA.Lookup(user)
-	if (string.lower(type(user)) == "string") then
+	if isstring(user) then
 		if WUMA.IsSteamID(user) then
 			return WUMASQL("SELECT * FROM %s WHERE steamid LIKE '%s%s LIMIT 50;", WUMA.WUMALookupTable, sql.SQLStr(user,true), "%'")
 		else

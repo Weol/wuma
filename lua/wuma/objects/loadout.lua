@@ -98,7 +98,7 @@ function object:GetUniqueID()
 end
 
 function object:GetID()
-	return string.lower(string.format("loadout_%s",self.usergroup or "user"))
+	return string.format("loadout_%s",self.usergroup or "user")
 end
 
 function object:GetStatic()
@@ -246,9 +246,9 @@ function object:IsPersonal()
 end
 
 function object:ParseWeapon(weapon)
-	if (string.lower(type(weapon)) == "string") then
+	if (type(weapon) == "string") then
 		return weapon
-	elseif (string.lower(type(weapon)) == "entity") then
+	elseif (type(weapon) == "entity") then
 		return weapon:GetClass()
 	end
 	return weapon

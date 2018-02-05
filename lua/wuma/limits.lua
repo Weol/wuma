@@ -116,6 +116,10 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 		return tbl
 	end)
 
+	WUMA.InvalidateCache(Limit:GetID())
+
+	return affected
+
 end
 
 function WUMA.RemoveLimit(caller,usergroup,item)
@@ -172,6 +176,11 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 		
 		return tbl
 	end)
+	
+	WUMA.InvalidateCache(Limit:GetID())
+
+	return affected
+
 end
 
 function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)

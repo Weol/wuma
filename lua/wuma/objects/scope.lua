@@ -7,7 +7,7 @@ local static = {}
 
 Scope.UNTIL = {
 	print="Until date",
-	print2=function(obj) return string.format("%s/%s/%s",obj:GetData().day,obj:GetData().month,obj:GetData().year) end,
+	print2=function(obj) return string.format("%02d/%02d/%04d",tonumber(obj:GetData().day),tonumber(obj:GetData().month),tonumber(obj:GetData().year)) end,
 	log_prefix="until",
 	parts={"date_chooser"},
 	save=true,

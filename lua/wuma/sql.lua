@@ -1,8 +1,10 @@
 
 WUMA = WUMA or {}
+WUMA.SQL = WUMA.SQL or {}
+
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
-WUMA.SQL = WUMA.SQL or {}
+
 WUMA.SQL.WUMALookupTable = "WUMALookup"
 
 function WUMA.SQL.Initialize()

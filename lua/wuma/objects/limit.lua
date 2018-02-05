@@ -53,9 +53,9 @@ end
  
 function static:GenerateID(usergroup,str)
 	if usergroup then
-		return string.lower(string.format("%s_%s",usergroup,str))
+		return string.format("%s_%s",usergroup,str)
 	else
-		return string.lower(str)
+		return str
 	end
 end
 
@@ -178,9 +178,9 @@ end
 
 function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
-		return string.lower(self.string)
+		return self.string
 	else
-		return string.lower(string.format("%s_%s",self:GetUserGroup(),self:GetString()))
+		return string.format("%s_%s",self:GetUserGroup(),self:GetString())
 	end
 end
 

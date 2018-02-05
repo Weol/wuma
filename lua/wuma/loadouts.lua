@@ -104,6 +104,8 @@ function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 		end
 	end)
 	
+	WUMA.InvalidateCache(Loadout:GetID())
+
 	return affected, item
 end
 
@@ -152,6 +154,8 @@ function WUMA.SetEnforceLoadout(caller,usergroup,enforce)
 			end
 		end
 	end)
+
+	WUMA.InvalidateCache(Loadout:GetID())
 	
 	return affected
 end
@@ -207,6 +211,8 @@ function WUMA.AddLoadoutWeapon(caller,usergroup,item,primary,secondary,respect,s
 		return tbl
 	end)
 	
+	WUMA.InvalidateCache(Loadout:GetID())
+
 	return affected
 	
 end
@@ -262,6 +268,9 @@ function WUMA.RemoveLoadoutWeapon(caller,usergroup,item)
 	if (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then 
 		WUMA.Loadouts[usergroup] = nil
 	end
+
+	WUMA.InvalidateCache(Loadout:GetID())
+
 	return affected
 	
 end
@@ -287,6 +296,8 @@ function WUMA.ClearLoadout(caller,usergroup)
 		return tbl
 	end)
 	
+	WUMA.InvalidateCache(Loadout:GetID())
+
 	return affected
 	
 end
@@ -332,12 +343,13 @@ function WUMA.SetUserEnforceLoadout(caller,user,enforce)
 		if not user:HasLoadout() then return false end
 		if user:HasLoadout() and not user:GetLoadout():IsPersonal() then return false end
 		user:GetLoadout():SetEnforce(enforce)
+
+		if not enforce then
+			WUMA.GiveLoadout(user)
+		end
 	else
 	end
 	
-	if not enforce then
-		WUMA.GiveLoadout(user)
-	end
 	
 	WUMA.AddClientUpdate(Loadout,function(tbl)
 		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
@@ -353,8 +365,10 @@ function WUMA.SetUserEnforceLoadout(caller,user,enforce)
 end
 
 function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respect, scope)
+	
 	if scope then scope:SetProperty("class",item) end
 
+	local loadout
 	if isentity(user) then
 		if not user:HasLoadout() then
 			local loadout = Loadout:new{parent=user}
@@ -367,11 +381,20 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 		else
 			user:GetLoadout():AddWeapon(item, primary, secondary, respect, scope)
 		end
+
+		loadout = user:GetLoadout()
+	else
+		loadout = WUMA.ReadUserLoadout(user)
 	end
-	
+
 	WUMA.AddClientUpdate(Loadout,function(tbl)
 		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
 		tbl:AddWeapon(item,primary,secondary,respect,scope)
+
+		if loadout then
+			tbl:SetEnforce(loadout:GetEnforce())
+		end
+
 		return tbl
 	end, user)
 	
@@ -394,9 +417,21 @@ function WUMA.RemoveUserLoadoutWeapon(caller,user,item)
 		end
 	end
 
+	local loadout
+	if isentity(user) then
+		loadout = user:GetLoadout()
+	else
+		loadout = WUMA.ReadUserLoadout(user)
+	end
+
 	WUMA.AddClientUpdate(Loadout,function(tbl)
 		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
 		tbl:SetWeapon(item, WUMA.DELETE)
+
+		if loadout then
+			tbl:SetEnforce(loadout:GetEnforce())
+		end
+
 		return tbl
 	end, user)
 

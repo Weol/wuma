@@ -2,6 +2,7 @@
 WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
+
 WUMA.Restrictions = WUMA.Restrictions or {}
 WUMA.UsergroupRestrictions = WUMA.UsergroupRestrictions or {}
 
@@ -110,6 +111,8 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 		return tbl
 	end)
 
+	WUMA.InvalidateCache(Restriction:GetID())
+
 	return affected
 	
 end
@@ -169,7 +172,9 @@ function WUMA.RemoveRestriction(caller,usergroup,type,item)
 		
 		return tbl
 	end)
-	
+
+	WUMA.InvalidateCache(Restriction:GetID())
+
 	return affected
 end
 

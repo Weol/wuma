@@ -16,14 +16,23 @@ function WUMA.Initialize()
 	include("datahandler.lua")
 	include("gui.lua")
 	
-	//Load object folder
-	WUMA.IncludeFolder("wuma/objects/")
+	WUMADebug("Loading objects")
+	include("wuma/objects/object.lua")	
+	include("wuma/objects/userobject.lua") 
+	include("wuma/objects/access.lua") 
+	include("wuma/objects/stream.lua") 	
+	include("wuma/objects/scope.lua") 	
+	include("wuma/objects/loadout.lua") 	
+	include("wuma/objects/loadout_weapon.lua") 	
+	include("wuma/objects/restriction.lua") 	
+	include("wuma/objects/limit.lua") 	
 	
 	//Load shared folder
+	WUMADebug("Loading shared folder")
 	WUMA.IncludeFolder("wuma/shared/")
 	 
 	//Load vgui folder
-	WUMADebug("Loading VGUI Folder")
+	WUMADebug("Loading VGUI folder")
 	WUMA.IncludeFolder(WUMA.HomePath.."vgui/")
 
 end
@@ -43,10 +52,10 @@ function WUMA.IncludeFolder(dir)
 	end
 end
 
-WUMA.UniqueIDs = 0
+local uniqueIDs = 0
 function WUMA.GenerateUniqueID()
-	local id = WUMA.UniqueIDs
-	WUMA.UniqueIDs = WUMA.UniqueIDs + 1
+	local id = uniqueIDs+1
+	uniqueIDs = uniqueIDs + 1
 	return id
 end
 

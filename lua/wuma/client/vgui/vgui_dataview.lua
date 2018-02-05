@@ -12,6 +12,28 @@ function PANEL:Init()
 	self.DataTable = function() return {} end
 end
 
+function PANEL:SortByColumn(ColumnID, Desc)
+
+	table.Copy( self.Sorted, self.Lines )
+
+	table.sort( self.Sorted, function( a, b )
+
+		if ( Desc ) then
+			a, b = b, a
+		end
+
+		local aval = a:GetSortValue( ColumnID ) || a:GetColumnText( ColumnID )
+		local bval = b:GetSortValue( ColumnID ) || b:GetColumnText( ColumnID )
+
+		return aval < bval
+
+	end )
+
+	self:SetDirty( true )
+	self:InvalidateLayout()
+
+end
+
 function PANEL:GetSelectedItems()
 	local selected = self:GetSelected()
 	
@@ -174,15 +196,6 @@ function PANEL:ClearView()
 	self:SortAll()
 end
 
-function PANEL:SetDataTable(func)
-	self.DataTable = func
-	self.SortedData = {}
-	self.DataRegistry = {}
-	self:Clear()
-	
-	self:SortAll()
-end
-
 function PANEL:SortAll()
 	self.Groups = {}
 	self.Keys = {}
@@ -190,6 +203,15 @@ function PANEL:SortAll()
  	for k, v in pairs(self.DataTable()) do
 		self:Sort(k, v)
 	end
+end
+
+function PANEL:SetDataTable(func)
+	self.DataTable = func
+	self.SortedData = {}
+	self.DataRegistry = {}
+	self:Clear()
+	
+	self:SortAll()
 end
 
 function PANEL:UpdateDataTable(update)
