@@ -1,13 +1,50 @@
 
+Loadout = {}
+
 local object = {}
 local static = {}
 
+Loadout._id = "WUMA_Loadout"
 object._id = "WUMA_Loadout"
-static._id = "WUMA_Loadout"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
+function Loadout:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
+	obj.usergroup = tbl.usergroup or nil
+	obj.primary = tbl.primary or nil
+	obj.supplement = tbl.supplement or nil
+	obj.respect_restrictions = tbl.respect_restrictions or nil
+	obj.parent = tbl.parent or nil
+	if isstring(obj.parent) then obj.parentid = obj.parent elseif obj.parent then obj.parentid = obj.parent:SteamID() end
+	obj.weapons = {}
+	
+	if tbl.weapons then
+		for class, wep in pairs(tbl.weapons) do
+			if istable(wep) then
+				wep.parent = obj
+				obj.weapons[class] = Loadout_Weapon:new(wep)
+			end
+		end
+	end
+	
+	obj.m._id = Loadout._id
+	
+	obj.m.origin = tbl.origin or nil
+	obj.m.ancestor = tbl.ancestor or nil
+	obj.m.child = tbl.child or nil
+
+	return obj
+end 
+
 function static:GetID()
 	return Loadout._id
 end
@@ -15,31 +52,6 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.super:Construct(tbl)
-
-	self.usergroup = tbl.usergroup or nil
-	self.primary = tbl.primary or nil
-	self.supplement = tbl.supplement or nil
-	self.respect_restrictions = tbl.respect_restrictions or nil
-	self.parent = tbl.parent or nil
-	if isstring(self.parent) then self.parentid = self.parent elseif self.parent then self.parentid = self.parent:SteamID() end
-	self.weapons = {}
-	
-	if tbl.weapons then
-		for class, wep in pairs(tbl.weapons) do
-			if istable(wep) then
-				wep.parent = self
-				self.weapons[class] = Loadout_Weapon:new(wep)
-			end
-		end
-	end
-
-	self.m.origin = tbl.origin or nil
-	self.m.ancestor = tbl.ancestor or nil
-	self.m.child = tbl.child or nil
-end 
-
 function object:__tostring()
 	return string.format("Loadout [%s]",self:GetParent() or self.usergroup)
 end
@@ -49,14 +61,48 @@ function object:__eq(v1,v2)
 	return false
 end
 
+function object:Clone()
+	local copy = table.Copy(self)
+
+	local origin
+	if self.origin then
+		origin = self.origin
+	else
+		origin = self
+	end
+	copy.origin = origin
+	
+	local obj = Loadout:new(copy)
+
+	return obj
+end
+
 function object:Delete()
 	for class,_ in pairs(self:GetWeapons()) do
 		self:TakeWeapon(class)
 	end
 end
 
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v then
+			tbl[k] = v
+		end
+	end
+	return tbl
+end
+
+function object:GetUniqueID()
+	return self.m._uniqueid or false
+end
+
 function object:GetID()
 	return string.format("loadout_%s",self.usergroup or "user")
+end
+
+function object:GetStatic()
+	return Loadout
 end
 
 function object:Give(weapon)
@@ -200,9 +246,9 @@ function object:IsPersonal()
 end
 
 function object:ParseWeapon(weapon)
-	if isstring(weapon) then
+	if (type(weapon) == "string") then
 		return weapon
-	elseif isentity(weapon) then
+	elseif (type(weapon) == "entity") then
 		return weapon:GetClass()
 	end
 	return weapon
@@ -236,6 +282,7 @@ function object:GetWeaponCount()
 	return table.Count(self:GetWeapons())
 end
 
+
 function object:SetWeapon(weapon,value)
 	if istable(value) then
 		value:SetParent(self)
@@ -254,6 +301,27 @@ end
 
 function object:GetWeapons()
 	return self.weapons
+end
+
+function object:SetParent(parent)
+	self.parent = parent
+	if isstring(self.parent) then self.parentid = self.parent elseif self.parent then self.parentid = self.parent:SteamID() end
+end
+
+function object:GetParent()
+	return self.parent
+end
+
+function object:GetParentID()
+	return self.parentid
+end
+
+function object:Disable()
+	self.m.disabled = true
+end
+
+function object:Enable()
+	self.m.disabled = false
 end
 
 function object:GetUserGroup()
@@ -328,4 +396,8 @@ function object:GetPrimary()
 	return self.primary
 end
 
-Loadout = WUMAObject:Inherit(static, object)
+object.__index = object
+static.__index = static
+
+setmetatable(Loadout,static) 
+

@@ -1,13 +1,39 @@
 
+Loadout_Weapon = {}
+
 local object = {}
 local static = {}
 
+Loadout_Weapon._id = "WUMA_Loadout_Weapon"
 object._id = "WUMA_Loadout_Weapon"
-static._id = "WUMA_Loadout_Weapon"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
+function Loadout_Weapon:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
+	obj.m.origin = tbl.origin or nil
+	obj.m.parent = tbl.parent or nil
+	obj.m.isprimary = tbl.isprimary or nil
+	obj.class = tbl.class or nil
+	obj.primary = tbl.primary or -1
+	obj.secondary = tbl.secondary or -1
+	obj.respect_restrictions = tbl.respect_restrictions or nil
+	
+	obj.m._id = Loadout_Weapon._id
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permenant" end
+
+	return obj
+end 
+
 function static:GetID()
 	return Loadout_Weapon._id
 end
@@ -15,20 +41,6 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.m.origin = tbl.origin or nil
-	self.m.parent = tbl.parent or nil
-	self.m.isprimary = tbl.isprimary or nil
-	self.class = tbl.class or nil
-	self.primary = tbl.primary or -1
-	self.secondary = tbl.secondary or -1
-	self.respect_restrictions = tbl.respect_restrictions or nil
-	
-	self.m._id = Loadout_Weapon._id
-	
-	if tbl.scope then self:SetScope(tbl.scope) else self.m.scope = "Permenant" end
-end 
-
 function object:__tostring()
 	return string.format("Loadout_Weapon [%s]",self.class)
 end
@@ -38,14 +50,48 @@ function object:__eq(v1,v2)
 	return false
 end
 
+function object:Clone()
+	local copy = table.Copy(self)
+	local origin
+	
+	if self.origin then
+		origin = self.origin
+	else
+		origin = self
+	end
+	
+	copy.origin = origin
+	local obj = Loadout_Weapon:new(copy)
+
+	return obj
+end
+
 function object:Delete()
-	if self:HasScope() then
+	if self.scope then
 		self.scope:Delete()
 	end
 end
 
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v then
+			tbl[k] = v
+		end
+	end
+	return tbl
+end
+
+function object:GetUniqueID()
+	return obj.m._uniqueid or false
+end
+
 function object:GetID()
-	return string.format("loadout_weapon [%s]",self.class)
+	return string.format("loadout_weapon_%s",self.class)
+end
+
+function object:GetStatic()
+	return Loadout_Weapon
 end
 
 function object:SetClass(parent)
@@ -70,6 +116,29 @@ end
 
 function object:GetSecondaryAmmo()
 	return self.secondary
+end
+
+function object:GetParent()
+	return self.m.parent
+end
+
+function object:SetParent(parent)
+	self.m.parent = parent
+end
+
+function object:GetOrigin()
+	return self.origin
+end
+
+function object:SetScope(scope)	
+	if not self:GetOrigin() then
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
+	end
 end
 
 function object:Disable()
@@ -113,4 +182,8 @@ function object:DoesRespectRestriction()
 	return self.respect_restrictions
 end
 
-Loadout_Weapon = UserObject:Inherit(static, object)
+object.__index = object
+static.__index = static
+
+setmetatable(Loadout_Weapon,static) 
+

@@ -231,7 +231,7 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.UserChatCommand(user, text, public)
-	if (string.lower(text) == string.lower(WUMA.PersonalLoadoutCommand:GetString())) then user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]]); return "" end
+	if (text == WUMA.PersonalLoadoutCommand:GetString()) then user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]]); return "" end
 end
 hook.Add("PlayerSay", "WUMAChatCommand", WUMA.UserChatCommand)
 

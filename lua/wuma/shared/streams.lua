@@ -220,10 +220,10 @@ Restrictions:SetServerFunction(function(user,data)
 		end
 	else
 		if WUMA.RestrictionsExist() then
-			local cached = WUMA.Cache(Restrictions:GetName())
+			local cached = WUMA.Cache(Restriction:GetID())
 			if not cached then
 				cached = util.Compress(util.TableToJSON(WUMA.Restrictions))
-				WUMA.Cache(Restrictions:GetName(), cached)
+				WUMA.Cache(Restriction:GetID(), cached)
 			end
 			return {user, cached, Restriction:GetID(), true}
 		else
@@ -249,10 +249,10 @@ Limits:SetServerFunction(function(user,data)
 		end 
 	else
 		if WUMA.LimitsExist() then
-			local cached = WUMA.Cache(Limits:GetName())
+			local cached = WUMA.Cache(Limit:GetID())
 			if not cached then
 				cached = util.Compress(util.TableToJSON(WUMA.Limits))
-				WUMA.Cache(Limits:GetName(), cached)
+				WUMA.Cache(Limit:GetID(), cached)
 			end
 			return {user, cached, Limit:GetID(), true}
 		else
@@ -278,10 +278,10 @@ Loadouts:SetServerFunction(function(user,data)
 		end
 	else
 		if WUMA.LoadoutsExist() then
-			local cached = WUMA.Cache(Loadouts:GetName())
+			local cached = WUMA.Cache(Loadout:GetID())
 			if not cached then
 				cached = util.Compress(util.TableToJSON(WUMA.Loadouts))
-				WUMA.Cache(Loadouts:GetName(), cached)
+				WUMA.Cache(Loadout:GetID(), cached)
 			end
 			return {user, cached, Loadout:GetID(), true}
 		else

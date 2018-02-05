@@ -124,6 +124,11 @@ function PANEL:Init()
 	self.checkbox_all.OnChange = self.OnRestrictAllCheckboxChanged
 	
 	local display = function(data)
+		local scope = "Permanent"
+		if data:GetScope() then
+			scope = data:GetScope():GetPrint2()
+		end
+
 		return {data.usergroup, data.print or data.string, scope or "Permanent"},{table.KeyFromValue(WUMA.ServerGroups, data.usergroup)}
 	end
 	self:GetDataView():SetDisplayFunction(display)
@@ -382,7 +387,7 @@ function PANEL:OnSearch()
 	
 		for k, line in pairs(self.list_suggestions:GetLines()) do
 			local item = line:GetValue(1)
-			if not string.match(item,text) then
+			if not string.match(string.lower(item),string.lower(text)) then
 				self.list_suggestions:RemoveLine(k)
 			end
 		end

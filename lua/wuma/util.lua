@@ -7,6 +7,14 @@ WUMA.WUMALookupTable = "WUMALookup"
 WUMA.Settings = WUMA.Settings or {}
 WUMA.SettingsHooks = WUMA.SettingsHooks or {}
 
+local uniqueIDs = 0
+function WUMA.GenerateUniqueID()
+	local id = uniqueIDs+1
+	uniqueIDs = uniqueIDs + 1
+	return id
+end
+
+
 function WUMA.AddLookup(user)
 	WUMASQL("REPLACE INTO %s (steamid, nick, usergroup, t) values ('%s','%s','%s',%s);",WUMA.SQL.WUMALookupTable,user:SteamID(),user:Nick(),user:GetUserGroup(),tostring(os.time()))
 end

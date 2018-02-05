@@ -1,11 +1,7 @@
 
-local object = {}
-local static = {}
+WUMAAccess = {}
 
-object._id = "WUMA_Command"
-static._id = "WUMA_Command"
-
-static.PLAYER = function(str) 
+WUMAAccess.PLAYER = function(str) 
 	if isentity(str) then return str end
 
 	for _, ply in pairs(player.GetAll()) do
@@ -18,13 +14,13 @@ static.PLAYER = function(str)
 	return false
 end
 
-static.STRING = function(str) 
+WUMAAccess.STRING = function(str) 
 	return str
 end
 
-static.USERGROUP = static.STRING
+WUMAAccess.USERGROUP = WUMAAccess.STRING
 
-static.NUMBER = function(str) 
+WUMAAccess.NUMBER = function(str) 
 	if isnumber(str) then return str end
 
 	local num = tonumber(str)
@@ -32,7 +28,7 @@ static.NUMBER = function(str)
 	return num
 end
 
-static.SCOPE = function(str) 
+WUMAAccess.SCOPE = function(str) 
 	if istable(str) then return Scope:new(tbl) end
 	
 	local tbl = util.JSONToTable(str)
@@ -44,9 +40,37 @@ static.SCOPE = function(str)
 	return scope
 end
 
+local object = {}
+local static = {}
+
+WUMAAccess._id = "WUMA_Command"
+object._id = "WUMA_Command"
+
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
+function WUMAAccess:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+	
+	obj.func = tbl.func or false
+	obj.cmd = tbl.name or false
+	obj.arguments = tbl.arguments or {}
+	obj.help = tbl.help or false
+	obj.access = tbl.access or false
+	obj.optional = tbl.optional or false
+	obj.log = tbl.log or false
+	obj.strict = tbl.strict or false
+	obj.log_function = tbl.log_function or false
+
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
+	return obj
+end 
+ 
 function static:GetID()
 	return WUMAAccess._id
 end
@@ -54,18 +78,6 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.func = tbl.func or false
-	self.cmd = tbl.name or false
-	self.arguments = tbl.arguments or {}
-	self.help = tbl.help or false
-	self.access = tbl.access or false
-	self.optional = tbl.optional or false
-	self.log = tbl.log or false
-	self.strict = tbl.strict or false
-	self.log_function = tbl.log_function or false
-end 
-
 function object:__tostring()
 	return string.format("WUMAAccess [%s]",self:GetName())
 end
@@ -80,6 +92,16 @@ function object:__call(...)
 			tbl[1]:ChatPrint("You do not have access to "..self:GetName())
 		end
 	end)
+end
+
+function object:Clone()
+	local obj = WUMAAccess:new(table.Copy(self))
+	
+	return obj
+end
+
+function object:GetUniqueID()
+	return obj.m._uniqueid or false
 end
 
 function object:Delete()
@@ -154,4 +176,7 @@ function object:GetHelp()
 	return self.help
 end
 
-WUMAAccess = WUMAObject:Inherit(static, object)
+object.__index = object
+static.__index = static
+
+setmetatable(WUMAAccess,static) 

@@ -1,26 +1,39 @@
 
+WUMAStream = {}
+
 local object = {}
 local static = {}
 
+WUMAStream._id = "WUMAStream"
 object._id = "WUMAStream"
-static._id = "WUMAStream"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
+function WUMAStream:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+
+	obj.name = tbl.name or false
+	obj.send = tbl.send or false
+	obj.server = tbl.server or false
+	obj.client = tbl.client or false
+	obj.auth = tbl.auth or false
+	obj.id = tbl.id or false
+	
+	obj._id = WUMAStream._id
+	
+	return obj
+end 
 
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.name = tbl.name or false
-	self.send = tbl.send or false
-	self.server = tbl.server or false
-	self.client = tbl.client or false
-	self.auth = tbl.auth or false
-	self.id = tbl.id or false
-end 
-
 function object:__tostring()
 	return self.name
 end
@@ -42,6 +55,10 @@ function object:__eq(that)
 	return false
 end
 
+function object:GetStatic()
+	return WUMAStream
+end
+
 function object:Send(user,data)
 	if not self.server then return false end
 	local arguments = self.server(user,data)
@@ -60,6 +77,10 @@ function object:IsAuthorized(user, callback)
 	end
 end
 
+function object:GetUniqueID()
+	return obj.m._uniqueid or false
+end
+
 function object:SetServerFunction(func)
 	self.server = func
 end
@@ -72,6 +93,18 @@ function object:SetAuthenticationFunction(func)
 	self.auth = func
 end
 
+function object:Clone()
+	local obj = WUMAStream:new(table.Copy(self))
+
+	if self.origin then
+		obj.m.origin = self.origin
+	else
+		obj.m.origin = self
+	end
+
+	return obj
+end
+
 function object:SetName(name)
 	self.name = name
 end
@@ -80,4 +113,11 @@ function object:GetName()
 	return self.name
 end
 
-WUMAStream = WUMAObject:Inherit(static, object)
+function object:GetOrigin()
+	return self.origin
+end
+
+object.__index = object
+static.__index = static
+
+setmetatable(WUMAStream,static) 

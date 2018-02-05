@@ -3,18 +3,19 @@ local ENT = FindMetaTable("Player")
   
 ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
 function ENT:CheckLimit(str, WUMA) 
+
 	if (WUMA and self:HasLimit(WUMA)) then
 		local limithit = self:GetLimit(WUMA):Check() 
 		if (limithit != nil) then return limithit end
 	end	
-	
+	 
 	if (self:HasLimit(str)) then
 		local limithit = self:GetLimit(str):Check()
 		if (limithit != nil) then return limithit end
 	end
 
 	--Fall back to whichever system we overrode
-	self.old_CheckLimit(self, str)	
+	return self.old_CheckLimit(self, str)	
 end 
   
 ENT.old_AddCount = ENT.old_AddCount or ENT.AddCount

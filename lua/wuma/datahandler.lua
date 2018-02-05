@@ -298,7 +298,7 @@ function WUMA.SaveUserData(data)
 				WUMA.Files.CreateDir(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user))
 				WUMA.Files.Write(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path, str)	
 			elseif (tbl == WUMA.DELETE) then
-				WUMA.Files.Delete(WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)..dataregistry[id].path)
+				WUMA.DeleteUserFile(user, id)
 			end
 		end
 	end
@@ -353,11 +353,11 @@ end
 function WUMA.GetUserFile(user,enum)
 	local folder = WUMA.GetUserFolder(user)
 
-	if (enum == Restriction) then
+	if (enum == Restriction or enum == Restriction:GetID()) then
 		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."restrictions.txt"
-	elseif (enum == Limit) then
+	elseif (enum == Limit or enum == Limit:GetID()) then
 		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."limits.txt"
-	elseif (enum == Loadout) then
+	elseif (enum == Loadout or enum == Loadout:GetID()) then
 		return WUMA.DataDirectory..WUMA.UserDataDirectory..folder.."loadouts.txt"
 	end
 end
@@ -366,11 +366,14 @@ function WUMA.CheckUserFileExists(user,enum)
 	return WUMA.Files.Exists(WUMA.GetUserFile(user,enum))
 end
 
-function WUMA.DeleteUserFile(user,enum)
+function WUMA.DeleteUserFile(user, enum)
 	WUMA.Files.Delete(WUMA.GetUserFile(user,enum))
-	if not WUMA.CheckUserFileExists(user,Restriction) and not WUMA.CheckUserFileExists(user,Limit) and not WUMA.CheckUserFileExists(user,Loadout) then
-		WUMA.DeleteUserFolder(user)
-	end
+
+	timer.Simple(2, function()
+		if not WUMA.CheckUserFileExists(user,Restriction) and not WUMA.CheckUserFileExists(user,Limit) and not WUMA.CheckUserFileExists(user,Loadout) then
+			WUMA.DeleteUserFolder(user)
+		end
+	end)
 end
 
 function WUMA.DeleteUserFolder(user)

@@ -77,8 +77,6 @@ end
 
 function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 
-	WUMADebug("WUMA.AddRestriction(%s, %s, %s, %s, %s, %s)", caller or "NIL",usergroup or "NIL",type or "NIL",item or "NIL",anti or "NIL",scope or "NIL")
-
 	local restriction = Restriction:new({type=type,string=item,usergroup=usergroup,allow=anti,scope=scope})
 	
 	WUMA.Restrictions[restriction:GetID()] = restriction
@@ -112,6 +110,8 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 		tbl[restriction:GetID()] = restriction:GetBarebones()
 		return tbl
 	end)
+
+	WUMA.InvalidateCache(Restriction:GetID())
 
 	return affected
 	
@@ -172,7 +172,9 @@ function WUMA.RemoveRestriction(caller,usergroup,type,item)
 		
 		return tbl
 	end)
-	
+
+	WUMA.InvalidateCache(Restriction:GetID())
+
 	return affected
 end
 

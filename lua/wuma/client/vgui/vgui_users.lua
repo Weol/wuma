@@ -233,15 +233,15 @@ function PANEL:Init()
 		if (text != "" and text != self.textbox_search:GetDefault()) then
 		
 			local column = "nick"
-			if (string.Left(text, 6) == "steam_") then column = "steamid" end
+			if (string.lower(string.Left(text, 6)) == "steam_") then column = "steamid" end
 			
 			local item = data[column]
 			local succ, err = pcall( function() 
-				local matched = string.match(item,text)
+				local matched = string.match(string.lower(item),string.lower(text))
 			end )
 			
 			if succ then 
-				if string.match(item,text) then
+				if string.match(string.lower(item),string.lower(text)) then
 					return "kek"
 				end
 			end

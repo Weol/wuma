@@ -1,11 +1,13 @@
 
+Restriction = {}
+
 local object = {}
 local static = {}
 
+Restriction._id = "WUMA_Restriction"
 object._id = "WUMA_Restriction"
-static._id = "WUMA_Restriction"
 
-static.types = {
+Restriction.types = {
 	entity = {print="Entity",print2="Entities",search="Search..",items=function() return WUMA.GetEntities() end},
 	prop = {print="Prop",print2="Props",search="Model"},
 	npc = {print="NPC",print2="NPCs",search="Search..",items=function() return WUMA.GetNPCs() end},
@@ -25,7 +27,34 @@ static.types = {
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
 /////////////////////////////////////////////////////////
-function static:GenerateID(type,usergroup,str)
+function Restriction:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+	
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
+	obj.usergroup = tbl.usergroup or nil
+	obj.type = tbl.type or nil
+	obj.string = tbl.string or nil
+	obj.print = tbl.print or tbl.string
+	obj.allow = tbl.allow or nil 
+	
+	obj.m._id = Restriction._id
+	
+	obj.m.origin = tbl.origin or nil
+	obj.m.parent = tbl.parent or nil 
+	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
+	obj.m.exceptions = {} 
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
+  
+	return obj
+end 
+
+function Restriction:GenerateID(type,usergroup,str)
 	if usergroup then
 		if str then
 			return type.."_"..usergroup.."_"..str
@@ -41,11 +70,15 @@ function static:GenerateID(type,usergroup,str)
 	end
 end 
 
+function static:GetID()
+	return Restriction._id
+end
+
 function static:GetTypes(field)
 	if field then
 		local tbl = {}
 		
-		for _, type in pairs(self.types) do 
+		for _, type in pairs(Restriction.types) do 
 			for key,value in pairs(type) do 
 				if (key == field) then
 					table.insert(tbl,value)
@@ -56,7 +89,7 @@ function static:GetTypes(field)
 		return tbl
 	end
 
-	return self.types
+	return Restriction.types
 end
 
 function static:GetAllResitrictableItems()
@@ -73,23 +106,12 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.super:Construct(tbl)
-	
-	self.usergroup = tbl.usergroup or nil
-	self.type = tbl.type or nil
-	self.string = tbl.string or nil
-	self.print = tbl.print or tbl.string
-	self.allow = tbl.allow or nil 
-
-	self.m.exceptions = {} 
-end 
-
 function object:__eq(v1, v2)
 	return ((v1.usergroup == v2.usergroup) and (v1.type == v2.type) and (v1.string == v2.string) and (v1.allow == v2.allow))
 end
 
 function object:__call(type,str)
+
 	if self:IsDisabled() then return end
 
 	if (self:HasException(str)) then 
@@ -107,8 +129,12 @@ function object:__tostring()
 	return string.format("Restriction [%s][%s]",self:GetType(),self:GetString())
 end
 
+function object:GetStatic()
+	return Restriction
+end
+
 function object:Delete()
-	if self:HasScope() then
+	if self.scope then
 		self.scope:Delete()
 	end
 end
@@ -119,6 +145,19 @@ function object:Shred()
 	else
 		WUMA.RemoveRestriction(_,self:GetUserGroup(),self:GetType(),self:GetString())
 	end
+end
+
+function object:Disable()
+	self.m.disabled = true
+end
+
+function object:Enable()
+	self.m.disabled = false
+end
+
+function object:IsDisabled() 
+	if self.m and self.m.disabled then return true end
+	return false
 end
 
 function object:Hit()
@@ -141,9 +180,13 @@ function object:Hit()
 	else
 		self:GetParent():SendLua(string.format([[
 			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
-		]],Restriction:GetTypes()[self:GetType()].print), str)
+		]],Restriction:GetTypes()[self:GetType()].print, str))
 	end
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
+end
+
+function object:GetUniqueID()
+	return self.m._uniqueid or false
 end
 
 function object:IsPersonal()
@@ -152,6 +195,31 @@ end
 
 function object:IsGeneral()
 	if self.string then return nil else return true end
+end
+
+function object:Clone()
+	local copy = table.Copy(self)
+	local origin
+	
+	if self.origin then
+		origin = self.origin
+	else
+		origin = self
+	end
+	
+	copy.origin = origin
+	local obj = Restriction:new(copy)
+
+	return obj
+end
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v then
+			tbl[k] = v
+		end
+	end
+	return tbl
 end
 
 function object:AddException(str)
@@ -191,12 +259,57 @@ function object:SetPrint(str)
 	self.print = str
 end
 
+function object:GetScope()
+	return self.scope
+end
+
+function object:SetScope(scope)	
+	if not self:GetOrigin() then
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
+	end
+end
+
+function object:DeleteScope()
+	self.scope:Delete()
+	self.scope = nil
+end
+
 function object:GetString()
 	return self.string
 end
 
 function object:SetString(str)
 	self.string = string
+end
+
+function object:SetParent(ply)
+	self.m.parent = ply
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
+end
+
+function object:GetParent()
+	return self.m.parent
+end
+
+function object:GetParentID()
+	return self.m.parentid
+end
+
+function object:GetOrigin()
+	return self.m.origin
+end
+
+function object:SetAncestor(ancestor)
+	self.m.ancestor = ancestor
+end
+
+function object:GetAncestor()
+	return self.m.ancestor
 end
 
 function object:SetAllow(boolean)
@@ -223,4 +336,8 @@ function object:GetID(short)
 	end
 end
 
-Restriction = UserObject:Inherit(static, object)
+object.__index = object
+static.__index = static
+
+setmetatable(Restriction,static)
+

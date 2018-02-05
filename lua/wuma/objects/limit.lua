@@ -1,13 +1,52 @@
 
+Limit = {}
+
 local object = {}
 local static = {}
 
+Limit._id = "WUMA_Limit"
 object._id = "WUMA_Limit"
-static._id = "WUMA_Limit"
 
 /////////////////////////////////////////////////////////
 /////       		 Static functions				/////
-///////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////
+function Limit:new(tbl)
+	tbl = tbl or {}
+	local mt = table.Copy(object)
+	mt.m = {}
+	
+	local obj = setmetatable({},mt)
+
+	obj.m._uniqueid = WUMA.GenerateUniqueID()
+	
+	obj.string = tbl.string or nil
+	obj.limit = tbl.limit or 0
+	obj.usergroup = tbl.usergroup or nil
+	obj.exclusive = tbl.exclusive or nil
+	
+	obj._id = Limit._id
+	
+	obj.m.origin = tbl.origin or nil
+	obj.m.parent = tbl.parent or nil
+	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
+	obj.m.count = tbl.count or 0
+	obj.m.entities = tbl.entities or {}
+	obj.m.callonempty = tbl.callonempty or {}
+	
+	--No numeric adv. limits
+	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
+	
+	--Make sure limit and string cannot be the same
+	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
+	
+	--Parse limit
+	if (tonumber(obj.limit) != nil) then obj.limit = tonumber(obj.limit) end
+	
+	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
+  
+	return obj
+end 
+ 
 function static:GetID()
 	return Limit._id
 end
@@ -28,33 +67,6 @@ end
 /////////////////////////////////////////////////////////
 /////       		 Object functions				/////
 /////////////////////////////////////////////////////////
-function object:Construct(tbl)
-	self.super:Construct(tbl)
-
-	self.string = tbl.string or nil
-	self.limit = tbl.limit or 0
-	self.usergroup = tbl.usergroup or nil
-	self.exclusive = tbl.exclusive or nil
-	
-	self.m.origin = tbl.origin or nil
-	self.m.parent = tbl.parent or nil
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
-	self.m.count = tbl.count or 0
-	self.m.entities = tbl.entities or {}
-	self.m.callonempty = tbl.callonempty or {}
-	
-	--No numeric adv. limits
-	if (tonumber(self.string) != nil) then self.string = ":"..self.string..":" end
-	
-	--Make sure limit and string cannot be the same
-	if (self.limit == self.string) then self.limit = self.limit..":" end
-	
-	--Parse limit
-	if (tonumber(self.limit) != nil) then self.limit = tonumber(self.limit) end
-
-	return obj
-end 
-
 function object:__tostring()
 	return string.format("Limit [%s][%s/%s]",self:GetString(),tostring(self:GetCount()),tostring(self:Get()))
 end
@@ -90,13 +102,33 @@ function object:__le(that)
 	return false
 end
 
+function object:Clone()
+	local copy = table.Copy(self)
+	local origin
+	
+	if self.origin then
+		origin = self.origin
+	else
+		origin = self
+	end
+	
+	copy.origin = origin
+	local obj = Limit:new(copy)
+
+	return obj
+end
+
+function object:GetUniqueID()
+	return self.m._uniqueid or false
+end
+
 function object:Delete()
 	--So that no entities point here
 	for id, entity in pairs(self.m.entities)  do
 		entity:RemoveWUMAParent(entity)
 	end
 	
-	if self:HasScope() then
+	if self.scope then
 		self.scope:Delete()
 	end
 end
@@ -111,6 +143,16 @@ end
 
 function object:IsPersonal()
 	if self.usergroup then return nil else return true end
+end
+	
+function object:GetBarebones()
+	local tbl = {}
+	for k,v in pairs(self) do
+		if v or (v == 0) then
+			tbl[k] = v
+		end
+	end
+	return tbl
 end
 	
 function object:CallOnEmpty(id, f)
@@ -142,6 +184,10 @@ function object:GetID(short)
 	end
 end
 
+function object:GetStatic()
+	return Limit
+end
+
 function object:GetCount()
 	return self.m.count
 end
@@ -151,8 +197,21 @@ function object:SetCount(c)
 	self.m.count = c
 end
 
+function object:GetParent()
+	return self.m.parent
+end
+
+function object:SetParent(user)
+	self.m.parent = user
+	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
+end
+
 function object:GetUserGroup()
 	return self.usergroup
+end
+
+function object:GetOrigin()
+	return self.m.origin
 end
 
 function object:GetString()
@@ -169,6 +228,51 @@ end
 
 function object:SetExclusive(bool)
 	self.exclusive = str
+end
+
+function object:GetParentID()
+	return self.m.parentid
+end
+
+function object:GetScope()
+	return self.scope
+end
+
+function object:SetScope(scope)	
+	if not self:GetOrigin() then
+		self.scope = scope
+		if not scope.m then self.scope = Scope:new(scope) end
+	
+		self.scope:SetParent(self)
+		
+		self.scope:AllowThink()
+	end
+end
+
+function object:DeleteScope()
+	self.scope:Delete()
+	self.scope = nil
+end
+
+function object:Disable()
+	self.m.disabled = true
+end
+
+function object:Enable()
+	self.m.disabled = false
+end
+
+function object:IsDisabled() 
+	if self.m and self.m.disabled then return true end
+	return false
+end
+
+function object:SetAncestor(ancestor)
+	self.m.ancestor = ancestor
+end
+
+function object:GetAncestor()
+	return self.m.ancestor
 end
 
 function object:InheritEntities(limit)
@@ -240,4 +344,7 @@ function object:Add(entity)
 	self.m.entities[entity:GetCreationID()] = entity
 end
 
-Limit = UserObject:Inherit(static, object)
+object.__index = object
+static.__index = static
+
+setmetatable(Limit,static) 
