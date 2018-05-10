@@ -14,7 +14,6 @@ WUMA.PersonalLoadoutCommand = WUMA.CreateConVar("wuma_personal_loadout_chatcomma
 function WUMA.InitializeUser(user)
 	WUMA.AssignRestrictions(user)
 	WUMA.AssignLimits(user)
-	WUMA.AssignLoadout(user)
 
 	WUMA.AddLookup(user)
 	
@@ -249,6 +248,10 @@ end
 hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect)
 
 function WUMA.PlayerLoadout(user)
+	if not user.InitalLoadoutCheck then 
+		WUMA.AssignLoadout(user)
+		user.InitalLoadoutCheck = true
+	end
 	return user:GiveLoadout()
 end
 hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)

@@ -275,7 +275,10 @@ function ENT:SetLoadout(loadout)
 		loadout:SetAncestor(self:GetLoadout()) 
 	end
 	self.Loadout = loadout
-	self:GetLoadout():Give()
+
+	if self:Alive() then
+		self:GiveLoadout()
+	end
 end 
  
 function ENT:ClearLoadout() 
