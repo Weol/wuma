@@ -30,23 +30,23 @@ if AdvDupe2 then
 		local user = data[1].Player
 		if user then
 			for _,entity in pairs(data[1].CreatedEntities) do 
-	
-				str = entity:GetClass()
-	
-				if (string.lower(entity:GetClass()) == "prop_ragdoll") then
-					str = entity:GetModel()
-				elseif (entity:GetTable().VehicleName) then  
-					str = entity:GetTable().VehicleName
-				end
-				
-				if user:HasLimit(str) then
-					if (user:CheckLimit(_,str) == false) then
-						entity:Remove()
-					else
-						user:AddCount(_,entity,str)
+				if IsValid(entity) then
+					str = entity:GetClass()
+		
+					if (string.lower(entity:GetClass()) == "prop_ragdoll") then
+						str = entity:GetModel()
+					elseif (entity:GetTable().VehicleName) then  
+						str = entity:GetTable().VehicleName
+					end
+					
+					if user:HasLimit(str) then
+						if (user:CheckLimit(_,str) == false) then
+							entity:Remove()
+						else
+							user:AddCount(_,entity,str)
+						end
 					end
 				end
-				
 			end
 		end
 	end)
