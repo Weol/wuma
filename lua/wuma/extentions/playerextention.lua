@@ -140,12 +140,12 @@ end
 function ENT:GetRestriction(type,str)
 	if not self:GetRestrictions() then return nil end
 	if str then
-		if self:GetRestrictions()[type] then
-			return self:GetRestrictions()[type]
+		local key = Restriction:GenerateID(type,_,str)
+		if self:GetRestrictions()[key] then
+			return self:GetRestrictions()[key]
 		end
 	
-		local key = Restriction:GenerateID(type,_,str)
-		return self:GetRestrictions()[key]
+		return self:GetRestrictions()[type]
 	else
 		return self:GetRestrictions()[type]
 	end
