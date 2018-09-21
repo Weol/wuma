@@ -25,7 +25,7 @@ function ENT:AddCount(str, ent, WUMA)
 		self:GetLimit(WUMA):Add(ent)
 	elseif (self:HasLimit(str)) then
 		self:GetLimit(str):Add(ent)
-	elseif str then
+	elseif not WUMA and str then
 		self.old_AddCount(self, str, ent)
 	end 
 	
