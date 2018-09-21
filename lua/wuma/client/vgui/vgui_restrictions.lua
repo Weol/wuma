@@ -391,6 +391,8 @@ function PANEL:OnSearch()
 				self.list_suggestions:RemoveLine(k)
 			end
 		end
+		
+		self.list_suggestions:SetDisabled((table.Count(self.list_suggestions:GetLines()) == 0))
 	elseif (text == "") then
 		self:ReloadSuggestions(self:GetSelectedType())
 	end
@@ -495,13 +497,16 @@ function PANEL:OnAddClick()
 	self = self:GetParent()
 	if not self:GetSelectedType() then return end
 	if (table.Count(self:GetSelectedUsergroups()) < 1) then return end
-	if (table.Count(self:GetSelectedSuggestions()) < 1) then return end
 	
 	local usergroups = self:GetSelectedUsergroups()
 	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
 	
 	local suggestions = self:GetSelectedSuggestions()
-	if table.Count(suggestions) == 1 then suggestions = suggestions[1] end
+	if (table.Count(suggestions) == 1) then 
+		suggestions = suggestions[1] 
+	elseif (table.Count(suggestions) == 0) then
+		suggestions = self.textbox_search:GetValue()
+	end
 		
 	local type = self:GetSelectedType()
 	
