@@ -2,8 +2,7 @@
 local ENT = FindMetaTable("Player")
   
 ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
-function ENT:CheckLimit(str, WUMA) 
-
+function ENT:CheckLimit(str, WUMA)
 	if (WUMA and self:HasLimit(WUMA)) then
 		local limithit = self:GetLimit(WUMA):Check() 
 		if (limithit != nil) then return limithit end
@@ -74,6 +73,8 @@ function ENT:HasWUMAData()
 end   
  
 function ENT:CheckRestriction(type,str)
+	WUMADebug("Checking %s %s for %s (%s)", type, str, self:Nick(), self:SteamID())
+
 	local restriction = self:GetRestriction(type, str)
 	
 	if restriction then 

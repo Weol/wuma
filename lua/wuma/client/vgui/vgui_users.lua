@@ -172,7 +172,7 @@ function PANEL:Init()
 	self.loadouts.Command.Enforce = "setuserenforceloadout"
 
 	local display = function(data)
-		scope = "Permanent"
+		local scope = "Permanent"
 		if data.scope then scope = data.scope end
 
 		local nick = "ERROR"

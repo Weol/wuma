@@ -381,7 +381,7 @@ function PANEL:OnSearch()
 		
 	local text = self.textbox_search:GetValue()
 	
-	if not self.list_suggestions:GetDisabled() and (text != "") then
+	if (text != "") then
 	
 		self:ReloadSuggestions(self:GetSelectedType())
 	

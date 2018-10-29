@@ -146,7 +146,7 @@ function PANEL:Init()
 	self.checkbox_enforce.OnChange = self.OnEnforcelCheckboxChanged
 	
 	local display = function(data)
-		scope = "Permanent"
+		local scope = "Permanent"
 		if data.scope then scope = data.scope end
 		
 		local primary = data.primary or -1

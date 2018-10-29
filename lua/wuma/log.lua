@@ -40,6 +40,7 @@ function WUMA.Log.DebugLog(msg,...)
 	if args then
 		msg = WUMA.SafeFormat(msg,args)
 	end
+	msg = "[WUMA] " .. msg 
 	if game.IsDedicated() then
 		Msg(msg.."\n")
 	else

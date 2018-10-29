@@ -6,7 +6,7 @@ local WUMALog = WUMALog
 WUMA.Streams = {}
 
 function WUMA.RegisterStream(tbl)
-	stream = WUMAStream:new(tbl)
+	local stream = WUMAStream:new(tbl)
 	WUMA.Streams[stream:GetName()] = stream
 	return stream
 end
@@ -343,4 +343,18 @@ Personal:SetServerFunction(function(user,data)
 end) 
 Personal:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback, "wuma personalloadout")
+end)
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/////  RestrictionItems | Returns restrictable items that are not visible for client   /////
+////////////////////////////////////////////////////////////////////////////////////////////
+local RestrictionItems = WUMA.RegisterStream{name="restrictionitems", send=WUMA.SendInformation}
+RestrictionItems:SetServerFunction(function(user,data)
+	return {user, RestrictionItems, WUMA.GetAdditionalEntities()}
+end) 
+RestrictionItems:SetClientFunction(function(data)
+	WUMA.AdditionalEntities = data[1]
+end)
+RestrictionItems:SetAuthenticationFunction(function(user, callback) 
+	WUMA.HasAccess(user, callback)
 end)

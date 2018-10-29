@@ -152,13 +152,13 @@ function WUMA.AddClientUpdate(enum, func, user)
 	enum = enum:GetID()
 
 	if (user) then
-		tbl = WUMA.DATA.ClientUpdates.users
+		local tbl = WUMA.DATA.ClientUpdates.users
 		
 		if not (tbl[user]) then tbl[user] = {} end
 		if not (tbl[user][enum]) then tbl[user][enum] = {} end
 		tbl[user][enum] = func(tbl[user][enum])
 	else
-		tbl = WUMA.DATA.ClientUpdates
+		local tbl = WUMA.DATA.ClientUpdates
 		
 		if not (tbl[enum]) then tbl[enum] = {} end
 		tbl[enum] = func(tbl[enum])

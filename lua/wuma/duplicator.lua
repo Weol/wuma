@@ -31,7 +31,7 @@ if AdvDupe2 then
 		if user then
 			for _,entity in pairs(data[1].CreatedEntities) do 
 				if IsValid(entity) then
-					str = entity:GetClass()
+					local str = entity:GetClass()
 		
 					if (string.lower(entity:GetClass()) == "prop_ragdoll") then
 						str = entity:GetModel()

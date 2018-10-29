@@ -16,7 +16,7 @@ function PANEL:Init()
 	slider:SetLockY( 0.5 )
 	slider:SetTrapInside( true )
 	
-	combobox = vgui.Create("DComboBox", self)
+	local combobox = vgui.Create("DComboBox", self)
 	wang = vgui.Create( "DNumberWang", self )
 	wang:SetDecimals(0)
 	

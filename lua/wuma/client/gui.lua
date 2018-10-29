@@ -42,6 +42,7 @@ function WUMA.GUI.Initialize()
 			WUMA.RequestFromServer("maps")
 			WUMA.RequestFromServer("inheritance")
 			WUMA.RequestFromServer("lookup",200)
+			WUMA.RequestFromServer("restrictionitems")
 			 
 			WUMA.RequestFromServer("subscription",Restriction:GetID())
 			WUMA.RequestFromServer("subscription",Limit:GetID())
@@ -179,6 +180,7 @@ function WUMA.FetchData(typ)
 		if (typ == Restriction:GetID()) then
 			WUMA.RequestFromServer("restrictions")
 			WUMA.RequestFromServer("subscription",Restriction:GetID())
+			WUMA.RequestFromServer("restrictionitems")
 			
 			WUMA.SetProgress(Restriction:GetID(), "Requesting data", 0.2)
 			

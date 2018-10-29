@@ -94,7 +94,7 @@ function object:GetStatic()
 	return Loadout_Weapon
 end
 
-function object:SetClass(parent)
+function object:SetClass(class)
 	self.class = class
 end
 

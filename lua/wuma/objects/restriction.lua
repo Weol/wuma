@@ -171,6 +171,7 @@ function object:Hit()
 
 	local str = self.print or self.string
 	
+	if not self:GetParent() then return end
 	if (self:IsGeneral()) then
 		str = Restriction:GetTypes()[self:GetType()].print2
 		
@@ -283,7 +284,7 @@ function object:GetString()
 	return self.string
 end
 
-function object:SetString(str)
+function object:SetString(string)
 	self.string = string
 end
 

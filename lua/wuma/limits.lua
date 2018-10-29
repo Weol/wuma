@@ -24,7 +24,7 @@ function WUMA.GetSavedLimits(user)
 	if (user) then
 		tbl = WUMA.ReadUserLimits(user)
 	else
-		saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {} 
+		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {}
 
 		for key,obj in pairs(saved) do
 			if istable(obj) then
@@ -42,7 +42,7 @@ function WUMA.ReadUserLimits(user)
 
 	local tbl = {}
 	
-	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
+	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
 		
 	for key,obj in pairs(saved) do
 		obj.parent = user
@@ -91,7 +91,7 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 		user:AddLimit(limit:Clone())
 	end)
 	
-	function recursive(group)
+	local function recursive(group)
 		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
 		for k, heir in pairs(heirs) do
 			if not WUMA.Limits[Limit:GenerateID(heir,item)] then
@@ -149,7 +149,7 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 		if limit then ply:AddLimit(limit) end
 	end)
 	
-	function recursive(group)
+	local function recursive(group)
 		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
 		for _, heir in pairs(heirs) do
 			if not WUMA.Restrictions[Limit:GenerateID(heir,item)] then

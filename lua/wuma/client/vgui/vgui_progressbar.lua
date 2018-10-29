@@ -18,7 +18,7 @@ function PANEL:SetText(text)
 	self.label = text
 end
 
-function PANEL:GetText(text)
+function PANEL:GetText()
 	return self.label
 end
 

@@ -20,7 +20,7 @@ function WUMA.GetSavedLoadouts(user)
 	if (user) then
 		tbl = WUMA.ReadUserLoadout(user)
 	else
-		saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")) or {}
+		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")) or {}
 
 		for key,obj in pairs(saved) do
 			if istable(obj) then
@@ -36,7 +36,7 @@ end
 function WUMA.ReadUserLoadout(user)
 	if not isstring(user) then user = user:SteamID() end
 
-	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or {}
+	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Loadout))) or {}
 	saved.parent = user
 	
 	local loadout = Loadout:new(saved)
@@ -68,7 +68,7 @@ end
 function WUMA.SetLoadoutPrimaryWeapon(caller,usergroup,item)
 	if not(WUMA.Loadouts[usergroup]) then return false end
 	
-	primary = WUMA.Loadouts[usergroup]:GetPrimary()
+	local primary = WUMA.Loadouts[usergroup]:GetPrimary()
 	if (WUMA.Loadouts[usergroup]:GetPrimary() == item) then item = nil end 
 	
 	WUMA.Loadouts[usergroup]:SetPrimary(item)

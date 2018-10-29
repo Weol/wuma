@@ -7,6 +7,7 @@ WUMA.ServerUsers = WUMA.ServerUsers or {}
 WUMA.LookupUsers = WUMA.LookupUsers or {}
 WUMA.UserData = WUMA.UserData or {}
 WUMA.Restrictions = WUMA.Restrictions or {}
+WUMA.AdditionalEntities = WUMA.AdditionalEntities or {}
 WUMA.PersonalRestrictions = WUMA.PersonalRestrictions or {}
 WUMA.Limits = WUMA.Limits or {}
 WUMA.Loadouts = WUMA.Loadouts or {}

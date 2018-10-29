@@ -42,7 +42,7 @@ function WUMA.ReadUserRestrictions(user)
 
 	local tbl = {}
 	
-	saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Restriction))) or {}
+	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Restriction))) or {}
 		
 	for key,obj in pairs(saved) do
 		obj.parent = user
@@ -88,7 +88,7 @@ function WUMA.AddRestriction(caller,usergroup,type,item,anti,scope)
 		ply:AddRestriction(restriction:Clone())
 	end)
 
-	function recursive(group)
+	local function recursive(group)
 		local heirs = WUMA.GetUsergroupHeirs(Restriction:GetID(),group)
 		for _, heir in pairs(heirs) do
 			if not WUMA.Restrictions[Restriction:GenerateID(type,heir,item)] then
@@ -146,7 +146,7 @@ function WUMA.RemoveRestriction(caller,usergroup,type,item)
 		if restriction then ply:AddRestriction(restriction) end
 	end)
 	
-	function recursive(group)
+	local function recursive(group)
 		local heirs = WUMA.GetUsergroupHeirs(Restriction:GetID(),group)
 		for k, heir in pairs(heirs) do
 			if not WUMA.Restrictions[Restriction:GenerateID(type,heir,item)] then
