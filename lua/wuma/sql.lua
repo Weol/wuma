@@ -19,7 +19,12 @@ function WUMA.SQL.CreateTable(str)
 end
 
 function WUMA.SQL.Query(str,...)
-	local tbl = sql.Query(string.format(str,...))
+	local args = { ... }
+	for k, v in pairs(args) do
+		args[k] = sql.SQLStr(v, isstring(v))
+	end
+	
+	local tbl = sql.Query(string.format(str, unpack(args)))
 	return tbl
 end
 WUMASQL = WUMA.SQL.Query --You know why
