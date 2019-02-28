@@ -49,6 +49,7 @@ function WUMA.Initialize()
 	include(WUMA.HomeDirectory.."restrictions.lua")
 	include(WUMA.HomeDirectory.."loadouts.lua")
 	include(WUMA.HomeDirectory.."inheritance.lua") 
+	include(WUMA.HomeDirectory.."hooks.lua") 
 	include(WUMA.HomeDirectory.."duplicator.lua")
 	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 	include(WUMA.HomeDirectory.."extentions/entityextention.lua")
@@ -82,8 +83,7 @@ function WUMA.Initialize()
 	
 	--Add hook so playerextention loads when the first player joins
 	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()  
-		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
-		include(WUMA.HomeDirectory.."hooks.lua") 
+		include(WUMA.HomeDirectory.."extentions/playerextention.lua")		
 		hook.Remove("WUMAPlayerAuthedPlayerExtentionInit")
 	end)
 	
