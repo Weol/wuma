@@ -17,8 +17,19 @@ local function OnWUMAInitialized(panel)
 	
 	wuma_tab:InvalidateLayout()
 	panel:InvalidateLayout()
-	
-	concommand.Remove("wuma_menu")
+
+	local old_SetActiveTab = xgui.base.SetActiveTab
+	xgui.base.SetActiveTab = function(...)
+		local tbl = {...}
+
+		pcall(function() 
+			if (tbl[2]:GetValue() == "WUMA") then
+				WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.Tabs.Settings.TabName)
+			end
+		end)
+		
+		old_SetActiveTab(unpack(tbl))
+	end
 end
 hook.Add("OnWUMAInitialized","ULXOverrideWUMAGUI",OnWUMAInitialized)
 

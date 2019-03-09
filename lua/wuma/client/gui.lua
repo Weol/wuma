@@ -21,39 +21,30 @@ WUMA.Subscriptions = {}
 WUMA.Subscriptions.user = {}
 WUMA.Subscriptions.timers = {}
 
-WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
-WUMA.HasUserPersonalLoadoutAccess = "WUMAHasUserPersonalLoadoutAccess"
-
 function WUMA.GUI.Initialize()
 
 	//Requests
-	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
-		WUMA.RequestFromServer("settings")
-		WUMA.RequestFromServer("inheritance")
+	if GetConVar("wuma_request_on_join"):GetBool() then
+		WUMA.RequestFromServer("restrictions")
+		WUMA.RequestFromServer("limits")
+		WUMA.RequestFromServer("cvarlimits")
+		WUMA.RequestFromServer("loadouts")
+		WUMA.RequestFromServer("users")
 		WUMA.RequestFromServer("groups")
-		
-		if GetConVar("wuma_request_on_join"):GetBool() then
-			WUMA.RequestFromServer("restrictions")
-			WUMA.RequestFromServer("limits")
-			WUMA.RequestFromServer("cvarlimits")
-			WUMA.RequestFromServer("loadouts")
-			WUMA.RequestFromServer("users")
-			WUMA.RequestFromServer("groups")
-			WUMA.RequestFromServer("maps")
-			WUMA.RequestFromServer("inheritance")
-			WUMA.RequestFromServer("lookup",200)
-			WUMA.RequestFromServer("restrictionitems")
-			 
-			WUMA.RequestFromServer("subscription",Restriction:GetID())
-			WUMA.RequestFromServer("subscription",Limit:GetID())
-			WUMA.RequestFromServer("subscription",Loadout:GetID())
+		WUMA.RequestFromServer("maps")
+		WUMA.RequestFromServer("inheritance")
+		WUMA.RequestFromServer("lookup",200)
+		WUMA.RequestFromServer("restrictionitems")
 			
-			WUMA.Subscriptions.info = true
-			WUMA.Subscriptions.restrictions = true
-			WUMA.Subscriptions.limits = true
-			WUMA.Subscriptions.loadouts = true
-			WUMA.Subscriptions.users = true
-		end
+		WUMA.RequestFromServer("subscription",Restriction:GetID())
+		WUMA.RequestFromServer("subscription",Limit:GetID())
+		WUMA.RequestFromServer("subscription",Loadout:GetID())
+		
+		WUMA.Subscriptions.info = true
+		WUMA.Subscriptions.restrictions = true
+		WUMA.Subscriptions.limits = true
+		WUMA.Subscriptions.loadouts = true
+		WUMA.Subscriptions.users = true
 	end
 
 	--Create EditablePanel 
@@ -103,12 +94,10 @@ end
 hook.Add("InitPostEntity", "WUMAGuiInitialize", function() timer.Simple(2, WUMA.GUI.Initialize) end)
 
 function WUMA.GUI.Show()
-	if LocalPlayer():GetNWBool(WUMA.HasUserAccessNetworkBool) then
-		WUMA.GUI.Base:SetVisible(true)
-		WUMA.GUI.Base:MakePopup()
-	else
-		LocalPlayer():PrintMessage(HUD_PRINTCONSOLE, "You do not have access to this command\n")
-	end
+	WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.Tabs.Settings.TabName)
+
+	WUMA.GUI.Base:SetVisible(true)
+	WUMA.GUI.Base:MakePopup()
 end
 
 function WUMA.GUI.Hide()
@@ -136,9 +125,11 @@ end
 function WUMA.OnTabChange(_,tabname)
 	
 	if not WUMA.Subscriptions.info then
+		WUMA.RequestFromServer("settings")
+		WUMA.RequestFromServer("inheritance")
+		WUMA.RequestFromServer("groups")
 		WUMA.RequestFromServer("users")
 		WUMA.RequestFromServer("maps")
-		WUMA.RequestFromServer("inheritance")
 		
 		WUMA.Subscriptions.info = true
 	end
@@ -154,6 +145,8 @@ function WUMA.OnTabChange(_,tabname)
 		
 		WUMA.Subscriptions.users = true
 	end
+
+	WUMA.GUI.ActiveTab = tabname
 	
 end
 
@@ -323,12 +316,6 @@ function WUMA.GUI.AddHook(h,name,func)
 end
 
 function WUMA.GUI.CreateLoadoutSelector() 
-
-	if not LocalPlayer():GetNWBool(WUMA.HasUserPersonalLoadoutAccess) then 
-		LocalPlayer():ChatPrint("You do not have access to this command!")
-		return 
-	end
-
 	local frame = vgui.Create("DFrame")
 	frame:SetSize(ScrW()*0.40,ScrH()*0.44)
 	frame:SetPos(ScrW()/2-frame:GetWide()/2,ScrH()/2-frame:GetTall()/2)
@@ -399,5 +386,4 @@ function WUMA.GUI.CreateLoadoutSelector()
 	WUMA.kek = loadout
 end
 
-concommand.Add( "wuma_menu", WUMA.GUI.Toggle)
-concommand.Add( "wuma_loadout", WUMA.GUI.CreateLoadoutSelector)
+

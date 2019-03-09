@@ -6,9 +6,6 @@ local WUMALog = WUMALog
 WUMA.Users = {}
 WUMA.UserLimitsCache = {}
 
-WUMA.HasUserAccessNetworkBool = "WUMAHasAccess"
-WUMA.HasUserPersonalLoadoutAccess = "WUMAHasUserPersonalLoadoutAccess"
-
 WUMA.PersonalLoadoutCommand = WUMA.CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", FCVAR_ARCHIVE, "Chat command to open the loadout selector")
 
 function WUMA.InitializeUser(user)
@@ -16,16 +13,6 @@ function WUMA.InitializeUser(user)
 	WUMA.AssignLimits(user)
 
 	WUMA.AddLookup(user)
-	
-	timer.Simple(2, function()
-		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool( WUMA.HasUserAccessNetworkBool, bool )
-		end)	
-		
-		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
-		end, "wuma personalloadout")
-	end)
 end
 
 function WUMA.AssignUserRegulations(user)
@@ -228,6 +215,28 @@ function WUMA.GetUserGroups()
 	end
 	return groups
 end
+
+function WUMA.MenuCommand(ply, cmd, args)
+	WUMA.HasAccess(ply, function(bool) 
+		if bool then
+			ply:SendLua([[WUMA.GUI.Toggle()]])
+		else
+			ply:ChatPrint("You do not have access to this command")
+		end
+	end)	
+end
+concommand.Add( "wuma_menu", WUMA.MenuCommand)
+
+function WUMA.PersonalLoadoutCommand(ply, cmd, args)
+	WUMA.HasAccess(ply, function(bool) 
+		if bool then
+			ply:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
+		else
+			ply:ChatPrint("You do not have access to this command")
+		end
+	end, "wuma personalloadout")	
+end
+concommand.Add("wuma_loadout", WUMA.PersonalLoadoutCommand)
 
 function WUMA.UserChatCommand(user, text, public)
 	if (text == WUMA.PersonalLoadoutCommand:GetString()) then user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]]); return "" end
