@@ -25,6 +25,7 @@ function WUMA.GUI.Initialize()
 
 	//Requests
 	if GetConVar("wuma_request_on_join"):GetBool() then
+		WUMA.RequestFromServer("settings")
 		WUMA.RequestFromServer("restrictions")
 		WUMA.RequestFromServer("limits")
 		WUMA.RequestFromServer("cvarlimits")
@@ -94,14 +95,18 @@ end
 hook.Add("InitPostEntity", "WUMAGuiInitialize", function() timer.Simple(2, WUMA.GUI.Initialize) end)
 
 function WUMA.GUI.Show()
-	WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.Tabs.Settings.TabName)
-
-	WUMA.GUI.Base:SetVisible(true)
-	WUMA.GUI.Base:MakePopup()
+	if (table.Count(WUMA.GUI.Base:GetChildren()) > 0) then
+		WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.Tabs.Settings.TabName)
+	
+		WUMA.GUI.Base:SetVisible(true)
+		WUMA.GUI.Base:MakePopup()
+	end
 end
 
 function WUMA.GUI.Hide()
-	WUMA.GUI.Base:SetVisible(false)
+	if (table.Count(WUMA.GUI.Base:GetChildren()) > 0) then
+		WUMA.GUI.Base:SetVisible(false)
+	end
 end
 
 function WUMA.GUI.Toggle()
