@@ -8,31 +8,28 @@ Restriction._id = "WUMA_Restriction"
 object._id = "WUMA_Restriction"
 
 Restriction.types = {
-	entity = {print="Entity",print2="Entities",search="Search..",items=function() return WUMA.GetEntities() end},
-	prop = {print="Prop",print2="Props",search="Model"},
-	npc = {print="NPC",print2="NPCs",search="Search..",items=function() return WUMA.GetNPCs() end},
-	vehicle = {print="Vehicle",print2="Vehicles",search="Search..",items=function() return WUMA.GetVehicles() end},
-	swep = {print="Weapon",print2="Weapons",search="Search..",items=function() return WUMA.GetWeapons() end},
-	pickup = {print="Pickup",print2="Pickups",search="Search..",items=function() return WUMA.GetWeapons() end},
-	effect = {print="Effect",print2="Effects",search="Model"},
-	tool = {print="Tool",print2="Tools",search="Search..",items=function() return WUMA.GetTools() end},
-	ragdoll = {print="Ragdoll",print2="Ragdolls",search="Model"},
-	use = {print="Use",print2="Uses",search="Search..",items=function() 
+	entity = {print="Entity", print2="Entities", search="Search..", items=function() return WUMA.GetEntities() end},
+	prop = {print="Prop", print2="Props", search="Model"},
+	npc = {print="NPC", print2="NPCs", search="Search..", items=function() return WUMA.GetNPCs() end},
+	vehicle = {print="Vehicle", print2="Vehicles", search="Search..", items=function() return WUMA.GetVehicles() end},
+	swep = {print="Weapon", print2="Weapons", search="Search..", items=function() return WUMA.GetWeapons() end},
+	pickup = {print="Pickup", print2="Pickups", search="Search..", items=function() return WUMA.GetWeapons() end},
+	effect = {print="Effect", print2="Effects", search="Model"},
+	tool = {print="Tool", print2="Tools", search="Search..", items=function() return WUMA.GetTools() end},
+	ragdoll = {print="Ragdoll", print2="Ragdolls", search="Model"},
+	use = {print="Use", print2="Uses", search="Search..", items=function() 
 		local tbl = {}
-		table.Add(table.Add(table.Add(tbl, WUMA.GetEntities()),WUMA.GetVehicles()),WUMA.GetNPCs()) 
+		table.Add(table.Add(table.Add(tbl, WUMA.GetEntities()), WUMA.GetVehicles()), WUMA.GetNPCs()) 
 		return tbl
-	end}  
+	end} 
 } 
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function Restriction:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -50,11 +47,11 @@ function Restriction:new(tbl)
 	obj.m.exceptions = {} 
 	
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-  
+ 
 	return obj
 end 
 
-function Restriction:GenerateID(type,usergroup,str)
+function Restriction:GenerateID(type, usergroup, str)
 	if usergroup then
 		if str then
 			return type.."_"..usergroup.."_"..str
@@ -79,9 +76,9 @@ function static:GetTypes(field)
 		local tbl = {}
 		
 		for _, type in pairs(Restriction.types) do 
-			for key,value in pairs(type) do 
+			for key, value in pairs(type) do 
 				if (key == field) then
-					table.insert(tbl,value)
+					table.insert(tbl, value)
 				end
 			end
 		end
@@ -95,22 +92,19 @@ end
 function static:GetAllResitrictableItems()
 	local tbl = {}
 	
-	for k,v in pairs(self:GetTypes()) do
+	for k, v in pairs(self:GetTypes()) do
 		if v.items then
-			table.Add(tbl,v.items())
+			table.Add(tbl, v.items())
 		end
 	end
 	
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__eq(v1, v2)
 	return ((v1.usergroup == v2.usergroup) and (v1.type == v2.type) and (v1.string == v2.string) and (v1.allow == v2.allow))
 end
 
-function object:__call(type,str)
+function object:__call(type, str)
 
 	if self:IsDisabled() then return end
 
@@ -126,7 +120,7 @@ function object:__call(type,str)
 end
 
 function object:__tostring()
-	return string.format("Restriction [%s][%s]",self:GetType(),self:GetString())
+	return string.format("Restriction [%s][%s]", self:GetType(), self:GetString())
 end
 
 function object:GetStatic()
@@ -141,9 +135,9 @@ end
 
 function object:Shred()
 	if self:IsPersonal() then
-		WUMA.RemoveUserRestriction(_,self:GetParentID(),self:GetType(),self:GetString())
+		WUMA.RemoveUserRestriction(_, self:GetParentID(), self:GetType(), self:GetString())
 	else
-		WUMA.RemoveRestriction(_,self:GetUserGroup(),self:GetType(),self:GetString())
+		WUMA.RemoveRestriction(_, self:GetUserGroup(), self:GetType(), self:GetString())
 	end
 end
 
@@ -176,12 +170,12 @@ function object:Hit()
 		str = Restriction:GetTypes()[self:GetType()].print2
 		
 		self:GetParent():SendLua(string.format([[
-			notification.AddLegacy("%s are restricted!",NOTIFY_ERROR,3)
-		]],str))
+			notification.AddLegacy("%s are restricted!", NOTIFY_ERROR, 3)
+		]], str))
 	else
 		self:GetParent():SendLua(string.format([[
-			notification.AddLegacy("This %s (%s) is restricted!",NOTIFY_ERROR,3)
-		]],Restriction:GetTypes()[self:GetType()].print, str))
+			notification.AddLegacy("This %s (%s) is restricted!", NOTIFY_ERROR, 3)
+		]], Restriction:GetTypes()[self:GetType()].print, str))
 	end
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
@@ -215,7 +209,7 @@ function object:Clone()
 end
 function object:GetBarebones()
 	local tbl = {}
-	for k,v in pairs(self) do
+	for k, v in pairs(self) do
 		if v then
 			tbl[k] = v
 		end
@@ -324,15 +318,15 @@ end
 function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
 		if self:GetString() then
-			return string.format("%s_%s",self.type,self.string)
+			return string.format("%s_%s", self.type, self.string)
 		else
 			return self.type
 		end
 	else
 		if self:GetString() then
-			return string.format("%s_%s_%s",self.type,self.usergroup,self.string)
+			return string.format("%s_%s_%s", self.type, self.usergroup, self.string)
 		else
-			return string.format("%s_%s",self.type,self.usergroup)
+			return string.format("%s_%s", self.type, self.usergroup)
 		end
 	end
 end
@@ -340,5 +334,5 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(Restriction,static)
+setmetatable(Restriction, static)
 

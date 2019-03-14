@@ -7,15 +7,12 @@ local static = {}
 Limit._id = "WUMA_Limit"
 object._id = "WUMA_Limit"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function Limit:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -34,16 +31,16 @@ function Limit:new(tbl)
 	obj.m.callonempty = tbl.callonempty or {}
 	
 	--No numeric adv. limits
-	if (tonumber(obj.string) != nil) then obj.string = ":"..obj.string..":" end
+	if (tonumber(obj.string) ~= nil) then obj.string = ":"..obj.string..":" end
 	
 	--Make sure limit and string cannot be the same
 	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
 	
 	--Parse limit
-	if (tonumber(obj.limit) != nil) then obj.limit = tonumber(obj.limit) end
+	if (tonumber(obj.limit) ~= nil) then obj.limit = tonumber(obj.limit) end
 	
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-  
+ 
 	return obj
 end 
  
@@ -51,24 +48,21 @@ function static:GetID()
 	return Limit._id
 end
  
-function static:GenerateID(usergroup,str)
+function static:GenerateID(usergroup, str)
 	if usergroup then
-		return string.format("%s_%s",usergroup,str)
+		return string.format("%s_%s", usergroup, str)
 	else
 		return str
 	end
 end
 
-function static:GenerateHit(str,ply)
-	ply:SendLua(string.format([[notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)]],str))
+function static:GenerateHit(str, ply)
+	ply:SendLua(string.format([[notification.AddLegacy("You've hit the %s limit!", NOTIFY_ERROR, 3)]], str))
 	ply:SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("Limit [%s][%s/%s]",self:GetString(),tostring(self:GetCount()),tostring(self:Get()))
+	return string.format("Limit [%s][%s/%s]", self:GetString(), tostring(self:GetCount()), tostring(self:Get()))
 end
  
 function object:__call(ply)
@@ -124,7 +118,7 @@ end
 
 function object:Delete()
 	--So that no entities point here
-	for id, entity in pairs(self.m.entities)  do
+	for id, entity in pairs(self.m.entities) do
 		entity:RemoveWUMAParent(entity)
 	end
 	
@@ -135,9 +129,9 @@ end
 
 function object:Shred()
 	if self:IsPersonal() then
-		WUMA.RemoveUserLimit(_,self:GetParentID(),self:GetString())
+		WUMA.RemoveUserLimit(_, self:GetParentID(), self:GetString())
 	else
-		WUMA.RemoveLimit(_,self:GetUserGroup(),self:GetString())
+		WUMA.RemoveLimit(_, self:GetUserGroup(), self:GetString())
 	end
 end
 
@@ -147,7 +141,7 @@ end
 	
 function object:GetBarebones()
 	local tbl = {}
-	for k,v in pairs(self) do
+	for k, v in pairs(self) do
 		if v or (v == 0) then
 			tbl[k] = v
 		end
@@ -180,7 +174,7 @@ function object:GetID(short)
 	if (not self:GetUserGroup()) or short then
 		return self.string
 	else
-		return string.format("%s_%s",self:GetUserGroup(),self:GetString())
+		return string.format("%s_%s", self:GetUserGroup(), self:GetString())
 	end
 end
 
@@ -314,8 +308,8 @@ function object:Hit()
 	local str = self.print or self.string
 	
 	self:GetParent():SendLua(string.format([[
-			notification.AddLegacy("You've hit the %s limit!",NOTIFY_ERROR,3)
-		]],str))
+			notification.AddLegacy("You've hit the %s limit!", NOTIFY_ERROR, 3)
+		]], str))
 	self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
 end
 
@@ -347,4 +341,4 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(Limit,static) 
+setmetatable(Limit, static) 

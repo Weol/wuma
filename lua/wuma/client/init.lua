@@ -27,11 +27,11 @@ function WUMA.Initialize()
 	include("wuma/objects/restriction.lua") 	
 	include("wuma/objects/limit.lua") 	
 	
-	//Load shared folder
+	--Load shared folder
 	WUMADebug("Loading shared folder")
 	WUMA.IncludeFolder("wuma/shared/")
 	 
-	//Load vgui folder
+	--Load vgui folder
 	WUMADebug("Loading VGUI folder")
 	WUMA.IncludeFolder(WUMA.HomePath.."vgui/")
 
@@ -41,13 +41,13 @@ function WUMA.IncludeFolder(dir)
 	dir = dir or ""
 	local files, directories = file.Find(dir.."*", "LUA")
 	
-	for _,file in pairs(files) do	
-		WUMADebug(" %s",dir..file)
+	for _, file in pairs(files) do	
+		WUMADebug(" %s", dir..file)
 		
 		include(dir..file) 
 	end
 	
-	for _,directory in pairs(directories) do
+	for _, directory in pairs(directories) do
 		WUMA.IncludeFolder(dir..directory.."/")
 	end
 end
@@ -60,10 +60,10 @@ function WUMA.GenerateUniqueID()
 end
 
 function WUMA.IsSteamID(steamid)
-	return string.match(steamid,[[STEAM_\d{1}:\d{1}:\d*]])
+	return string.match(steamid, [[STEAM_\d{1}:\d{1}:\d*]])
 end
 
-function WUMA.GetTime()
+function WUMA.GetServerTime()
 	return os.time() + (WUMA.ServerSettings["server_time_offset"] or 0)
 end
 

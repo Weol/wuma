@@ -2,8 +2,8 @@
 local PANEL = {}
 
 function PANEL:Init()
-	self.PropertyViewer = vgui.Create("WPropertyView",self)
-	self.PropertyViewer:SetSize(120,200)
+	self.PropertyViewer = vgui.Create("WPropertyView", self)
+	self.PropertyViewer:SetSize(120, 200)
 
 	self.Keys = {}
 	self.Groups = {}
@@ -14,22 +14,22 @@ end
 
 function PANEL:SortByColumn(ColumnID, Desc)
 
-	table.Copy( self.Sorted, self.Lines )
+	table.Copy(self.Sorted, self.Lines)
 
-	table.sort( self.Sorted, function( a, b )
+	table.sort(self.Sorted, function(a, b)
 
-		if ( Desc ) then
+		if (Desc) then
 			a, b = b, a
 		end
 
-		local aval = a:GetSortValue( ColumnID ) || a:GetColumnText( ColumnID )
-		local bval = b:GetSortValue( ColumnID ) || b:GetColumnText( ColumnID )
+		local aval = a:GetSortValue(ColumnID) || a:GetColumnText(ColumnID)
+		local bval = b:GetSortValue(ColumnID) || b:GetColumnText(ColumnID)
 
 		return aval < bval
 
-	end )
+	end)
 
-	self:SetDirty( true )
+	self:SetDirty(true)
 	self:InvalidateLayout()
 
 end
@@ -39,7 +39,7 @@ function PANEL:GetSelectedItems()
 	
 	local tbl = {}
 	for _, v in pairs(selected) do
-		table.insert(tbl,self.DataTable()[v.id])
+		table.insert(tbl, self.DataTable()[v.id])
 	end
 	
 	return tbl
@@ -67,11 +67,11 @@ function PANEL:CheckHighlight(line, data, datav)
 		line.mark = true
 		if not line.old_paint then
 			line.old_paint = line.Paint
-			line.Paint = function(panel,w,h)
-				line.old_paint(panel,w,h)
+			line.Paint = function(panel, w, h)
+				line.old_paint(panel, w, h)
 				if panel.mark then
 					surface.SetDrawColor(color)
-					surface.DrawRect(0,0,w,h)
+					surface.DrawRect(0, 0, w, h)
 				end
 			end
 		end
@@ -86,11 +86,11 @@ function PANEL:CheckHighlights()
 			for id, line in pairs(lns) do
 				local data = {}
 				for _, v in pairs(line.Columns) do
-					table.insert(data,v.Value)
+					table.insert(data, v.Value)
 				end
 				
 				if self.DataTable()[id] then
-					self:CheckHighlight(line,data,self.DataTable()[id]) 
+					self:CheckHighlight(line, data, self.DataTable()[id]) 
 				end
 			end
 		end
@@ -107,7 +107,7 @@ function PANEL:OnRowRightClick()
 
 		local x, y = self:CursorPos()
 		if (y+self.PropertyViewer:GetTall() > self:GetTall()) then y = (y-self.PropertyViewer:GetTall()) end
-		self.PropertyViewer:Show(x,y)
+		self.PropertyViewer:Show(x, y)
 	end
 end
 
@@ -120,7 +120,7 @@ function PANEL:AddViewLine(id)
 		local line = self:AddLine(unpack(data))
 		line.id = id
 		
-		if self.HighlightFunction then self:CheckHighlight(line,data,self.DataTable()[id]) end
+		if self.HighlightFunction then self:CheckHighlight(line, data, self.DataTable()[id]) end
 		
 		if datav then line.Data = datav end
 		

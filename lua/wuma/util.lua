@@ -14,13 +14,12 @@ function WUMA.GenerateUniqueID()
 	return id
 end
 
-
 function WUMA.AddLookup(user)
-	WUMASQL("REPLACE INTO %s (steamid, nick, usergroup, t) values ('%s','%s','%s',%s);",WUMA.SQL.WUMALookupTable,user:SteamID(),user:Nick(),user:GetUserGroup(),tostring(os.time()))
+	WUMASQL("REPLACE INTO %s (steamid, nick, usergroup, t) values ('%s', '%s', '%s', %s);", WUMA.SQL.WUMALookupTable, user:SteamID(), user:Nick(), user:GetUserGroup(), tostring(os.time()))
 end
 
 function WUMA.RemoveLookup(user)
-	WUMASQL("DELETE FROM %s WHERE steamid=%s;",WUMA.SQL.WUMALookupTable,user:SteamID())
+	WUMASQL("DELETE FROM %s WHERE steamid=%s;", WUMA.SQL.WUMALookupTable, user:SteamID())
 end
 
 function WUMA.Lookup(user)
@@ -31,7 +30,7 @@ function WUMA.Lookup(user)
 			return WUMASQL("SELECT * FROM %s WHERE nick LIKE %s%s%s LIMIT 50;", WUMA.WUMALookupTable, "'%", user, "%'")
 		end
 	elseif (isnumber(user)) then
-		return WUMASQL("SELECT * FROM %s ORDER BY t ASC LIMIT %s",WUMA.WUMALookupTable, tostring(user))
+		return WUMASQL("SELECT * FROM %s ORDER BY t ASC LIMIT %s", WUMA.WUMALookupTable, tostring(user))
 	end
 end
 
@@ -42,7 +41,7 @@ end
 local stcache = {}
 function WUMA.STCache(id, data)
 	if data then
-		stcache[id] = {data=data,t=os.time()}
+		stcache[id] = {data=data, t=os.time()}
 	else
 		local entry = stcache[id]
 		if entry then
@@ -89,7 +88,7 @@ function WUMA.Cache(id, data)
 	else
 		local link = head --Set link to head (first element)
 		local previous --Declare pervious
-		while (link != nil) do
+		while (link ~= nil) do
 			if (link.id == id) then --Check if link is what we are looking for
 				if (previous) then --If previous is not nil then link is not head
 					previous.next = link.next --Set the previous element to the the current links next element
@@ -109,7 +108,7 @@ function WUMA.InvalidateCache(id)
 	if not head then return end
 	local link = head
 	local previous
-	while (link != nil) do
+	while (link ~= nil) do
 		if (link.id == id) then
 			if (previous) then
 				previous.next = link.next

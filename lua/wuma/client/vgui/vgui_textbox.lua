@@ -1,11 +1,11 @@
 
 local PANEL = {}
 
-AccessorFunc(PANEL,"max_numeric","MaxNumeric",FORCE_NUMBER)
-AccessorFunc(PANEL,"min_numeric","MinNumeric",FORCE_NUMBER)
+AccessorFunc(PANEL, "max_numeric", "MaxNumeric", FORCE_NUMBER)
+AccessorFunc(PANEL, "min_numeric", "MinNumeric", FORCE_NUMBER)
 
 function PANEL:Init()
-	self.default_color = Color(150,150,150)
+	self.default_color = Color(150, 150, 150)
 end
 
 function PANEL:SetDefault(default)
@@ -17,7 +17,7 @@ function PANEL:GetDefault()
 	return self.default
 end
 
-function PANEL:SetMinMaxNumeric(min,max)
+function PANEL:SetMinMaxNumeric(min, max)
 	self:SetMinNumeric(min)
 	self:SetMaxNumeric(max)
 end
@@ -28,18 +28,18 @@ function PANEL:OnTextChanged()
 
 	self.HistoryPos = 0
 
-	if ( self:GetUpdateOnType() ) then
+	if (self:GetUpdateOnType()) then
 		self:UpdateConvarValue()
-		self:OnValueChange( self:GetText() )
+		self:OnValueChange(self:GetText())
 	end
 
-	if ( IsValid( self.Menu ) && !noMenuRemoval ) then
+	if (IsValid(self.Menu) and not noMenuRemoval) then
 		self.Menu:Remove()
 	end
 
-	local tab = self:GetAutoComplete( self:GetText() )
-	if ( tab ) then
-		self:OpenAutoComplete( tab )
+	local tab = self:GetAutoComplete(self:GetText())
+	if (tab) then
+		self:OpenAutoComplete(tab)
 	end
 
 	self:OnChange()
@@ -76,7 +76,7 @@ function PANEL:OnLoseFocus()
 	end
 	
 	self:UpdateConvarValue()
-	hook.Call( "OnTextEntryLoseFocus", _, self )
+	hook.Call("OnTextEntryLoseFocus", _, self)
 	self:FocusLost()
 	
 end
@@ -90,14 +90,14 @@ function PANEL:OnGetFocus()
 		local text = self:GetValue()
 		if (text == self:GetDefault()) then
 			self:SetText("")
-			self:SetTextColor(Color(0,0,0))
+			self:SetTextColor(Color(0, 0, 0))
 		else
-			self:SetTextColor(Color(0,0,0))
+			self:SetTextColor(Color(0, 0, 0))
 			self:SelectAll()
 		end
 	end
 	
-	hook.Run( "OnTextEntryGetFocus", self )
+	hook.Run("OnTextEntryGetFocus", self)
 end
 
 vgui.Register("WTextbox", PANEL, 'DTextEntry');

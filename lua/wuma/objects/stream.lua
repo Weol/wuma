@@ -7,15 +7,12 @@ local static = {}
 WUMAStream._id = "WUMAStream"
 object._id = "WUMAStream"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function WUMAStream:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 
@@ -31,9 +28,6 @@ function WUMAStream:new(tbl)
 	return obj
 end 
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
 	return self.name
 end
@@ -59,9 +53,9 @@ function object:GetStatic()
 	return WUMAStream
 end
 
-function object:Send(user,data)
+function object:Send(user, data)
 	if not self.server then return false end
-	local arguments = self.server(user,data)
+	local arguments = self.server(user, data)
 	if not self.send then return false end
 	if arguments then
 		self.send(unpack(arguments))
@@ -120,4 +114,4 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(WUMAStream,static) 
+setmetatable(WUMAStream, static) 

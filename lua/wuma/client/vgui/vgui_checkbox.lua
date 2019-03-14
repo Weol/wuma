@@ -24,15 +24,15 @@ function PANEL:Paint()
 	if (self:GetValue() < 0) then
 		surface.SetDrawColor(Color(189, 118, 118, 255))
 	
-		surface.DrawLine(3,3,self:GetTall() - 3,self:GetTall() - 3)
-		surface.DrawLine(4,3,self:GetTall() - 3,self:GetTall() - 4)
-		surface.DrawLine(3,4,self:GetTall() - 4,self:GetTall() - 3)
+		surface.DrawLine(3, 3, self:GetTall() - 3, self:GetTall() - 3)
+		surface.DrawLine(4, 3, self:GetTall() - 3, self:GetTall() - 4)
+		surface.DrawLine(3, 4, self:GetTall() - 4, self:GetTall() - 3)
 		
 		surface.DrawLine(self:GetTall() - 4, 3, 2, self:GetTall() - 3)
 		surface.DrawLine(self:GetTall() - 5, 3, 2, self:GetTall() - 4)
 		surface.DrawLine(self:GetTall() - 4, 4, 3, self:GetTall() - 3)
 	elseif (self:GetValue() == 0) then
-		draw.RoundedBox(2,3,3, self:GetTall() - 6, self:GetTall() - 6, Color(0, 0, 0, 210))
+		draw.RoundedBox(2, 3, 3, self:GetTall() - 6, self:GetTall() - 6, Color(0, 0, 0, 210))
 	end
 end
 
@@ -41,7 +41,7 @@ function PANEL:OnChange(val)
 end
 
 function PANEL:OnMousePressed()
-	if (self:GetValue() != -1) then
+	if (self:GetValue() ~= -1) then
 		self:SetValue(-1)
 	else
 		self:SetValue(1)

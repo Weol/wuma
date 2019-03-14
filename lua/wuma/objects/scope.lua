@@ -7,7 +7,7 @@ local static = {}
 
 Scope.UNTIL = {
 	print="Until date",
-	print2=function(obj) return string.format("%02d/%02d/%04d",tonumber(obj:GetData().day),tonumber(obj:GetData().month),tonumber(obj:GetData().year)) end,
+	print2=function(obj) return string.format("%02d/%02d/%04d", tonumber(obj:GetData().day), tonumber(obj:GetData().month), tonumber(obj:GetData().year)) end,
 	log_prefix="until",
 	parts={"date_chooser"},
 	save=true,
@@ -40,7 +40,7 @@ Scope.types.UNTIL = Scope.UNTIL
 Scope.DURATION = {
 	print="Duration",
 	print2=function(obj)
-		local time = obj:GetData()-WUMA.GetTime()
+		local time = obj:GetData()-os.time()
 		local str = ""
 
 		local form = {
@@ -67,7 +67,7 @@ Scope.DURATION = {
 	log_prefix="for",
 	parts={"time_chooser"},
 	save=true,
-	processdata=function(data) return tonumber(data)+WUMA.GetTime() end,
+	processdata=function(data) return tonumber(data)+os.time() end,
 	checkdata=os.time,
 	checkfunction=function(obj) 
 		return (os.time() <= obj:GetData())
@@ -78,7 +78,7 @@ Scope.types.DURATION = Scope.DURATION
 
 Scope.MAP = {
 	print="Map",
-	print2=function(obj) return string.format("%s",obj:GetData()) end,
+	print2=function(obj) return string.format("%s", obj:GetData()) end,
 	log_prefix="on",
 	parts={"map_chooser"},
 	save=true,
@@ -94,15 +94,12 @@ Scope.types.MAP = Scope.MAP
 Scope._id = "WUMA_Scope"
 Scope.Objects = Scope.Objects or {}
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function Scope:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -112,16 +109,16 @@ function Scope:new(tbl)
 	
 	obj.m.parent = tbl.parent or false
 	
-	if (obj:GetType() != "MAP") then 
-		hook.Add("WUMAScopeThink","WUMAScopeThink_"..tostring(obj:GetUniqueID()),function() obj:Think() end)
+	if (obj:GetType() ~= "MAP") then
+		hook.Add("WUMAScopeThink", "WUMAScopeThink_"..tostring(obj:GetUniqueID()), function() obj:Think() end)
 	end
-  
+ 
 	return obj
 end 
 
 function static:StartThink()
 	if not timer.Exists("WUMAScopeStaticThinkTimer") then
-		timer.Create("WUMAScopeStaticThinkTimer",1,0,Scope.Think)
+		timer.Create("WUMAScopeStaticThinkTimer", 1, 0, Scope.Think)
 	end
 end
 
@@ -131,9 +128,9 @@ function static:GetTypes(field)
 		local tbl = {}
 		
 		for _, type in pairs(Scope.types) do 
-			for key,value in pairs(type) do 
+			for key, value in pairs(type) do 
 				if (key == field) then
-					table.insert(tbl,value)
+					table.insert(tbl, value)
 				end
 			end
 		end
@@ -158,10 +155,6 @@ function static:Think()
 	end
 end
 
-
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
 	local scope = Scope.types[self:GetType()]
 	if scope.print2 then 
@@ -180,11 +173,11 @@ function object:GetStatic()
 end
 
 function object:Delete()
-	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
+	hook.Remove("WUMAScopeThink", "WUMAScopeThink_"..tostring(self:GetUniqueID()))
 end	
 
 function object:Shred()
-	hook.Remove("WUMAScopeThink","WUMAScopeThink_"..tostring(self:GetUniqueID()))
+	hook.Remove("WUMAScopeThink", "WUMAScopeThink_"..tostring(self:GetUniqueID()))
 	self:GetParent():Shred()
 end
 
@@ -198,7 +191,7 @@ function object:Think()
 		local checkdata = nil
 		if typ.checkdata then checkdata = typ.checkdata() end
 
-		if not typ.checkfunction(self,checkdata) then
+		if not typ.checkfunction(self, checkdata) then
 			if not self:GetParent():IsDisabled() then
 				if typ.keep then
 					if self:GetParent() then
@@ -296,4 +289,4 @@ end
 object.__index = object
 static.__index = static 
 
-setmetatable(Scope,static)
+setmetatable(Scope, static)

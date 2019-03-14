@@ -3,9 +3,9 @@ local PANEL = {}
 
 function PANEL:AddOptions(options)
 	for _, map in pairs(options) do
-		map = string.gsub(map,".bsp","")
+		map = string.gsub(map, ".bsp", "")
 		if (map == game.GetMap()) then
-			self:AddChoice(map,nil,true)
+			self:AddChoice(map, nil, true)
 		else
 			self:AddChoice(map)
 		end

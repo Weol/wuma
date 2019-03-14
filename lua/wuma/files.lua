@@ -1,29 +1,28 @@
 
 WUMA = WUMA or {}
+
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
+WUMA.Files = WUMA.Files or {}
 
-local Files = {}
-local cache = {}
-
-function Files.Initialize()
+function WUMA.Files.Initialize()
 
 	--Create Data folder
-	Files.CreateDir(WUMA.DataDirectory)
+	WUMA.Files.CreateDir(WUMA.DataDirectory)
 	
 	--Create userfiles folder
-	Files.CreateDir(WUMA.DataDirectory..WUMA.UserDataDirectory)
+	WUMA.Files.CreateDir(WUMA.DataDirectory..WUMA.UserDataDirectory)
 
 end
 	
-function Files.CreateDir(dir)
+function WUMA.Files.CreateDir(dir)
 	dir = string.lower(dir)
 	if not file.IsDir(dir, "DATA") then
 		file.CreateDir(dir)
 	end
 end
 
-function Files.Append(path,text)
+function WUMA.Files.Append(path, text)
 	path = string.lower(path)
 	local f = file.Exists(WUMA.DataDirectory..path, "DATA")
 	if (not f) then
@@ -33,29 +32,26 @@ function Files.Append(path,text)
 	file.Append(path, text)
 end
 
-function Files.Exists(path)
+function WUMA.Files.Exists(path)
 	path = string.lower(path)
 	return file.Exists(path, "DATA")
 end
 
-function Files.Delete(path) 
+function WUMA.Files.Delete(path)
 	path = string.lower(path)
 	file.Delete(path)
 end
 
-function Files.Write(path,text)
+function WUMA.Files.Write(path, text)
 	path = string.lower(path)
 	file.Write(path, text)
 end
 
-function Files.Read(path)
+function WUMA.Files.Read(path)
 	path = string.lower(path)
-	--Msg("Reading file at "..path.."\n")
 	local f = file.Open(path, "r", "DATA")
-	if (!f) then return "" end
+	if not f then return "" end
 	local str = f:Read(f:Size())
 	f:Close()
 	return str or ""
 end
-
-WUMA.Files = Files

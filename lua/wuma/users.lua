@@ -26,7 +26,7 @@ function WUMA.AssignRestrictions(user, usergroup)
 	WUMA.AssignUserRestrictions(user)
 end
 
-function WUMA.AssignUsergroupRestrictions(user,usergroup)	
+function WUMA.AssignUsergroupRestrictions(user, usergroup)	
 	local usergroup = usergroup or user:GetUserGroup()
 	local restrictions = WUMA.UsergroupRestrictions[usergroup] or {}
 
@@ -38,14 +38,14 @@ function WUMA.AssignUsergroupRestrictions(user,usergroup)
 	end
 
 	if WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup) then
-		WUMA.AssignUsergroupRestrictions(user,WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup))
+		WUMA.AssignUsergroupRestrictions(user, WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup))
 	end
 end 
 
 function WUMA.AssignUserRestrictions(user)
-	if WUMA.CheckUserFileExists(user,Restriction) then
+	if WUMA.CheckUserFileExists(user, Restriction) then
 		local tbl = WUMA.GetSavedRestrictions(user)
-		for _,obj in pairs(tbl) do
+		for _, obj in pairs(tbl) do
 			user:AddRestriction(obj)
 		end
 	end
@@ -76,12 +76,12 @@ function WUMA.AssignUsergroupLimits(user, usergroup)
 	end
 	
 	if WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup) then
-		WUMA.AssignUsergroupLimits(user,WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup))
+		WUMA.AssignUsergroupLimits(user, WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup))
 	end
 end
 
 function WUMA.AssignUserLimits(user)
-	if WUMA.CheckUserFileExists(user,Limit) then
+	if WUMA.CheckUserFileExists(user, Limit) then
 		local tbl = WUMA.GetSavedLimits(user)
 		for id, obj in pairs(tbl) do
 			user:AddLimit(obj)
@@ -111,16 +111,16 @@ function WUMA.AssignUserLoadout(user)
 	end
 end
 
-function WUMA.UpdateUsergroup(group,func)
+function WUMA.UpdateUsergroup(group, func)
 	local players = WUMA.GetUsers(group)
 	if not players then return false end
-	for _,user in pairs(players) do
+	for _, user in pairs(players) do
 		func(user)
 	end
 	return players
 end
 
-function WUMA.GetUserData(user,typ)
+function WUMA.GetUserData(user, typ)
 	if not isstring(user) then user = user:SteamID() end
 	
 	if not WUMA.IsSteamID(user) then return false end
@@ -130,20 +130,20 @@ function WUMA.GetUserData(user,typ)
 	local loadout = false
 	
 	if typ then
-		if (typ == Restriction:GetID() and WUMA.CheckUserFileExists(user,Restriction)) then
+		if (typ == Restriction:GetID() and WUMA.CheckUserFileExists(user, Restriction)) then
 			return WUMA.ReadUserRestrictions(user)
-		elseif (typ == Limit:GetID() and WUMA.CheckUserFileExists(user,Limit)) then 
+		elseif (typ == Limit:GetID() and WUMA.CheckUserFileExists(user, Limit)) then 
 			return WUMA.ReadUserLimits(user)
-		elseif (typ == Loadout:GetID() and WUMA.CheckUserFileExists(user,Loadout)) then 
+		elseif (typ == Loadout:GetID() and WUMA.CheckUserFileExists(user, Loadout)) then 
 			return WUMA.ReadUserLoadout(user)
 		else
 			return false
 		end
 	end
 	
-	if WUMA.CheckUserFileExists(user,Restriction) then restrictions = WUMA.ReadUserRestrictions(user) end
-	if WUMA.CheckUserFileExists(user,Limit) then limits = WUMA.ReadUserLimits(user) end
-	if WUMA.CheckUserFileExists(user,Loadout) then loadout = WUMA.ReadUserLoadout(user) end
+	if WUMA.CheckUserFileExists(user, Restriction) then restrictions = WUMA.ReadUserRestrictions(user) end
+	if WUMA.CheckUserFileExists(user, Limit) then limits = WUMA.ReadUserLimits(user) end
+	if WUMA.CheckUserFileExists(user, Loadout) then loadout = WUMA.ReadUserLoadout(user) end
 
 	if not restrictions and not limits and not loadout then return false end
 		
@@ -158,7 +158,7 @@ end
 function WUMA.GetUsers(group)
 	if not group then 
 		local tbl = {}
-		for _,ply in pairs(player.GetAll()) do 
+		for _, ply in pairs(player.GetAll()) do 
 			tbl[ply:SteamID()] = ply
 		end
 		return tbl
@@ -167,7 +167,7 @@ function WUMA.GetUsers(group)
 	--Check for normal usergroup
 	if isstring(group) then
 		local tbl = {}
-		for _,ply in pairs(player.GetAll()) do 
+		for _, ply in pairs(player.GetAll()) do 
 			if (ply:GetUserGroup() == group) then 
 				tbl[ply:SteamID()] = ply
 			end
@@ -205,13 +205,13 @@ end
 
 function WUMA.IsSteamID(steamid)
 	if not isstring(steamid) then return false end
-	return (steamid == string.match(steamid,[[STEAM_%d:%d:%d*]]))
+	return (steamid == string.match(steamid, [[STEAM_%d:%d:%d*]]))
 end
 
 function WUMA.GetUserGroups()
-	local groups = {"superadmin","admin","user"}
+	local groups = {"superadmin", "admin", "user"}
 	for group, tbl in pairs(CAMI.GetUsergroups()) do
-		if not table.HasValue(groups,group) then table.insert(groups,group) end
+		if not table.HasValue(groups, group) then table.insert(groups, group) end
 	end
 	return groups
 end
@@ -225,7 +225,7 @@ function WUMA.MenuCommand(ply, cmd, args)
 		end
 	end)	
 end
-concommand.Add( "wuma_menu", WUMA.MenuCommand)
+concommand.Add("wuma_menu", WUMA.MenuCommand)
 
 function WUMA.PersonalLoadoutCommand(ply, cmd, args)
 	WUMA.HasAccess(ply, function(bool) 
@@ -267,16 +267,16 @@ hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
 	WUMA.InitializeUser(user) 
-	timer.Simple(1,function() 
+	timer.Simple(1, function() 
 		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 	end)
 end
 hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn)
 
 function WUMA.PlayerUsergroupChanged(user, old, new, source)
-	WUMA.RefreshGroupRestrictions(user,new)
-	WUMA.RefreshGroupLimits(user,new)
-	WUMA.RefreshLoadout(user,new)
+	WUMA.RefreshGroupRestrictions(user, new)
+	WUMA.RefreshGroupLimits(user, new)
+	WUMA.RefreshLoadout(user, new)
 	
 	timer.Simple(2, function()
 		WUMA.HasAccess(user, function(bool) 
@@ -289,7 +289,7 @@ function WUMA.PlayerUsergroupChanged(user, old, new, source)
 		end)
 		
 		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool( WUMA.HasUserPersonalLoadoutAccess, bool )
+			user:SetNWBool(WUMA.HasUserPersonalLoadoutAccess, bool)
 		end, "wuma personalloadout")
 	end)	
 end

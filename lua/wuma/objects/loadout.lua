@@ -7,15 +7,12 @@ local static = {}
 Loadout._id = "WUMA_Loadout"
 object._id = "WUMA_Loadout"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function Loadout:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -49,14 +46,11 @@ function static:GetID()
 	return Loadout._id
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("Loadout [%s]",self:GetParent() or self.usergroup)
+	return string.format("Loadout [%s]", self:GetParent() or self.usergroup)
 end
 
-function object:__eq(v1,v2)
+function object:__eq(v1, v2)
 	if v1._id and v2._id then return (v1._id == v2._id) end
 	return false
 end
@@ -78,14 +72,14 @@ function object:Clone()
 end
 
 function object:Delete()
-	for class,_ in pairs(self:GetWeapons()) do
+	for class, _ in pairs(self:GetWeapons()) do
 		self:TakeWeapon(class)
 	end
 end
 
 function object:GetBarebones()
 	local tbl = {}
-	for k,v in pairs(self) do
+	for k, v in pairs(self) do
 		if v then
 			tbl[k] = v
 		end
@@ -98,7 +92,7 @@ function object:GetUniqueID()
 end
 
 function object:GetID()
-	return string.format("loadout_%s",self.usergroup or "user")
+	return string.format("loadout_%s", self.usergroup or "user")
 end
 
 function object:GetStatic()
@@ -125,7 +119,7 @@ function object:Give(weapon)
 		self:GetAncestor():Give()
 	end
 	
-	for class,_ in pairs(self:GetWeapons()) do
+	for class, _ in pairs(self:GetWeapons()) do
 		self:GiveWeapon(class)
 	end
 	
@@ -146,12 +140,15 @@ function object:GiveWeapon(class)
 	
 	if weapon:IsDisabled() then return end
 	if not weapon:DoesRespectRestriction() then
-		local restriction = self:GetParent():GetRestriction("pickup",class)
+		local restriction = self:GetParent():GetRestriction("pickup", class)
 		if restriction then
 			restriction:AddException(class)
 		end
-	elseif self:GetParent():GetRestriction("swep", class) then 
-		return 
+	else 
+		local restriction = self:GetParent():GetRestriction("swep", class)
+		if restriction and not restriction:GetAllow() then
+			return 
+		end
 	end
 
 	local had_weapon = self:GetParent():HasWeapon(class)
@@ -180,22 +177,22 @@ function object:GiveWeapon(class)
 	swep:SetClip2(0)
 		
 	if (swep:GetMaxClip1() <= 0) then
-		self:GetParent():SetAmmo(primary_ammo,swep:GetPrimaryAmmoType())
+		self:GetParent():SetAmmo(primary_ammo, swep:GetPrimaryAmmoType())
 	elseif (swep:GetMaxClip1() > primary_ammo) then
 		swep:SetClip1(primary_ammo)
-		self:GetParent():SetAmmo(0,swep:GetPrimaryAmmoType())
+		self:GetParent():SetAmmo(0, swep:GetPrimaryAmmoType())
 	else
-		self:GetParent():SetAmmo(primary_ammo-swep:GetMaxClip1(),swep:GetPrimaryAmmoType())
+		self:GetParent():SetAmmo(primary_ammo-swep:GetMaxClip1(), swep:GetPrimaryAmmoType())
 		swep:SetClip1(swep:GetMaxClip1())
 	end
 	
 	if (swep:GetMaxClip2() <= 0) then
-		self:GetParent():SetAmmo(secondary_ammo,swep:GetSecondaryAmmoType())
+		self:GetParent():SetAmmo(secondary_ammo, swep:GetSecondaryAmmoType())
 	elseif (swep:GetMaxClip2() > secondary_ammo) then
 		swep:SetClip2(secondary_ammo)
-		self:GetParent():SetAmmo(0,swep:GetSecondaryAmmoType())
+		self:GetParent():SetAmmo(0, swep:GetSecondaryAmmoType())
 	else
-		self:GetParent():SetAmmo(secondary_ammo-swep:GetMaxClip2(),swep:GetSecondaryAmmoType())
+		self:GetParent():SetAmmo(secondary_ammo-swep:GetMaxClip2(), swep:GetSecondaryAmmoType())
 		swep:SetClip2(swep:GetMaxClip2())
 	end
 	
@@ -254,10 +251,10 @@ function object:ParseWeapon(weapon)
 	return weapon
 end
 
-function object:AddWeapon(weapon,primary,secondary,respect,scope)
-	weapon = Loadout_Weapon:new{class=self:ParseWeapon(weapon),primary=primary,secondary=secondary,respect_restrictions=respect,scope=scope,parent=self}
+function object:AddWeapon(weapon, primary, secondary, respect, scope)
+	weapon = Loadout_Weapon:new{class=self:ParseWeapon(weapon), primary=primary, secondary=secondary, respect_restrictions=respect, scope=scope, parent=self}
 	
-	self:SetWeapon(weapon:GetClass(),weapon)
+	self:SetWeapon(weapon:GetClass(), weapon)
 	
 	if self:GetParent() and isentity(self:GetParent()) then 
 		self:Give(weapon:GetClass())
@@ -275,15 +272,14 @@ function object:RemoveWeapon(weapon)
 		end
 	end
 	
-	self:SetWeapon(weapon,nil)
+	self:SetWeapon(weapon, nil)
 end 
 
 function object:GetWeaponCount()
 	return table.Count(self:GetWeapons())
 end
 
-
-function object:SetWeapon(weapon,value)
+function object:SetWeapon(weapon, value)
 	if istable(value) then
 		value:SetParent(self)
 	end
@@ -345,7 +341,7 @@ function object:DoesRespectRestriction()
 end
 
 function object:SetAncestor(ancestor)
-	if not ancestor or not ancestor._id or ancestor._id != self._id then WUMAError("Tried to set a non-loadout object as child."); return end
+	if not ancestor or not ancestor._id or ancestor._id ~= self._id then WUMAError("Tried to set a non-loadout object as child."); return end
 	
 	if (ancestor:GetAncestor()) then
 		ancestor.ancestor = nil
@@ -359,12 +355,12 @@ end
 function object:PurgeAncestor()
 	if not self:GetAncestor() then return end
 	
-	local weapons =  self:GetAncestor():GetWeapons()
+	local weapons = self:GetAncestor():GetWeapons()
 	
 	self.ancestor.child = nil
 	self.ancestor = nil
 	
-	for weapon,_ in pairs (weapons) do
+	for weapon, _ in pairs (weapons) do
 		if not self:GetWeapon(weapon) then
 			self:TakeWeapon(weapon)
 		end
@@ -376,7 +372,7 @@ function object:GetAncestor()
 end
 
 function object:SetChild(child)
-	if not ancestor or not ancestor._id or ancestor._id != self._id then WUMAError("Tried to set a non-loadout object as child."); return end
+	if not ancestor or not ancestor._id or ancestor._id ~= self._id then WUMAError("Tried to set a non-loadout object as child."); return end
 	
 	child.ancestor = self
 	self.child = child
@@ -399,5 +395,5 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(Loadout,static) 
+setmetatable(Loadout, static) 
 

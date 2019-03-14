@@ -3,8 +3,7 @@ WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
-
-local function additionalEntitiesFromDuplicatorEntityClasses() 
+local function additionalEntitiesFromDuplicatorEntityClasses()
 	if (duplicator and duplicator.EntityClasses) then
 		local blacklist = {
 			monster_alien_grunt = 1,
@@ -82,27 +81,27 @@ function WUMA.GetAdditionalEntities()
 end
 
 function WUMA.GetEntities()
-	local entities = table.GetKeys(list.Get( "SpawnableEntities" ))
+	local entities = table.GetKeys(list.Get("SpawnableEntities"))
 	table.Add(entities, WUMA.GetAdditionalEntities())
 	return entities
 end
 
 function WUMA.GetNPCs()
-	return table.GetKeys(list.Get( "NPC" ))
+	return table.GetKeys(list.Get("NPC"))
 end
 
 function WUMA.GetVehicles()
-	return table.GetKeys(list.Get( "Vehicles" ))
+	return table.GetKeys(list.Get("Vehicles"))
 end
 
 function WUMA.GetTools()
-	return table.GetKeys(weapons.GetStored( 'gmod_tool' ).Tool)
+	return table.GetKeys(weapons.GetStored('gmod_tool').Tool)
 end
 
 function WUMA.GetWeapons()
 	local tbl = {}
 
-	for k, v in pairs(list.Get( "Weapon" )) do
+	for k, v in pairs(list.Get("Weapon")) do
 		if v.Spawnable then
 			table.insert(tbl, k)
 		end
@@ -117,12 +116,12 @@ end
 
 function WUMA.GetAllItems()
 	local tbl = {}
-	table.Add(tbl,WUMA.GetEntities())
-	table.Add(tbl,WUMA.GetNPCs())
-	table.Add(tbl,WUMA.GetVehicles())
-	table.Add(tbl,WUMA.GetTools())
-	table.Add(tbl,WUMA.GetWeapons())
-	table.Add(tbl,WUMA.GetStandardLimits())
+	table.Add(tbl, WUMA.GetEntities())
+	table.Add(tbl, WUMA.GetNPCs())
+	table.Add(tbl, WUMA.GetVehicles())
+	table.Add(tbl, WUMA.GetTools())
+	table.Add(tbl, WUMA.GetWeapons())
+	table.Add(tbl, WUMA.GetStandardLimits())
 	
 	return tbl
 end

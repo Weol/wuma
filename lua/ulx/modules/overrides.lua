@@ -1,12 +1,12 @@
 
 local EchoChanges
- 
+
 local function echoFunction(args, affected, caller)
 
 	if not args then return end
-	
+
 	local msg = args[1]
-	table.remove(args,1)
+	table.remove(args, 1)
 
 	msg = string.gsub(msg, "%%s", "#A", 1)
 	msg = string.gsub(msg, "%%s", "#s")
@@ -25,7 +25,7 @@ local function echoFunction(args, affected, caller)
 	end
 end
 
-hook.Add("PostWUMALoad","ULXOverideWUMALog",function()	
+hook.Add("OnWUMALoaded", "ULXOverideWUMALog", function()	
 	EchoChanges = WUMA.EchoChanges
 
 	for name, access in pairs(WUMA.AccessRegister) do

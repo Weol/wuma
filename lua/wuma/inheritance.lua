@@ -29,11 +29,11 @@ function WUMA.SetUsergroupInheritance(enum, target, usergroup)
 	
 	WUMA.UpdateUsergroup(target, function(user) 
 		if (enum == Restriction:GetID()) then
-			WUMA.RefreshGroupRestrictions(user,target)
+			WUMA.RefreshGroupRestrictions(user, target)
 		elseif (enum == Limit:GetID()) then
-			WUMA.RefreshGroupLimits(user,target)
+			WUMA.RefreshGroupLimits(user, target)
 		elseif (enum == Loadout:GetID()) then
-			WUMA.RefreshUsergroupLoadout(user,target)
+			WUMA.RefreshUsergroupLoadout(user, target)
 		end
 	end)
 			
@@ -41,11 +41,11 @@ function WUMA.SetUsergroupInheritance(enum, target, usergroup)
 		for _, heir in pairs(heirs) do
 			WUMA.UpdateUsergroup(heir, function(user) 
 				if (enum == Restriction:GetID()) then
-					WUMA.RefreshGroupRestrictions(user,heir)
+					WUMA.RefreshGroupRestrictions(user, heir)
 				elseif (enum == Limit:GetID()) then
-					WUMA.RefreshGroupLimits(user,heir)
+					WUMA.RefreshGroupLimits(user, heir)
 				elseif (enum == Loadout:GetID()) then
-					WUMA.RefreshUsergroupLoadout(user,heir)
+					WUMA.RefreshUsergroupLoadout(user, heir)
 				end
 			end)
 			recursive(WUMA.GetUsergroupHeirs(enum, heir))
@@ -68,11 +68,11 @@ function WUMA.UnsetUsergroupInheritance(enum, target)
 	
 	WUMA.UpdateUsergroup(target, function(user) 
 		if (enum == Restriction:GetID()) then
-			WUMA.RefreshGroupRestrictions(user,target)
+			WUMA.RefreshGroupRestrictions(user, target)
 		elseif (enum == Limit:GetID()) then
-			WUMA.RefreshGroupLimits(user,target)
+			WUMA.RefreshGroupLimits(user, target)
 		elseif (enum == Loadout:GetID()) then
-			WUMA.RefreshUsergroupLoadout(user,target)
+			WUMA.RefreshUsergroupLoadout(user, target)
 		end
 	end)
 			
@@ -80,11 +80,11 @@ function WUMA.UnsetUsergroupInheritance(enum, target)
 		for _, heir in pairs(heirs) do
 			WUMA.UpdateUsergroup(heir, function(user) 
 				if (enum == Restriction:GetID()) then
-					WUMA.RefreshGroupRestrictions(user,heir)
+					WUMA.RefreshGroupRestrictions(user, heir)
 				elseif (enum == Limit:GetID()) then
-					WUMA.RefreshGroupLimits(user,heir)
+					WUMA.RefreshGroupLimits(user, heir)
 				elseif (enum == Loadout:GetID()) then
-					WUMA.RefreshUsergroupLoadout(user,heir)
+					WUMA.RefreshUsergroupLoadout(user, heir)
 				end
 			end)
 			recursive(WUMA.GetUsergroupHeirs(enum, heir))

@@ -5,9 +5,6 @@ local static = {}
 object._id = "UserObject"
 static._id = "UserObject"
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:Construct(tbl)
 	self:SetParent(tbl.parent)
 	

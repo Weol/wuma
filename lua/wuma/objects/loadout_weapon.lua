@@ -7,15 +7,12 @@ local static = {}
 Loadout_Weapon._id = "WUMA_Loadout_Weapon"
 object._id = "WUMA_Loadout_Weapon"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function Loadout_Weapon:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
 	
@@ -38,14 +35,11 @@ function static:GetID()
 	return Loadout_Weapon._id
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("Loadout_Weapon [%s]",self.class)
+	return string.format("Loadout_Weapon [%s]", self.class)
 end
 
-function object:__eq(v1,v2)
+function object:__eq(v1, v2)
 	if v1._id and v2._id then return (v1._id == v2._id) end
 	return false
 end
@@ -74,7 +68,7 @@ end
 
 function object:GetBarebones()
 	local tbl = {}
-	for k,v in pairs(self) do
+	for k, v in pairs(self) do
 		if v then
 			tbl[k] = v
 		end
@@ -87,7 +81,7 @@ function object:GetUniqueID()
 end
 
 function object:GetID()
-	return string.format("loadout_weapon_%s",self.class)
+	return string.format("loadout_weapon_%s", self.class)
 end
 
 function object:GetStatic()
@@ -163,9 +157,9 @@ end
 
 function object:Shred()
 	if (self:IsPersonal()) then
-		WUMA.RemoveUserLoadoutWeapon(_,self:GetParent():GetParentID(),self:GetClass())
+		WUMA.RemoveUserLoadoutWeapon(_, self:GetParent():GetParentID(), self:GetClass())
 	else
-		WUMA.RemoveLoadoutWeapon(_,self:GetParent():GetUserGroup(),self:GetClass())
+		WUMA.RemoveLoadoutWeapon(_, self:GetParent():GetUserGroup(), self:GetClass())
 	end
 end
 
@@ -185,5 +179,5 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(Loadout_Weapon,static) 
+setmetatable(Loadout_Weapon, static) 
 

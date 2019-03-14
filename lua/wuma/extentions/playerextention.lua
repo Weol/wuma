@@ -1,22 +1,22 @@
  
 local ENT = FindMetaTable("Player")
-  
+ 
 ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
 function ENT:CheckLimit(str, WUMA)
 	if (WUMA and self:HasLimit(WUMA)) then
 		local limithit = self:GetLimit(WUMA):Check() 
-		if (limithit != nil) then return limithit end
+		if (limithit ~= nil) then return limithit end
 	end	
 	 
 	if (self:HasLimit(str)) then
 		local limithit = self:GetLimit(str):Check()
-		if (limithit != nil) then return limithit end
+		if (limithit ~= nil) then return limithit end
 	end
 
 	--Fall back to whichever system we overrode
 	return self.old_CheckLimit(self, str)	
 end 
-  
+ 
 ENT.old_AddCount = ENT.old_AddCount or ENT.AddCount
 function ENT:AddCount(str, ent, WUMA)
 
@@ -29,7 +29,7 @@ function ENT:AddCount(str, ent, WUMA)
 	end 
 	
 end 
-     
+
 ENT.old_GetCount = ENT.old_GetCount or ENT.GetCount
 function ENT:GetCount(str, minus, WUMA)
 	
@@ -56,7 +56,7 @@ function ENT:LimitHit(str)
 	if self:HasLimit(str) then
 		self:GetLimit(str):Hit()
 	else
-		Limit:GenerateHit(str,self)
+		Limit:GenerateHit(str, self)
 	end
 end
 
@@ -66,25 +66,25 @@ function ENT:GetWUMAData()
 		limits = self:GetLimits() or false,
 		loadout = self:GetLoadout() or false
 	}
-end   
+end
 
 function ENT:HasWUMAData()
 	if (self:GetRestrictions() or self:GetLimits() or self:GetLoadout()) then return true else return false end
-end   
+end
  
-function ENT:CheckRestriction(type,str)
+function ENT:CheckRestriction(type, str)
 	WUMADebug("Checking %s %s for %s (%s)", type, str, self:Nick(), self:SteamID())
 
 	local restriction = self:GetRestriction(type, str)
 	
 	if restriction then 
-		return restriction(type,str)
+		return restriction(type, str)
 	end
-end   
-   
+end
+
 function ENT:SetRestrictions(restrictions)
 	self.Restrictions = restrictions
-end   
+end
 
 function ENT:AddRestriction(restriction) 
 	if not self:GetRestrictions() then self.Restrictions = {} end
@@ -110,12 +110,12 @@ function ENT:AddRestriction(restriction)
 end 
 
 function ENT:AddRestrictions(tbl)
-	for _,object in pairs(tbl) do
+	for _, object in pairs(tbl) do
 		self:AddRestriction(object)
 	end
 end
 
-function ENT:RemoveRestriction(id,personal) 
+function ENT:RemoveRestriction(id, personal) 
 	local restriction = self:GetRestriction(id)
 	if not restriction then return end
 	
@@ -138,10 +138,11 @@ function ENT:GetRestrictions()
 	return self.Restrictions 
 end
  
-function ENT:GetRestriction(type,str)
+function ENT:GetRestriction(type, str)
 	if not self:GetRestrictions() then return nil end
 	if str then
-		local key = Restriction:GenerateID(type,_,str)
+		local key = Restriction:GenerateID(type, _, str)
+		WUMADebug(key)
 		if self:GetRestrictions()[key] then
 			return self:GetRestrictions()[key]
 		end
@@ -188,11 +189,11 @@ function ENT:AddLimit(limit)
 	end
 end
  
-function ENT:RemoveLimit(id,personal)
+function ENT:RemoveLimit(id, personal)
 	local limit = self:GetLimit(id)
 	if not limit then return end
 
-	if (limit:GetCount() > 0 ) and not limit:GetAncestor() then
+	if (limit:GetCount() > 0) and not limit:GetAncestor() then
 		if not self.LimitsCache then self.LimitsCache = {} end
 		self.LimitsCache[id] = limit
 	end
@@ -220,13 +221,13 @@ end
 
 function ENT:GetLimit(str)
 	if not self:GetLimits() then return false end
-	local id = Limit:GenerateID(_,str)
+	local id = Limit:GenerateID(_, str)
 	return self:GetLimits()[id]
 end
 
 function ENT:HasLimit(str)
 	if not self:GetLimits() then return false end
-	local id = Limit:GenerateID(_,str)
+	local id = Limit:GenerateID(_, str)
 	if self:GetLimits()[id] then return true end
 	return false
 end
@@ -240,7 +241,7 @@ function ENT:CacheLimits()
 	for id, limit in pairs(self:GetLimits() or {}) do
 		if (limit:GetCount() > 0) then
 			cache[limit:GetID(true)] = limit
-			limit:CallOnEmpty("WUMADeleteCache",function(limit) 
+			limit:CallOnEmpty("WUMADeleteCache", function(limit) 
 				cache[limit:GetID(true)] = nil
 			end)
 		end

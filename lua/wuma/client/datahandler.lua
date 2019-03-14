@@ -15,10 +15,10 @@ WUMA.LoadoutWeapons = WUMA.LoadoutsWeapons or {}
 WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
-WUMA.CVarLimits = WUMA.CVarLimits or {}
+WUMA.Limits = WUMA.Limits or {}
 WUMA.Inheritance = {}
 
-//Hooks
+--Hooks
 WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
 WUMA.LOOKUPUSERSUPDATE = "WUMALookupUsersUpdate"
 WUMA.SERVERUSERSUPDATE = "WUMAServerUsersUpdate"
@@ -27,23 +27,23 @@ WUMA.MAPSUPDATE = "WUMAMapsUpdate"
 WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
 WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
 WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE = "WUMAPersonalLoadoutRestrictionsUpdate"
-WUMA.CVARLIMITSUPDATE = "WUMACVarLimitsUpdate"
+WUMA.CVARLIMITSUPDATE = "WUMALimitsUpdate"
 WUMA.PROGRESSUPDATE = "WUMAProgressUpdate"
 
 WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
 WUMA.LIMITUPDATE = "WUMALimitUpdate"
 WUMA.LOADOUTUPDATE = "WUMALoadoutUpdate"
 
-//CVars
-CreateClientConVar("wuma_autounsubscribe", "-1", true, false,"Time in seconds before unsubscribing from data. -1 = Never.")
-CreateClientConVar("wuma_autounsubscribe_user", "900", true, false,"Time in seconds before unsubscribing from data. -1 = Never.")
-CreateClientConVar("wuma_request_on_join", "0", true, false,"Wether or not to request data on join")
+--CVars
+CreateClientConVar("wuma_autounsubscribe", "-1", true, false, "Time in seconds before unsubscribing from data. -1 = Never.")
+CreateClientConVar("wuma_autounsubscribe_user", "900", true, false, "Time in seconds before unsubscribing from data. -1 = Never.")
+CreateClientConVar("wuma_request_on_join", "0", true, false, "Wether or not to request data on join")
 
 --Data update
-function WUMA.ProcessDataUpdate(id,data)
-	WUMADebug("Process Data Update: (%s)",id)
+function WUMA.ProcessDataUpdate(id, data)
+	WUMADebug("Process Data Update: (%s)", id)
 
-	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Processing data")
+	hook.Call(WUMA.PROGRESSUPDATE, _, id, "Processing data")
 	
 	if (id == Restriction:GetID()) then
 		WUMA.UpdateRestrictions(data)
@@ -57,9 +57,9 @@ function WUMA.ProcessDataUpdate(id,data)
 		WUMA.UpdateLoadouts(data)
 	end
 	
-	local private = string.find(id,":::")
+	local private = string.find(id, ":::")
 	if private then
-		WUMA.UpdateUser(string.sub(id,private+3),string.sub(id,1,private-1),data)
+		WUMA.UpdateUser(string.sub(id, private+3), string.sub(id, 1, private-1), data)
 	end
 	
 end
@@ -69,7 +69,7 @@ local compressedBuffer = {}
 function WUMA.ProcessCompressedData(id, data, await, index)
 
 	if await or compressedBuffer[id] then
-		hook.Call(WUMA.PROGRESSUPDATE, _,id, "Recieving data ("..index..")")
+		hook.Call(WUMA.PROGRESSUPDATE, _, id, "Recieving data ("..index..")")
 	end
 	
 	if compressedBuffer[id] then
@@ -85,18 +85,18 @@ function WUMA.ProcessCompressedData(id, data, await, index)
 		return
 	end
 
-	WUMADebug("Processing compressed data. Size: %s",string.len(data))
+	WUMADebug("Processing compressed data. Size: %s", string.len(data))
 
-	hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompressing data")
+	hook.Call(WUMA.PROGRESSUPDATE, _, id, "Decompressing data")
 	
 	local uncompressed_data = util.Decompress(data) 
 	
 	if not uncompressed_data then
-		WUMADebug("Failed to uncompress data! Size: %s",string.len(data)) 
-		hook.Call(WUMA.PROGRESSUPDATE, _,id, "Decompress failed! Flush data and try again")
+		WUMADebug("Failed to uncompress data! Size: %s", string.len(data)) 
+		hook.Call(WUMA.PROGRESSUPDATE, _, id, "Decompress failed! Flush data and try again")
 		return
 	end 
-	WUMADebug("Data sucessfully decompressed. Size: %s",string.len(uncompressed_data))
+	WUMADebug("Data sucessfully decompressed. Size: %s", string.len(uncompressed_data))
 	
 	local tbl = util.JSONToTable(uncompressed_data)
 	
@@ -207,19 +207,19 @@ function WUMA.UpdateUser(id, enum, data)
 	WUMA.UserData[id] = WUMA.UserData[id] or {}
 	
 	if (enum == Restriction:GetID()) then
-		WUMA.UpdateUserRestrictions(id,data)
+		WUMA.UpdateUserRestrictions(id, data)
 	end
 		
 	if (enum == Limit:GetID()) then
-		WUMA.UpdateUserLimits(id,data)
+		WUMA.UpdateUserLimits(id, data)
 	end
 		
 	if (enum == Loadout:GetID()) then
-		WUMA.UpdateUserLoadouts(id,data)
+		WUMA.UpdateUserLoadouts(id, data)
 	end
 	
 	if (enum == "PersonalLoadoutRestrictions") then
-		WUMA.UpdatePersonalLoadoutRestrictions(id,data)
+		WUMA.UpdatePersonalLoadoutRestrictions(id, data)
 	end
 	
 end
@@ -342,15 +342,14 @@ function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
 	hook.Call(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, _, user, update)
 end
 
-
 --Information update
-function WUMA.ProcessInformationUpdate(enum,data)
+function WUMA.ProcessInformationUpdate(enum, data)
 	WUMADebug("Process Information Update:")
 
 	if WUMA.GetStream(enum) then
 		WUMA.GetStream(enum)(data)
 	else	
-		WUMADebug("NET STREAM enum not found! (%s)",tostring(enum))
+		WUMADebug("NET STREAM enum not found! (%s)", tostring(enum))
 	end
 end
 
@@ -364,16 +363,16 @@ function WUMA.UpdateSettings(settings)
 	
 	DisregardSettingsChange = false
 end
-hook.Add(WUMA.SETTINGSUPDATE,"WUMAGUISettings",function(settings) WUMA.UpdateSettings(settings) end)
+hook.Add(WUMA.SETTINGSUPDATE, "WUMAGUISettings", function(settings) WUMA.UpdateSettings(settings) end)
 
 function WUMA.OnSettingsUpdate(setting, value)
 	if not DisregardSettingsChange then
 		value = util.TableToJSON({value})
 
 		local access = "changesettings"
-		local data = {setting,value}
+		local data = {setting, value}
 		 
-		WUMA.SendCommand(access,data,true)
+		WUMA.SendCommand(access, data, true)
 	end
 end
 
@@ -384,7 +383,7 @@ function WUMA.UpdateInheritance(inheritance)
 		WUMA.GUI.Tabs.Settings.DisregardInheritanceChange = false
 	end
 end
-hook.Add(WUMA.INHERITANCEUPDATE,"WUMAGUIInheritance",function(settings) WUMA.UpdateInheritance(settings) end)
+hook.Add(WUMA.INHERITANCEUPDATE, "WUMAGUIInheritance", function(settings) WUMA.UpdateInheritance(settings) end)
 
 function WUMA.OnInheritanceUpdate(enum, target, usergroup)
 	if not WUMA.GUI.Tabs.Settings.DisregardInheritanceChange then
@@ -393,6 +392,6 @@ function WUMA.OnInheritanceUpdate(enum, target, usergroup)
 		if (string.lower(usergroup) == "nobody") then usergroup = nil end
 		local data = {enum, target, usergroup}
 		 
-		WUMA.SendCommand(access,data,true)
+		WUMA.SendCommand(access, data, true)
 	end
 end

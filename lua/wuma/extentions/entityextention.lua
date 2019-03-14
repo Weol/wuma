@@ -17,7 +17,7 @@ function ENT:GetWUMAParents()
 end
 
 function ENT:NotifyWUMAParents() 
-	for _,parent in pairs(self:GetWUMAParents()) do 
+	for _, parent in pairs(self:GetWUMAParents()) do 
 		parent:DeleteEntity(self:GetCreationID())
 	end
 end

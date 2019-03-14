@@ -26,7 +26,7 @@ function WUMA.GetSavedLimits(user)
 	else
 		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {}
 
-		for key,obj in pairs(saved) do
+		for key, obj in pairs(saved) do
 			if istable(obj) then
 				obj.parent = user
 				tbl[key] = Limit:new(obj)
@@ -42,9 +42,9 @@ function WUMA.ReadUserLimits(user)
 
 	local tbl = {}
 	
-	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user,Limit))) or {}
+	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user, Limit))) or {}
 		
-	for key,obj in pairs(saved) do
+	for key, obj in pairs(saved) do
 		obj.parent = user
 		tbl[key] = Limit:new(obj)
 	end 
@@ -66,36 +66,36 @@ function WUMA.LimitsExist()
 	if (table.Count(WUMA.Limits) > 0) then return true end
 end
 
-function WUMA.HasLimit(usergroup,item)
+function WUMA.HasLimit(usergroup, item)
 	if isstring(usergroup) then
-		if WUMA.GetSavedLimits()[Limit:GenerateID(usergroup,item)] then return true end
+		if WUMA.GetSavedLimits()[Limit:GenerateID(usergroup, item)] then return true end
 	else
 		if WUMA.GetSavedLimits()[usergroup:GetID()] then return true end
 	end 
 	return false
 end
 
-function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
+function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 
 	if (item == limit) then return false end
-	if (tonumber(item) != nil) then return false end
+	if (tonumber(item) ~= nil) then return false end
 
-	local limit = Limit:new({string=item,usergroup=usergroup,limit=limit,exclusive=exclusive,scope=scope})
+	local limit = Limit:new({string=item, usergroup=usergroup, limit=limit, exclusive=exclusive, scope=scope})
 
 	WUMA.Limits[limit:GetID()] = limit
 	
 	if not WUMA.UsergroupLimits[usergroup] then WUMA.UsergroupLimits[usergroup] = {} end
 	WUMA.UsergroupLimits[usergroup][limit:GetID()] = 1
 	
-	local affected = WUMA.UpdateUsergroup(usergroup,function(user)
+	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
 		user:AddLimit(limit:Clone())
 	end)
 	
 	local function recursive(group)
-		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
+		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(), group)
 		for k, heir in pairs(heirs) do
-			if not WUMA.Limits[Limit:GenerateID(heir,item)] then
-				WUMA.UpdateUsergroup(heir,function(ply)
+			if not WUMA.Limits[Limit:GenerateID(heir, item)] then
+				WUMA.UpdateUsergroup(heir, function(ply)
 					ply:AddLimit(limit)
 				end)
 				recursive(heir)
@@ -104,7 +104,7 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 	end
 	recursive(usergroup)
 	
-	WUMA.AddClientUpdate(Limit,function(tbl)
+	WUMA.AddClientUpdate(Limit, function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
@@ -122,8 +122,8 @@ function WUMA.AddLimit(caller,usergroup,item,limit,exclusive,scope)
 
 end
 
-function WUMA.RemoveLimit(caller,usergroup,item)
-	local id = Limit:GenerateID(usergroup,item)
+function WUMA.RemoveLimit(caller, usergroup, item)
+	local id = Limit:GenerateID(usergroup, item)
 	
 	if not WUMA.Limits[id] then return false end
 	
@@ -137,24 +137,24 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 	local limit
 	local ancestor = WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup)
 	while ancestor do
-		limit = WUMA.Limits[Limit:GenerateID(ancestor,item)]
+		limit = WUMA.Limits[Limit:GenerateID(ancestor, item)]
 		if limit then
 			break
 		end
 		ancestor = WUMA.GetUsergroupAncestor(Limit:GetID(), ancestor)
 	end
 	
-	local affected = WUMA.UpdateUsergroup(usergroup,function(ply)
-		ply:RemoveLimit(Limit:GenerateID(nil,item))
+	local affected = WUMA.UpdateUsergroup(usergroup, function(ply)
+		ply:RemoveLimit(Limit:GenerateID(nil, item))
 		if limit then ply:AddLimit(limit) end
 	end)
 	
 	local function recursive(group)
-		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(),group)
+		local heirs = WUMA.GetUsergroupHeirs(Limit:GetID(), group)
 		for _, heir in pairs(heirs) do
-			if not WUMA.Restrictions[Limit:GenerateID(heir,item)] then
-				WUMA.UpdateUsergroup(heir,function(ply)
-					ply:RemoveLimit(Limit:GenerateID(nil,item))
+			if not WUMA.Restrictions[Limit:GenerateID(heir, item)] then
+				WUMA.UpdateUsergroup(heir, function(ply)
+					ply:RemoveLimit(Limit:GenerateID(nil, item))
 					if limit then
 						ply:AddLimit(limit)
 					end
@@ -165,7 +165,7 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 	end
 	recursive(usergroup)
 
-	WUMA.AddClientUpdate(Limit,function(tbl)
+	WUMA.AddClientUpdate(Limit, function(tbl)
 		tbl[id] = WUMA.DELETE
 		
 		return tbl
@@ -183,12 +183,12 @@ function WUMA.RemoveLimit(caller,usergroup,item)
 
 end
 
-function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)
+function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 
 	if (item == limit) then return false end
-	if (tonumber(item) != nil) then return false end
+	if (tonumber(item) ~= nil) then return false end
 	
-	local limit = Limit:new({string=item,limit=limit,exclusive=exclusive,scope=scope})
+	local limit = Limit:new({string=item, limit=limit, exclusive=exclusive, scope=scope})
 
 	if isentity(user) then
 		user:AddLimit(limit)
@@ -196,13 +196,13 @@ function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)
 		user = user:SteamID()
 	end
 	
-	WUMA.AddClientUpdate(Limit,function(tbl)
+	WUMA.AddClientUpdate(Limit, function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
-	end,user)
+	end, user)
 	
-	WUMA.ScheduleUserDataUpdate(user,Limit:GetID(), function(tbl)
+	WUMA.ScheduleUserDataUpdate(user, Limit:GetID(), function(tbl)
 		tbl[limit:GetID()] = limit:GetBarebones()
 		
 		return tbl
@@ -210,8 +210,8 @@ function WUMA.AddUserLimit(caller,user,item,limit,exclusive,scope)
 	
 end
 
-function WUMA.RemoveUserLimit(caller,user,item)
-	local id = Limit:GenerateID(_,item)
+function WUMA.RemoveUserLimit(caller, user, item)
+	local id = Limit:GenerateID(_, item)
 	
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
@@ -220,13 +220,13 @@ function WUMA.RemoveUserLimit(caller,user,item)
 		user = user:SteamID()
 	end
 	
-	WUMA.AddClientUpdate(Limit,function(tbl)
+	WUMA.AddClientUpdate(Limit, function(tbl)
 		tbl[id] = WUMA.DELETE
 		
 		return tbl
-	end,user)
+	end, user)
 		
-	WUMA.ScheduleUserDataUpdate(user,Limit:GetID(), function(tbl)
+	WUMA.ScheduleUserDataUpdate(user, Limit:GetID(), function(tbl)
 		tbl[id] = nil
 			
 		return tbl

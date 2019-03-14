@@ -5,9 +5,6 @@ local static = {}
 object._id = "WUMA_WUMAObject"
 static._id = "WUMA_WUMAObject"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 local function index(tbl, key)
 	while (tbl) do
 		local value = rawget(tbl, key)
@@ -87,9 +84,6 @@ function static:GetID()
 	return self._id
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:Construct(tbl)
 	
 end
@@ -131,4 +125,4 @@ end
 static.__index = static 
 static._object = object
 
-WUMAObject = setmetatable({},static)
+WUMAObject = setmetatable({}, static)

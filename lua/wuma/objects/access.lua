@@ -35,7 +35,7 @@ WUMAAccess.SCOPE = function(str)
 
 	if not tbl or not tbl.type then return false end
 
-	local scope = Scope:new{type=tbl.type,data=tbl.data}
+	local scope = Scope:new{type=tbl.type, data=tbl.data}
 	
 	return scope
 end
@@ -46,15 +46,12 @@ local static = {}
 WUMAAccess._id = "WUMA_Command"
 object._id = "WUMA_Command"
 
-/////////////////////////////////////////////////////////
-/////       		 Static functions				/////
-/////////////////////////////////////////////////////////
 function WUMAAccess:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
 	
-	local obj = setmetatable({},mt)
+	local obj = setmetatable({}, mt)
 	
 	obj.func = tbl.func or false
 	obj.cmd = tbl.name or false
@@ -75,11 +72,8 @@ function static:GetID()
 	return WUMAAccess._id
 end
 
-/////////////////////////////////////////////////////////
-/////       		 Object functions				/////
-/////////////////////////////////////////////////////////
 function object:__tostring()
-	return string.format("WUMAAccess [%s]",self:GetName())
+	return string.format("WUMAAccess [%s]", self:GetName())
 end
  
 function object:__call(...)
@@ -136,8 +130,8 @@ function object:GetAccessFunction()
 	return self.access_func
 end
 
-function object:AddArgument(arg,tbl,optional)
-	table.insert(self.arguments,{arg,tbl,optional})
+function object:AddArgument(arg, tbl, optional)
+	table.insert(self.arguments, {arg, tbl, optional})
 end
 
 function object:GetArguments()
@@ -179,4 +173,4 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(WUMAAccess,static) 
+setmetatable(WUMAAccess, static) 

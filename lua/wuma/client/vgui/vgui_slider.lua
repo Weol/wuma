@@ -4,16 +4,16 @@ local PANEL = {}
 function PANEL:Init()
 	local slider = vgui.Create("DSlider", self)
 	local label = vgui.Create("DLabel", self)
-	local wang = vgui.Create( "DNumberWang", self )
+	local wang = vgui.Create("DNumberWang", self)
 	
-	label:SetTextColor(Color(0,0,0,255))
+	label:SetTextColor(Color(0, 0, 0, 255))
 	
-	slider:SetLockY( 0.5 )
-	slider:SetTrapInside( true )
-	Derma_Hook( slider, "Paint", "Paint", "NumSlider" )
+	slider:SetLockY(0.5)
+	slider:SetTrapInside(true)
+	Derma_Hook(slider, "Paint", "Paint", "NumSlider")
 	
-	wang.OnValueChanged = function(panel,val)
-		val = math.Clamp(tonumber(val),wang:GetMin(),wang:GetMax())
+	wang.OnValueChanged = function(panel, val)
+		val = math.Clamp(tonumber(val), wang:GetMin(), wang:GetMax())
 	
 		if self.min_override and (val == wang:GetMin()) then 
 			wang:SetText(self.min_override[2])
@@ -24,7 +24,7 @@ function PANEL:Init()
 		slider:SetSlideX(val/wang:GetMax())
 	end
 	
-	slider.TranslateValues = function(panel,x,y) 
+	slider.TranslateValues = function(panel, x, y) 
 		wang:SetFraction(x)
 		
 		return x, y
@@ -63,7 +63,7 @@ function PANEL:SetText(text)
 end
 
 function PANEL:SetMinMax(min, max)
-	self.wang:SetMinMax(min,max)
+	self.wang:SetMinMax(min, max)
 end
 
 function PANEL:SetMinOverride(min, text) 
@@ -94,15 +94,14 @@ end
 function PANEL:PerformLayout()
 
 	self.wang:SetWide(40)
-	self.wang:SetPos(self:GetWide()-self.wang:GetWide(),0)
+	self.wang:SetPos(self:GetWide()-self.wang:GetWide(), 0)
 	
-	self.label:SetPos(8,3)
+	self.label:SetPos(8, 3)
 	self.label:SizeToContents()
 	
-	self.slider:SetSize(self:GetWide(),16)
-	self.slider:SetPos(0,self:GetTall()-self.slider:GetTall())
+	self.slider:SetSize(self:GetWide(), 16)
+	self.slider:SetPos(0, self:GetTall()-self.slider:GetTall())
 
 end
-
 
 vgui.Register("WSlider", PANEL, 'DPanel');

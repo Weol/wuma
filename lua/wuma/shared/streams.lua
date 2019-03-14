@@ -15,11 +15,8 @@ function WUMA.GetStream(name)
 	return WUMA.Streams[name]
 end
 
-/////////////////////////////////////////////////////////
-/////    Settings | Sends servers wuma settings		/////
-/////////////////////////////////////////////////////////
 local Settings = WUMA.RegisterStream{name="settings", send=WUMA.SendInformation}
-Settings:SetServerFunction(function(user,data)
+Settings:SetServerFunction(function(user, data)
 	local metadata = {
 		wuma_server_time=os.time(),
 		wuma_limit_count=table.Count(WUMA.Limits),
@@ -27,24 +24,21 @@ Settings:SetServerFunction(function(user,data)
 		wuma_loadout_count=table.Count(WUMA.Loadouts)
 	}
 	
-	return {user, Settings, table.Merge(WUMA.ConVars.ToClient,metadata)}
+	return {user, Settings, table.Merge(WUMA.ConVars.Settings, metadata)}
 end) 
 Settings:SetClientFunction(function(data) 
 	for name, value in pairs(data[1]) do
-		WUMA.ServerSettings[string.sub(name,6)] = value
+		WUMA.ServerSettings[string.sub(name, 6)] = value
 	end
-	hook.Call(WUMA.SETTINGSUPDATE, _,WUMA.ServerSettings)
+	hook.Call(WUMA.SETTINGSUPDATE, _, WUMA.ServerSettings)
 	WUMA.ServerSettings["server_time_offset"] = WUMA.ServerSettings["server_time"] - os.time()
 end)
 Settings:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////  Inheritance | Sends server's inheritances	/////
-/////////////////////////////////////////////////////////
-local Inheritance = WUMA.RegisterStream{name="inheritance",send=WUMA.SendInformation}
-Inheritance:SetServerFunction(function(user,data)  
+local Inheritance = WUMA.RegisterStream{name="inheritance", send=WUMA.SendInformation}
+Inheritance:SetServerFunction(function(user, data) 
 	return {user, Inheritance, WUMA.GetAllInheritances()}
 end) 
 Inheritance:SetClientFunction(function(data) 
@@ -55,41 +49,32 @@ Inheritance:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////  SUBSCRIPTION | Subscribes client to a table  /////
-/////////////////////////////////////////////////////////
 local Subscription = WUMA.RegisterStream{name="subscription", send=WUMA.SendInformation}
-Subscription:SetServerFunction(function(user,data)
+Subscription:SetServerFunction(function(user, data)
 	if (data[2]) then
-		WUMA.RemoveDataSubscription(user,data[1],data[3])
+		WUMA.RemoveDataSubscription(user, data[1], data[3])
 	else
-		WUMA.AddDataSubscription(user,data[1],data[3])
+		WUMA.AddDataSubscription(user, data[1], data[3])
 	end
 end) 
 Subscription:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////  CVarLimits | Returns custom sandbox limits   /////
-/////////////////////////////////////////////////////////
-local CVarLimits = WUMA.RegisterStream{name="cvarlimits", send=WUMA.SendInformation}
-CVarLimits:SetServerFunction(function(user,data)
-	return {user, CVarLimits, WUMA.ConVars.CVarLimits}
+local Limits = WUMA.RegisterStream{name="cvarlimits", send=WUMA.SendInformation}
+Limits:SetServerFunction(function(user, data)
+	return {user, Limits, WUMA.ConVars.Limits}
 end) 
-CVarLimits:SetClientFunction(function(data)
-	WUMA.CVarLimits = data[1]
+Limits:SetClientFunction(function(data)
+	WUMA.Limits = data[1]
 	hook.Call(WUMA.CVARLIMITSUPDATE)
 end)
-CVarLimits:SetAuthenticationFunction(function(user, callback) 
+Limits:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////     Groups | Returns all the usergroups		/////
-/////////////////////////////////////////////////////////
 local Groups = WUMA.RegisterStream{name="groups", send=WUMA.SendInformation}
-Groups:SetServerFunction(function(user,data)
+Groups:SetServerFunction(function(user, data)
 	return {user, Groups, WUMA.GetUserGroups()}
 end) 
 Groups:SetClientFunction(function(data)
@@ -100,11 +85,8 @@ Groups:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////        Users | Returns online players		    /////
-/////////////////////////////////////////////////////////
-local Users = WUMA.RegisterStream{name="users",send=WUMA.SendInformation,auto_update=true}
-Users:SetServerFunction(function(user,data)	
+local Users = WUMA.RegisterStream{name="users", send=WUMA.SendInformation, auto_update=true}
+Users:SetServerFunction(function(user, data)	
 	local users = {}
 	for _, ply in pairs(player.GetAll()) do
 		local id = ply:SteamID()
@@ -141,32 +123,26 @@ Users:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////          User | Returns  player(s) data	 	/////
-/////////////////////////////////////////////////////////
-local User = WUMA.RegisterStream{name="user",send=WUMA.SendInformation}
-User:SetServerFunction(function(user,data)
+local User = WUMA.RegisterStream{name="user", send=WUMA.SendInformation}
+User:SetServerFunction(function(user, data)
 	return {user, User, WUMA.GetUserData(data[1])}
 end) 
 User:SetClientFunction(function(data)
 	if not data.steamid then return end
 	WUMA.UserData[data.steamid] = data
 	hook.Call(WUMA.USERDATAUPDATE, data.steamid)
-end)  
+end) 
 User:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////          Lookup | Returns lookup request	 	/////
-/////////////////////////////////////////////////////////
-local Lookup = WUMA.RegisterStream{name="lookup",send=WUMA.SendInformation}
-Lookup:SetServerFunction(function(user,data)
+local Lookup = WUMA.RegisterStream{name="lookup", send=WUMA.SendInformation}
+Lookup:SetServerFunction(function(user, data)
 	return {user, Lookup, WUMA.Lookup(data[1]) or {}}
 end) 
 Lookup:SetClientFunction(function(data)
 	local tbl = {}
-	for i=1,table.Count(data[1]) do
+	for i=1, table.Count(data[1]) do
 		WUMA.LookupUsers[data[1][i].steamid] = data[1][i]
 		tbl[data[1][i].steamid] = WUMA.LookupUsers[data[1][i].steamid]
 	end
@@ -176,11 +152,8 @@ Lookup:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////          MAPS | Returns maps request   	   	/////
-/////////////////////////////////////////////////////////
-local Maps = WUMA.RegisterStream{name="maps",send=WUMA.SendInformation}
-Maps:SetServerFunction(function(user,data)
+local Maps = WUMA.RegisterStream{name="maps", send=WUMA.SendInformation}
+Maps:SetServerFunction(function(user, data)
 	local maps = {file.Find("maps/*.bsp", "GAME")}
 	return {user, Maps, maps[1]}
 end) 
@@ -192,11 +165,8 @@ Maps:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////          WHOIS | Returns whois request	   	/////
-/////////////////////////////////////////////////////////
-local WhoIs = WUMA.RegisterStream{name="whois",send=WUMA.SendInformation}
-WhoIs:SetServerFunction(function(user,data)
+local WhoIs = WUMA.RegisterStream{name="whois", send=WUMA.SendInformation}
+WhoIs:SetServerFunction(function(user, data)
 	return {user, Maps, WUMA.Lookup(data[1])}
 end) 
 WhoIs:SetClientFunction(function(data)
@@ -206,13 +176,10 @@ WhoIs:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////  RESTRICTIONS | Returns restrictions request	/////
-/////////////////////////////////////////////////////////
-local Restrictions = WUMA.RegisterStream{name="restrictions",send=WUMA.SendCompressedData}
-Restrictions:SetServerFunction(function(user,data)
+local Restrictions = WUMA.RegisterStream{name="restrictions", send=WUMA.SendCompressedData}
+Restrictions:SetServerFunction(function(user, data)
 	if data[1] then
-		if WUMA.CheckUserFileExists(data[1],Restriction) then
+		if WUMA.CheckUserFileExists(data[1], Restriction) then
 			local tbl = WUMA.GetSavedRestrictions(data[1])
 			return {user, tbl, Restriction:GetID()..":::"..data[1]}
 		else
@@ -230,18 +197,15 @@ Restrictions:SetServerFunction(function(user,data)
 			return {user, {}, Restriction:GetID()}
 		end
 	end
-end)  
+end) 
 Restrictions:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-/////        LIMIT | Returns limits request			/////
-/////////////////////////////////////////////////////////
-local Limits = WUMA.RegisterStream{name="limits",send=WUMA.SendCompressedData}
-Limits:SetServerFunction(function(user,data)
+local Limits = WUMA.RegisterStream{name="limits", send=WUMA.SendCompressedData}
+Limits:SetServerFunction(function(user, data)
 	if data[1] then
-		if WUMA.CheckUserFileExists(data[1],Limit) then
+		if WUMA.CheckUserFileExists(data[1], Limit) then
 			local tbl = WUMA.GetSavedLimits(data[1])
 			return {user, tbl, Limit:GetID()..":::"..data[1]}
 		else
@@ -264,13 +228,10 @@ Limits:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-///// 	   LOADOUT | Returns loadouts request		/////
-/////////////////////////////////////////////////////////
-local Loadouts = WUMA.RegisterStream{name="loadouts",send=WUMA.SendCompressedData}
-Loadouts:SetServerFunction(function(user,data)
+local Loadouts = WUMA.RegisterStream{name="loadouts", send=WUMA.SendCompressedData}
+Loadouts:SetServerFunction(function(user, data)
 	if data[1] then
-		if WUMA.CheckUserFileExists(data[1],Loadout) then
+		if WUMA.CheckUserFileExists(data[1], Loadout) then
 			local tbl = WUMA.GetSavedLoadouts(data[1])
 			return {user, tbl, Loadout:GetID()..":::"..data[1]}
 		else
@@ -293,13 +254,10 @@ Loadouts:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-/////////////////////////////////////////////////////////
-///// 	   PERSONAL | Returns personal request		/////
-/////////////////////////////////////////////////////////
-local Personal = WUMA.RegisterStream{name="personal",send=WUMA.SendCompressedData}
-Personal:SetServerFunction(function(user,data)
+local Personal = WUMA.RegisterStream{name="personal", send=WUMA.SendCompressedData}
+Personal:SetServerFunction(function(user, data)
 	if (data[1] == "subscribe") then
-		WUMA.AddDataSubscription(user,user:SteamID(),Loadout:GetID())
+		WUMA.AddDataSubscription(user, user:SteamID(), Loadout:GetID())
 		
 		hook.Add(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. "_" .. user:AccountID(), function(hook_user, restriction) 
 			if (user == hook_user) and (restriction:GetType() == "swep") then
@@ -323,7 +281,7 @@ Personal:SetServerFunction(function(user,data)
 			end
 		end)
 	elseif (data[1] == "unsubscribe") then 
-		WUMA.RemoveDataSubscription(user,user:SteamID(),user:SteamID())
+		WUMA.RemoveDataSubscription(user, user:SteamID(), user:SteamID())
 	
 		hook.Remove(WUMA.USERRESTRICTIONADDED, WUMA.USERRESTRICTIONADDED .. user:AccountID())
 		hook.Remove(WUMA.USERRESTRICTIONREMOVED, WUMA.USERRESTRICTIONADDED .. user:AccountID())
@@ -345,11 +303,8 @@ Personal:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback, "wuma personalloadout")
 end)
 
-////////////////////////////////////////////////////////////////////////////////////////////
-/////  RestrictionItems | Returns restrictable items that are not visible for client   /////
-////////////////////////////////////////////////////////////////////////////////////////////
 local RestrictionItems = WUMA.RegisterStream{name="restrictionitems", send=WUMA.SendInformation}
-RestrictionItems:SetServerFunction(function(user,data)
+RestrictionItems:SetServerFunction(function(user, data)
 	return {user, RestrictionItems, WUMA.GetAdditionalEntities()}
 end) 
 RestrictionItems:SetClientFunction(function(data)

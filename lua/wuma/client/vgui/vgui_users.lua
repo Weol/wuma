@@ -4,45 +4,44 @@ local PANEL = {}
 PANEL.TabName = "Users"
 PANEL.TabIcon = "gui/silkicons/user"
 
-
 function PANEL:Init()
 	
-	//Search bar
-	self.textbox_search = vgui.Create("WTextbox",self)
+	--Search bar
+	self.textbox_search = vgui.Create("WTextbox", self)
 	self.textbox_search:SetDefault("Search..")
 	self.textbox_search.OnTextChanged = self.OnSearch
 	
-	//Search button
-	self.button_search = vgui.Create("DButton",self)
+	--Search button
+	self.button_search = vgui.Create("DButton", self)
 	self.button_search:SetText("")
 	self.button_search:SetIcon("icon16/magnifier.png")
 	self.button_search.DoClick = self.OnLookup
 	
-	//back button
-	self.button_back = vgui.Create("DButton",self)
+	--back button
+	self.button_back = vgui.Create("DButton", self)
 	self.button_back:SetText("Back")
 	self.button_back.DoClick = self.OnBackClick
 	
-	//Restrictions button
-	self.button_restrictions = vgui.Create("DButton",self)
+	--Restrictions button
+	self.button_restrictions = vgui.Create("DButton", self)
 	self.button_restrictions:SetText("Restrictions")
 	self.button_restrictions.DoClick = self.OnRestrictionsClick
 	self.button_restrictions:SetDisabled(true)
 	
-	//Limits button
-	self.button_limits = vgui.Create("DButton",self)
+	--Limits button
+	self.button_limits = vgui.Create("DButton", self)
 	self.button_limits:SetText("Limits")
 	self.button_limits.DoClick = self.OnLimitsClick
 	self.button_limits:SetDisabled(true)
 
-	//Loadouts button
-	self.button_loadouts = vgui.Create("DButton",self)
+	--Loadouts button
+	self.button_loadouts = vgui.Create("DButton", self)
 	self.button_loadouts:SetText("Loadouts")
 	self.button_loadouts.DoClick = self.OnLoadoutsClick
 	self.button_loadouts:SetDisabled(true)
 	
-	//Items list
-	self.list_items = vgui.Create("WDataView",self) 
+	--Items list
+	self.list_items = vgui.Create("WDataView", self) 
 	self.list_items:SetMultiSelect(false)
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Nick")
@@ -59,13 +58,13 @@ function PANEL:Init()
 		old_sortby(panel, column)
 	end
 		
-	local function highlight(line,data,datav)
-		if WUMA.ServerUsers[datav.steamid] then return Color(0,255,0,120) else return nil end
+	local function highlight(line, data, datav)
+		if WUMA.ServerUsers[datav.steamid] then return Color(0, 255, 0, 120) else return nil end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	
-	//Restrictions panel
-	self.restrictions = vgui.Create("WUMA_Restrictions",self) 
+	--Restrictions panel
+	self.restrictions = vgui.Create("WUMA_Restrictions", self) 
 	self.restrictions:SetVisible(false)
 	self.restrictions.list_usergroups:SetVisible(false)
 	self.restrictions.GetSelectedUsergroups = function()
@@ -101,8 +100,8 @@ function PANEL:Init()
 		end
 	end)
 	
-	//Limits panel
-	self.limits = vgui.Create("WUMA_Limits",self) 
+	--Limits panel
+	self.limits = vgui.Create("WUMA_Limits", self) 
 	self.limits:SetVisible(false)
 	self.limits.list_usergroups:SetVisible(false)
 	self.limits.GetSelectedUsergroups = function()
@@ -131,7 +130,7 @@ function PANEL:Init()
 		local limit = data.limit
 		if ((tonumber(limit) or 1) < 0) then limit = "∞" end
 		
-		return {nick, data.print or data.string, limit, scope},{_,_,sort_limit,0}
+		return {nick, data.print or data.string, limit, scope}, {_, _, sort_limit, 0}
 	end
 	self.limits:GetDataView():SetDisplayFunction(display)
 	
@@ -150,8 +149,8 @@ function PANEL:Init()
 		end
 	end)
 	
-	//Loadouts panel
-	self.loadouts = vgui.Create("WUMA_Loadouts",self) 
+	--Loadouts panel
+	self.loadouts = vgui.Create("WUMA_Loadouts", self) 
 	self.loadouts:SetVisible(false)
 	self.loadouts.list_usergroups:SetVisible(false)
 	self.loadouts.GetSelectedUsergroups = function()
@@ -188,7 +187,7 @@ function PANEL:Init()
 			primary = "def"
 		end 
 		
-		return {nick, data.print or data.class, primary, secondary, scope},{0,_,-(data.primary or 0),-(data.secondary or 0)}
+		return {nick, data.print or data.class, primary, secondary, scope}, {0, _, -(data.primary or 0), -(data.secondary or 0)}
 	end
 	self.loadouts:GetDataView():SetDisplayFunction(display)
 	
@@ -207,22 +206,22 @@ function PANEL:Init()
 		end
 	end)
 	
-	//User label
-	self.label_user = vgui.Create( "DLabel", self )
-	self.label_user:SetText( "NO_USER" )
-	self.label_user:SetTextColor(Color(0,0,0))
+	--User label
+	self.label_user = vgui.Create("DLabel", self)
+	self.label_user:SetText("NO_USER")
+	self.label_user:SetTextColor(Color(0, 0, 0))
 	self.label_user:SetVisible(true)
 	
-	local highlight = function(line,data,datav)
-		if WUMA.ServerUsers[datav.steamid] then return Color(0,255,0,120) end
+	local highlight = function(line, data, datav)
+		if WUMA.ServerUsers[datav.steamid] then return Color(0, 255, 0, 120) end
 	end
 	self.list_items:SetHighlightFunction(highlight)
 	
 	local display = function(user)
 		local data, sort
 	
-		data = {user.usergroup,user.nick,user.steamid,os.date("%d/%m/%Y %H:%M", user.t)}
-		sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups,user.usergroup) or "1") or 1,1,1,tonumber((WUMA.GetTime()-user.t) or "1")}
+		data = {user.usergroup, user.nick, user.steamid, os.date("%d/%m/%Y %H:%M", user.t)}
+		sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups, user.usergroup) or "1") or 1, 1, 1, tonumber((WUMA.GetServerTime()-user.t) or "1")}
 		
 		return data, sort
 	end
@@ -230,18 +229,18 @@ function PANEL:Init()
 	
 	local sort = function(data)
 		local text = self.textbox_search:GetValue()
-		if (text != "" and text != self.textbox_search:GetDefault()) then
+		if (text ~= "" and text ~= self.textbox_search:GetDefault()) then
 		
 			local column = "nick"
 			if (string.lower(string.Left(text, 6)) == "steam_") then column = "steamid" end
 			
 			local item = data[column]
-			local succ, err = pcall( function() 
-				local matched = string.match(string.lower(item),string.lower(text))
-			end )
+			local succ, err = pcall(function() 
+				local matched = string.match(string.lower(item), string.lower(text))
+			end)
 			
 			if succ then 
-				if string.match(string.lower(item),string.lower(text)) then
+				if string.match(string.lower(item), string.lower(text)) then
 					return "kek"
 				end
 			end
@@ -258,82 +257,82 @@ function PANEL:Init()
 		self:GetDataView():Show("kek")
 		self.list_items:SortByColumn(self.list_items.SortedColumn or 4)	
 	end
-	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE,"VGUIUsersUserListHook1",updateUserList)
-	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE,"VGUIUsersUserListHook2",updateUserList)
+	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE, "VGUIUsersUserListHook1", updateUserList)
+	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE, "VGUIUsersUserListHook2", updateUserList)
 	
 end
 
 function PANEL:PerformLayout()
 	if not self:IsExtraVisible() then
-		self.textbox_search:SetSize(120,20)
-		self.textbox_search:SetPos(5,5)
+		self.textbox_search:SetSize(120, 20)
+		self.textbox_search:SetPos(5, 5)
 		
-		self.button_search:SetSize(self.textbox_search:GetTall(),self.textbox_search:GetTall())
-		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5,5)
+		self.button_search:SetSize(self.textbox_search:GetTall(), self.textbox_search:GetTall())
+		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5, 5)
 		
-		self.button_back:SetSize(70,self.textbox_search:GetTall())
-		self.button_back:SetPos(self:GetWide()+5,5)
+		self.button_back:SetSize(70, self.textbox_search:GetTall())
+		self.button_back:SetPos(self:GetWide()+5, 5)
 		
-		self.button_loadouts:SetSize(70,self.textbox_search:GetTall())
-		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5,5)
+		self.button_loadouts:SetSize(70, self.textbox_search:GetTall())
+		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5, 5)
 		
-		self.button_limits:SetSize(50,self.textbox_search:GetTall())
-		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5,5)
+		self.button_limits:SetSize(50, self.textbox_search:GetTall())
+		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5, 5)
 		
-		self.button_restrictions:SetSize(80,self.textbox_search:GetTall())
-		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5,5)
+		self.button_restrictions:SetSize(80, self.textbox_search:GetTall())
+		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5, 5)
 		
-		self.limits:SetSize(self:GetWide(),self:GetTall()-25)
-		self.limits:SetPos(self:GetWide(),25)
+		self.limits:SetSize(self:GetWide(), self:GetTall()-25)
+		self.limits:SetPos(self:GetWide(), 25)
 		
-		self.loadouts:SetSize(self:GetWide(),self:GetTall()-25)
-		self.loadouts:SetPos(self:GetWide(),25)
+		self.loadouts:SetSize(self:GetWide(), self:GetTall()-25)
+		self.loadouts:SetPos(self:GetWide(), 25)
 		
-		self.restrictions:SetSize(self:GetWide(),self:GetTall()-25)
-		self.restrictions:SetPos(self:GetWide(),25)
+		self.restrictions:SetSize(self:GetWide(), self:GetTall()-25)
+		self.restrictions:SetPos(self:GetWide(), 25)
 		
 		self.label_user:SizeToContents()
 		self.label_user:SetTall(self.button_back:GetTall())
-		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide(),5)
+		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide(), 5)
 
-		self.list_items:SetSize(self:GetWide()-10,self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
-		self.list_items:SetPos(5,self.textbox_search.y+self.textbox_search:GetTall()+5)
+		self.list_items:SetSize(self:GetWide()-10, self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
+		self.list_items:SetPos(5, self.textbox_search.y+self.textbox_search:GetTall()+5)
 	elseif not self.isanimating then
 		local offset = self:GetWide()
 	
-		self.textbox_search:SetSize(120,20)
-		self.textbox_search:SetPos(5-offset,5)
+		self.textbox_search:SetSize(120, 20)
+		self.textbox_search:SetPos(5-offset, 5)
 		
-		self.button_search:SetSize(self.textbox_search:GetTall(),self.textbox_search:GetTall())
-		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5-offset,5)
+		self.button_search:SetSize(self.textbox_search:GetTall(), self.textbox_search:GetTall())
+		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5-offset, 5)
 		
-		self.button_back:SetSize(70,self.textbox_search:GetTall())
-		self.button_back:SetPos(self:GetWide()+5-offset,5)
+		self.button_back:SetSize(70, self.textbox_search:GetTall())
+		self.button_back:SetPos(self:GetWide()+5-offset, 5)
 		
-		self.button_loadouts:SetSize(70,self.textbox_search:GetTall())
-		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5-offset,5)
+		self.button_loadouts:SetSize(70, self.textbox_search:GetTall())
+		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5-offset, 5)
 		
-		self.button_limits:SetSize(50,self.textbox_search:GetTall())
-		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5-offset,5)
+		self.button_limits:SetSize(50, self.textbox_search:GetTall())
+		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5-offset, 5)
 		
-		self.button_restrictions:SetSize(80,self.textbox_search:GetTall())
-		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5-offset,5)
+		self.button_restrictions:SetSize(80, self.textbox_search:GetTall())
+		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5-offset, 5)
 		
-		self.limits:SetSize(self:GetWide(),self:GetTall()-25)
-		self.limits:SetPos(self:GetWide()-offset,25)
+		self.limits:SetSize(self:GetWide(), self:GetTall()-25)
+		self.limits:SetPos(self:GetWide()-offset, 25)
 		
-		self.loadouts:SetSize(self:GetWide(),self:GetTall()-25)
-		self.loadouts:SetPos(self:GetWide()-offset,25)
+		self.loadouts:SetSize(self:GetWide(), self:GetTall()-25)
+		self.loadouts:SetPos(self:GetWide()-offset, 25)
 		
-		self.restrictions:SetSize(self:GetWide(),self:GetTall()-25)
-		self.restrictions:SetPos(self:GetWide()-offset,25)
+		self.restrictions:SetSize(self:GetWide(), self:GetTall()-25)
+		self.restrictions:SetPos(self:GetWide()-offset, 25)
 		
 		self.label_user:SizeToContents()
 		self.label_user:SetTall(self.button_back:GetTall())
-		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide()-offset,5)
+		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide()-offset, 5)
 
-		self.list_items:SetSize(self:GetWide()-10,self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
-		self.list_items:SetPos(5-offset,self.textbox_search.y+self.textbox_search:GetTall()+5)
+		self.list_items:SetSize(self:GetWide()-10, self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
+		self.list_items:SetPos(5-offset, self.textbox_search.y+self.textbox_search:GetTall()+5)
 	end
 end
 
@@ -341,7 +340,7 @@ function PANEL:GetDataView()
 	return self.list_items
 end
 
-function PANEL:PopulateList(key,tbl,clear,select)
+function PANEL:PopulateList(key, tbl, clear, select)
 	local listview = self[key]
 
 	if clear then
@@ -370,14 +369,14 @@ end
 function PANEL:ToggleExtra()
 	if self:IsExtraVisible() then
 		for _, child in pairs(self:GetChildren()) do
-			child:SetPos(child.x+self:GetWide(),child.y)
+			child:SetPos(child.x+self:GetWide(), child.y)
 		end
 		self.isextravisible = false 
 		
 		self.label_user:SetVisible(false)
 	else
 		for _, child in pairs(self:GetChildren()) do
-			child:SetPos(child.x-self:GetWide(),child.y)
+			child:SetPos(child.x-self:GetWide(), child.y)
 		end 
 		self.isextravisible = true
 		
@@ -386,9 +385,9 @@ function PANEL:ToggleExtra()
 		local data = self:GetDataView():GetSelectedItems()[1]
 		if data then
 			if istable(data) then
-				self.label_user:SetText(string.format("Selected user: %s (%s)",data.nick,data.steamid))
+				self.label_user:SetText(string.format("Selected user: %s (%s)", data.nick, data.steamid))
 			elseif data:IsValid() then
-				self.label_user:SetText(string.format("Selected user: %s (%s)",data:Nick(),data:SteamID()))
+				self.label_user:SetText(string.format("Selected user: %s (%s)", data:Nick(), data:SteamID()))
 			end
 			self:InvalidateLayout()
 		end
@@ -418,11 +417,11 @@ function PANEL:OnRestrictionsClick()
 	WUMA.UserData[self:GetSelectedUser()].Restrictions = WUMA.UserData[self:GetSelectedUser()].Restrictions or {}
 	
 	self.restrictions:GetDataView():SetDataTable(function() return WUMA.UserData[self:GetSelectedUser()].Restrictions end)
-	self.restrictions:GetDataView():Show(self:GetSelectedUser())
+	self.restrictions:GetDataView():Show(self:GetSelectedUser() .. ":::" .. self.restrictions:GetSelectedType())
 	
 	self.restrictions.Command.DataID = Restriction:GetID() .. ":::" .. self:GetSelectedUser()
 
-	self:OnExtraChange(Restriction:GetID(),self:GetSelectedUser())
+	self:OnExtraChange(Restriction:GetID(), self:GetSelectedUser())
 	
 	self:ToggleExtra()
 end
@@ -443,7 +442,7 @@ function PANEL:OnLimitsClick()
 	
 	self.limits.Command.DataID = Limit:GetID() .. ":::" .. self:GetSelectedUser()
 	
-	self:OnExtraChange(Limit:GetID(),self:GetSelectedUser())
+	self:OnExtraChange(Limit:GetID(), self:GetSelectedUser())
 	
 	self:ToggleExtra()
 end
@@ -464,7 +463,7 @@ function PANEL:OnLoadoutsClick()
 	
 	self.loadouts.Command.DataID = Loadout:GetID() .. ":::" .. self:GetSelectedUser()
 	
-	self:OnExtraChange(Loadout:GetID(),self:GetSelectedUser())
+	self:OnExtraChange(Loadout:GetID(), self:GetSelectedUser())
 
 	self:ToggleExtra()
 end
@@ -480,7 +479,7 @@ function PANEL:OnBackClick()
 	self.limits:GetDataView():SetDataTable(function() return {} end)
 	self.loadouts:GetDataView():SetDataTable(function() return {} end)
 	
-	self:OnExtraChange("default",self:GetSelectedUser())
+	self:OnExtraChange("default", self:GetSelectedUser())
 	
 	self:ToggleExtra()
 end
@@ -492,8 +491,8 @@ end
 function PANEL:OnLookup()
 	self = self:GetParent()
 	
-	if (self.textbox_search:GetValue() != "") then
-		WUMA.RequestFromServer("lookup",self.textbox_search:GetValue())
+	if (self.textbox_search:GetValue() ~= "") then
+		WUMA.RequestFromServer("lookup", self.textbox_search:GetValue())
 	else
 		self:GetDataView():ClearView()
 	end
@@ -503,7 +502,7 @@ function PANEL:OnLookup()
 	self.list_items:SortByColumn(self.list_items.SortedColumn or 4)
 end
 
-function PANEL:OnItemChange(lineid,line)
+function PANEL:OnItemChange(lineid, line)
 	self = self:GetParent()														
 
 	self.restrictions.Command.DataID = Restriction:GetID()..":::"..self:GetSelectedUser() 

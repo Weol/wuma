@@ -7,7 +7,7 @@ WUMA.DATA = {}
 
 WUMA.DataUpdateCooldown = WUMA.CreateConVar("wuma_data_save_delay", "10", FCVAR_ARCHIVE, "Delay before changes are saved.")
 
-function WUMA.GetSavedTable(enum,user)
+function WUMA.GetSavedTable(enum, user)
 	if (enum == Restriction) then
 		return WUMA.GetSavedRestrictions(user)
 	elseif (enum == Limit) then
@@ -59,7 +59,7 @@ end
 WUMA.DATA.Subscriptions = {}
 WUMA.DATA.Subscriptions.users = {} 
 
-function WUMA.AddDataSubscription(user,target,extra)
+function WUMA.AddDataSubscription(user, target, extra)
 	if WUMA.IsSteamID(target) then
 		WUMA.DATA.Subscriptions.users[target] = WUMA.DATA.Subscriptions.users[target] or {}
 		WUMA.DATA.Subscriptions.users[target][extra] = WUMA.DATA.Subscriptions.users[target][extra] or {}
@@ -70,7 +70,7 @@ function WUMA.AddDataSubscription(user,target,extra)
 	end
 end
 
-function WUMA.RemoveDataSubscription(user,target,extra)
+function WUMA.RemoveDataSubscription(user, target, extra)
 
 	user = user:SteamID()
 	
@@ -94,7 +94,7 @@ function WUMA.RemoveDataSubscription(user,target,extra)
 	
 end
 
-function WUMA.GetDataSubsribers(target,enum)
+function WUMA.GetDataSubsribers(target, enum)
 	if WUMA.IsSteamID(target) then
 		if not WUMA.DATA.Subscriptions.users[target] then return {} end
 		if not WUMA.DATA.Subscriptions.users[target][enum] then return {} end --Stops here
@@ -107,9 +107,9 @@ end
 
 function WUMA.RemoveClientUpdateUser(user)
 	
-	WUMA.RemoveDataSubscription(user,Restriction:GetID())
-	WUMA.RemoveDataSubscription(user,Limit:GetID())
-	WUMA.RemoveDataSubscription(user,Loadout:GetID())
+	WUMA.RemoveDataSubscription(user, Restriction:GetID())
+	WUMA.RemoveDataSubscription(user, Limit:GetID())
+	WUMA.RemoveDataSubscription(user, Loadout:GetID())
 	
 	user = user:SteamID()
 	
@@ -123,20 +123,20 @@ function WUMA.RemoveClientUpdateUser(user)
 		if (table.Count(ply) < 1) then WUMA.DATA.Subscriptions.users[k] = nil end
 	end
 end
-hook.Add("PlayerDisconnected","WUMADataHandlerPlayerDisconnected", WUMA.RemoveClientUpdateUser, 0)
+hook.Add("PlayerDisconnected", "WUMADataHandlerPlayerDisconnected", WUMA.RemoveClientUpdateUser, 0)
 
 function WUMA.SendData(user)
  
 	if WUMA.Files.Exists(WUMA.DataDirectory.."restrictions.txt") then
-		WUMA.SendCompressedData(user,WUMA.GetSavedRestrictions(),Restriction:GetID())
+		WUMA.SendCompressedData(user, WUMA.GetSavedRestrictions(), Restriction:GetID())
 	end
 	
 	if WUMA.Files.Exists(WUMA.DataDirectory.."limits.txt") then
-		WUMA.SendCompressedData(user,WUMA.GetSavedLimits(),Limit:GetID())
+		WUMA.SendCompressedData(user, WUMA.GetSavedLimits(), Limit:GetID())
 	end
 
 	if WUMA.Files.Exists(WUMA.DataDirectory.."loadouts.txt") then
-		WUMA.SendCompressedData(user,WUMA.GetSavedLoadouts(),Loadout:GetID())
+		WUMA.SendCompressedData(user, WUMA.GetSavedLoadouts(), Loadout:GetID())
 	end
 	
 end
@@ -165,7 +165,7 @@ function WUMA.AddClientUpdate(enum, func, user)
 	end
 	
 	if not tick_clients then
-		hook.Add("Think","WUMAClientUpdateCooldown",WUMA.Clients_Tick)
+		hook.Add("Think", "WUMAClientUpdateCooldown", WUMA.Clients_Tick)
 		tick_clients = 0
 	end
 end
@@ -178,14 +178,14 @@ function WUMA.Clients_Tick()
 	
 		for enum, tbl in pairs (WUMA.DATA.ClientUpdates) do
 			if not (enum == "users") then
-				WUMA.SendCompressedData(WUMA.GetDataSubsribers(enum),tbl,enum)
+				WUMA.SendCompressedData(WUMA.GetDataSubsribers(enum), tbl, enum)
 			end
 		end
 
 		for user, tbl in pairs (WUMA.DATA.ClientUpdates.users) do
 			for enum, data in pairs(tbl) do
-				for _, subscriber in pairs(WUMA.GetDataSubsribers(user,enum)) do
-					WUMA.SendCompressedData(subscriber,data,enum..":::"..user)
+				for _, subscriber in pairs(WUMA.GetDataSubsribers(user, enum)) do
+					WUMA.SendCompressedData(subscriber, data, enum..":::"..user)
 				end
 			end
 		end
@@ -195,9 +195,6 @@ function WUMA.Clients_Tick()
 	end
 end
 
-/////////////////////////////////////////////////////////
-/////  				Global files update				/////
-/////////////////////////////////////////////////////////
 WUMA.DATA.DataRegistry = {}
 WUMA.DATA.DataSchedule = {}
 
@@ -210,7 +207,7 @@ function WUMA.ScheduleDataUpdate(id, func)
 		
 		WUMA.InvalidateCache(id)
 	else
-		WUMADebug("Tried to schedule unregistered data update (%s)!",id)
+		WUMADebug("Tried to schedule unregistered data update (%s)!", id)
 	end
 end
 
@@ -264,11 +261,8 @@ function WUMA.UpdateGlobal()
 		tick_global = -1
 	end
 end
-timer.Create("WUMAUpdateData", 1, 0, WUMA.UpdateGlobal)  
+timer.Create("WUMAUpdateData", 1, 0, WUMA.UpdateGlobal) 
 
-/////////////////////////////////////////////////////////
-/////  				User files update				/////
-/////////////////////////////////////////////////////////
 WUMA.DATA.UserDataRegistry = {}
 WUMA.DATA.UserDataSchedule = {}
 
@@ -280,7 +274,7 @@ function WUMA.ScheduleUserDataUpdate(user, id, func)
 		
 		tick_user = 0
 	else
-		WUMADebug("Tried to schedule unregistered userdata update (%s)!",id)
+		WUMADebug("Tried to schedule unregistered userdata update (%s)!", id)
 	end
 end
 
@@ -340,17 +334,17 @@ function WUMA.UpdateUser()
 		tick_user = -1
 	end
 end
-timer.Create("WUMAUpdateUserData", 1, 0, WUMA.UpdateUser)    
+timer.Create("WUMAUpdateUserData", 1, 0, WUMA.UpdateUser)
 
 function WUMA.GetUserFolder(user)
 	if (isstring(user)) then
-		return string.gsub(user,":","_").."/"
+		return string.gsub(user, ":", "_").."/"
 	else
-		return string.gsub(user:SteamID(),":","_").."/"
+		return string.gsub(user:SteamID(), ":", "_").."/"
 	end
 end
 
-function WUMA.GetUserFile(user,enum)
+function WUMA.GetUserFile(user, enum)
 	local folder = WUMA.GetUserFolder(user)
 
 	if (enum == Restriction or enum == Restriction:GetID()) then
@@ -362,15 +356,15 @@ function WUMA.GetUserFile(user,enum)
 	end
 end
 
-function WUMA.CheckUserFileExists(user,enum)
-	return WUMA.Files.Exists(WUMA.GetUserFile(user,enum))
+function WUMA.CheckUserFileExists(user, enum)
+	return WUMA.Files.Exists(WUMA.GetUserFile(user, enum))
 end
 
 function WUMA.DeleteUserFile(user, enum)
-	WUMA.Files.Delete(WUMA.GetUserFile(user,enum))
+	WUMA.Files.Delete(WUMA.GetUserFile(user, enum))
 
 	timer.Simple(2, function()
-		if not WUMA.CheckUserFileExists(user,Restriction) and not WUMA.CheckUserFileExists(user,Limit) and not WUMA.CheckUserFileExists(user,Loadout) then
+		if not WUMA.CheckUserFileExists(user, Restriction) and not WUMA.CheckUserFileExists(user, Limit) and not WUMA.CheckUserFileExists(user, Loadout) then
 			WUMA.DeleteUserFolder(user)
 		end
 	end)
@@ -378,13 +372,13 @@ end
 
 function WUMA.DeleteUserFolder(user)
 	local path = WUMA.DataDirectory..WUMA.UserDataDirectory..WUMA.GetUserFolder(user)
-	WUMA.Files.Delete(string.Left(path,string.len(path)-1))
+	WUMA.Files.Delete(string.Left(path, string.len(path)-1))
 end
  
 local function onShutdown()
 	tick_user = WUMA.DataUpdateCooldown:GetInt() - 1
 	tick_global = WUMA.DataUpdateCooldown:GetInt() -1
-    WUMA.UpdateUser()
+WUMA.UpdateUser()
 	WUMA.UpdateGlobal()
 end
 hook.Add("ShutDown", "WUMADatahandlerShutdown", onShutdown)
