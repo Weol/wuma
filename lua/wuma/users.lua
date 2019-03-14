@@ -216,7 +216,7 @@ function WUMA.GetUserGroups()
 	return groups
 end
 
-function WUMA.MenuCommand(ply, cmd, args)
+function WUMA.ShowWUMAMenu(ply, cmd, args)
 	WUMA.HasAccess(ply, function(bool) 
 		if bool then
 			ply:SendLua([[WUMA.GUI.Toggle()]])
@@ -225,9 +225,9 @@ function WUMA.MenuCommand(ply, cmd, args)
 		end
 	end)	
 end
-concommand.Add( "wuma_menu", WUMA.MenuCommand)
+concommand.Add( "wuma_menu", WUMA.ShowWUMAMenu)
 
-function WUMA.PersonalLoadoutCommand(ply, cmd, args)
+function WUMA.ShowPersonalLoadout(ply, cmd, args)
 	WUMA.HasAccess(ply, function(bool) 
 		if bool then
 			ply:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
@@ -236,10 +236,13 @@ function WUMA.PersonalLoadoutCommand(ply, cmd, args)
 		end
 	end, "wuma personalloadout")	
 end
-concommand.Add("wuma_loadout", WUMA.PersonalLoadoutCommand)
+concommand.Add("wuma_loadout", WUMA.ShowPersonalLoadout)
 
 function WUMA.UserChatCommand(user, text, public)
-	if (text == WUMA.PersonalLoadoutCommand:GetString()) then user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]]); return "" end
+	if (text == WUMA.PersonalLoadoutCommand:GetString()) then 
+		user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
+		return "" 
+	end
 end
 hook.Add("PlayerSay", "WUMAChatCommand", WUMA.UserChatCommand)
 
