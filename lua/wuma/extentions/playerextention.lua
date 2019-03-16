@@ -142,7 +142,6 @@ function ENT:GetRestriction(type, str)
 	if not self:GetRestrictions() then return nil end
 	if str then
 		local key = Restriction:GenerateID(type, _, str)
-		WUMADebug(key)
 		if self:GetRestrictions()[key] then
 			return self:GetRestrictions()[key]
 		end

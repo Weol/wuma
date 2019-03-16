@@ -185,14 +185,17 @@ end
 
 function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 
-	if (item == limit) then return false end
-	if (tonumber(item) ~= nil) then return false end
+	if (item == limit) then return false end --No circular references
+	if (tonumber(item) ~= nil) then return false end --No numeric adv. limits
 	
-	local limit = Limit:new({string=item, limit=limit, exclusive=exclusive, scope=scope})
+	local limit = Limit:new{string=item, limit=limit, exclusive=exclusive, scope=scope}
+
+	local affected = {}
 
 	if isentity(user) then
 		user:AddLimit(limit)
 		
+		affected = {user}
 		user = user:SteamID()
 	end
 	
@@ -208,15 +211,21 @@ function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 		return tbl
 	end)
 	
+	hook.Call("OnWUMAUserLimitAdded", caller, user, limit)
+
+	return affected
 end
 
 function WUMA.RemoveUserLimit(caller, user, item)
 	local id = Limit:GenerateID(_, item)
 	
+	local affected = {}
+
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:RemoveLimit(id, true)
 		
+		affected = {user}
 		user = user:SteamID()
 	end
 	
@@ -231,6 +240,10 @@ function WUMA.RemoveUserLimit(caller, user, item)
 			
 		return tbl
 	end)
+
+	hook.Call("OnWUMAUserLimitRemoved", caller, user, item)
+
+	return affected
 end
 
 function WUMA.RefreshGroupLimits(user, usergroup)

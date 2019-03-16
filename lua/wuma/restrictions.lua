@@ -181,9 +181,12 @@ end
 function WUMA.AddUserRestriction(caller, user, type, item, anti, scope)
 	local restriction = Restriction:new({type=type, string=item, allow=anti, scope=scope})
 	
+	local affected = {}
+
 	if isentity(user) then
 		user:AddRestriction(restriction)
 		
+		affected = {user}
 		user = user:SteamID()
 	end
 		
@@ -199,15 +202,19 @@ function WUMA.AddUserRestriction(caller, user, type, item, anti, scope)
 		return tbl
 	end)
 	
+	return affected
 end
 
 function WUMA.RemoveUserRestriction(caller, user, type, item)
 	local id = Restriction:GenerateID(type, _, item)
 	
+	local affected = {}
+
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:RemoveRestriction(id, true)
 		
+		affected = {user}
 		user = user:SteamID()
 	end
 	
@@ -223,6 +230,7 @@ function WUMA.RemoveUserRestriction(caller, user, type, item)
 		return tbl
 	end)
 
+	return affected
 end
 
 function WUMA.RefreshGroupRestrictions(user, usergroup)

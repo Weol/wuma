@@ -113,7 +113,7 @@ end
 
 function WUMA.UpdateUsergroup(group, func)
 	local players = WUMA.GetUsers(group)
-	if not players then return false end
+	if not players then return {} end
 	for _, user in pairs(players) do
 		func(user)
 	end
@@ -174,7 +174,6 @@ function WUMA.GetUsers(group)
 		end
 		return tbl
 	end
-	
 end
 
 function WUMA.GetAuthorizedUsers(callback)

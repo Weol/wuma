@@ -97,6 +97,7 @@ function WUMA.EchoFunction(args, affected, caller)
 		if (WUMA.EchoChanges:GetInt() == 1) then
 			WUMA.GetAuthorizedUsers(function(users) 
 				for _, user in pairs(users) do
+					WUMADebug(WUMA.EchoToChat:GetBool())
 					if WUMA.EchoToChat:GetBool() then
 						user:ChatPrint(str)
 					else
@@ -106,6 +107,7 @@ function WUMA.EchoFunction(args, affected, caller)
 			end)
 		elseif (WUMA.EchoChanges:GetInt() == 2) then
 			for _, user in pairs(player.GetAll()) do
+				WUMADebug(WUMA.EchoToChat:GetBool())
 				if WUMA.EchoToChat:GetBool() then
 					user:ChatPrint(str)
 				else
@@ -115,6 +117,7 @@ function WUMA.EchoFunction(args, affected, caller)
 		elseif (WUMA.EchoChanges:GetInt() == 3) then
 			if affected and istable(affected) then 
 				for _, user in pairs(affected) do
+					WUMADebug(WUMA.EchoToChat:GetBool())
 					if WUMA.EchoToChat:GetBool() then
 						user:ChatPrint(str)
 					else
@@ -539,8 +542,6 @@ SetPrimaryWeapon:SetAccess("superadmin")
 local SetUserPrimaryWeapon = WUMA.RegisterAccess{name="setuserprimaryweapon", help="Set a users primary weapon."}
 SetUserPrimaryWeapon:SetFunction(function(caller, target, item)
 	if not target or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
-
-	
 	
 	local sucess, set = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
 	

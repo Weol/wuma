@@ -304,8 +304,12 @@ end
 
 function WUMA.SetUserLoadoutPrimaryWeapon(caller, user, item)
 
+	local affected = {}
+
 	local loadout
 	if isentity(user) then
+		affected = {user}
+
 		if not user:HasLoadout() then return false end
 		if user:HasLoadout() and not user:GetLoadout():IsPersonal() then return false end
 		loadout = user:GetLoadout()
@@ -325,14 +329,13 @@ function WUMA.SetUserLoadoutPrimaryWeapon(caller, user, item)
 		return tbl
 	end, user)
 	
-	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl) 
+	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl)
 		tbl:SetPrimary(item)
 
 		return tbl
 	end)
 	
-	return user, item
-	
+	return affected, item
 end
 
 function WUMA.SetUserEnforceLoadout(caller, user, enforce)
@@ -349,7 +352,6 @@ function WUMA.SetUserEnforceLoadout(caller, user, enforce)
 		end
 	else
 	end
-	
 	
 	WUMA.AddClientUpdate(Loadout, function(tbl)
 		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
@@ -368,6 +370,8 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 	
 	if scope then scope:SetProperty("class", item) end
 
+	local affected = {}
+
 	local loadout
 	if isentity(user) then
 		if not user:HasLoadout() then
@@ -381,6 +385,8 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 		else
 			user:GetLoadout():AddWeapon(item, primary, secondary, respect, scope)
 		end
+
+		affected = {user}
 
 		loadout = user:GetLoadout()
 	else
@@ -403,7 +409,8 @@ function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respe
 
 		return tbl
 	end)
-	
+
+	return affected
 end
 
 function WUMA.RemoveUserLoadoutWeapon(caller, user, item)
@@ -417,9 +424,13 @@ function WUMA.RemoveUserLoadoutWeapon(caller, user, item)
 		end
 	end
 
+	local affected = {}
+
 	local loadout
 	if isentity(user) then
 		loadout = user:GetLoadout()
+
+		affected = {user}
 	else
 		loadout = WUMA.ReadUserLoadout(user)
 	end
@@ -441,13 +452,19 @@ function WUMA.RemoveUserLoadoutWeapon(caller, user, item)
 		return tbl
 	end)
 	
+	return affected
 end
 
 function WUMA.ClearUserLoadout(caller, user)
 
+	local affected = {}
+
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:ClearLoadout()
+
+		affected = {user}
+
 		WUMA.GiveLoadout(user)
 	end
 
@@ -465,6 +482,7 @@ function WUMA.ClearUserLoadout(caller, user)
 		WUMA.GiveLoadout(user)
 	end
 
+	return affected
 end
 
 function WUMA.GiveLoadout(user)
