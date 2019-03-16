@@ -2,7 +2,7 @@
 local PANEL = {}
 
 PANEL.TabName = "Restrictions"
-PANEL.TabIcon = "gui/silkicons/shield"
+PANEL.TabIcon = "icon16/shield.png"
 
 function PANEL:Init()
 	

@@ -2,7 +2,7 @@
 local PANEL = {}
 
 PANEL.TabName = "Users"
-PANEL.TabIcon = "gui/silkicons/user"
+PANEL.TabIcon = "icon16/drive_user.png"
 
 function PANEL:Init()
 	

@@ -2,7 +2,7 @@
 local PANEL = {}
 
 PANEL.TabName = "Settings"
-PANEL.TabIcon = "gui/silkicons/wrench"
+PANEL.TabIcon = "icon16/wrench.png"
 
 function PANEL:Init()
 	

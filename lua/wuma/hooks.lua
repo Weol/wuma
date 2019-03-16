@@ -128,8 +128,6 @@ hook.Add("PlayerSpawnedVehicle", "WUMAPlayerSpawnedVehicle", WUMA.PlayerSpawnedV
 
 function WUMA.PlayerCanProperty(ply, property, ent)
 	if not ply or not property then return end
-
-	MsgN(property)
 	if (ply:CheckRestriction("property", property) == false) then return false end
 end
 hook.Add( "CanProperty", "WUMAPlayerCanProperty", WUMA.PlayerCanProperty, -1)
