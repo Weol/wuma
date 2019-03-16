@@ -3,8 +3,6 @@ local function echoFunction(args, affected, caller)
 
 	if not args then return end
 
-	PrintTable(affected)
-
 	if WUMA.EchoChanges then
 		if WUMA.EchoToChat:GetBool() then
 			local msg = args[1]
