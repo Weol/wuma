@@ -276,24 +276,9 @@ end
 hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn)
 
 function WUMA.PlayerUsergroupChanged(user, old, new, source)
-	WUMA.RefreshGroupRestrictions(user, new)
-	WUMA.RefreshGroupLimits(user, new)
-	WUMA.RefreshLoadout(user, new)
-	
-	timer.Simple(2, function()
-		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool(WUMA.HasUserAccessNetworkBool, bool)
-			user:SendLua([[
-				WUMA.RequestFromServer("settings");
-				WUMA.RequestFromServer("inheritance");
-				WUMA.RequestFromServer("groups")
-		]])
-		end)
-		
-		WUMA.HasAccess(user, function(bool) 
-			user:SetNWBool(WUMA.HasUserPersonalLoadoutAccess, bool)
-		end, "wuma personalloadout")
-	end)	
+	WUMA.RefreshGroupRestrictions(user,new)
+	WUMA.RefreshGroupLimits(user,new)
+	WUMA.RefreshLoadout(user,new)
 end
 hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", WUMA.PlayerUsergroupChanged)
 
