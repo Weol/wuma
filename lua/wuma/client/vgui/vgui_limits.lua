@@ -273,7 +273,10 @@ function PANEL:ReloadSuggestions()
 	end
 	
 	for key, item in pairs(WUMA.Limits or {}) do
-		local str = item:GetString()
+		local str = item
+		if not isstring(item) then
+			str = item:GetString()
+		end
 		if not table.HasValue(tbl, str) then --Remove duplicates
 			table.insert(tbl, str)
 		end
