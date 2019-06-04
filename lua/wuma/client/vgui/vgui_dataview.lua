@@ -101,13 +101,15 @@ function PANEL:OnRowRightClick()
 	if self.RightClickFunction then
 		local item = self:GetSelectedItems()[1]
 		
-		local tbl = self.RightClickFunction(item)
-		
-		self.PropertyViewer:SetProperties(tbl)
+		if item then
+			local tbl = self.RightClickFunction(item)
+			
+			self.PropertyViewer:SetProperties(tbl)
 
-		local x, y = self:CursorPos()
-		if (y+self.PropertyViewer:GetTall() > self:GetTall()) then y = (y-self.PropertyViewer:GetTall()) end
-		self.PropertyViewer:Show(x, y)
+			local x, y = self:CursorPos()
+			if (y+self.PropertyViewer:GetTall() > self:GetTall()) then y = (y-self.PropertyViewer:GetTall()) end
+			self.PropertyViewer:Show(x, y)
+		end
 	end
 end
 
