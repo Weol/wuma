@@ -61,15 +61,15 @@ Subscription:SetAuthenticationFunction(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
-local Limits = WUMA.RegisterStream{name="cvarlimits", send=WUMA.SendInformation}
-Limits:SetServerFunction(function(user, data)
-	return {user, Limits, WUMA.ConVars.Limits}
+local CVarLimits = WUMA.RegisterStream{name="cvarlimits", send=WUMA.SendInformation}
+CVarLimits:SetServerFunction(function(user, data)
+	return {user, CVarLimits, WUMA.ConVars.Limits}
 end) 
-Limits:SetClientFunction(function(data)
-	WUMA.Limits = data[1]
+CVarLimits:SetClientFunction(function(data)
+	WUMA.CVarLimits = data[1]
 	hook.Call(WUMA.CVARLIMITSUPDATE)
 end)
-Limits:SetAuthenticationFunction(function(user, callback) 
+CVarLimits:SetAuthenticationFunction(function(user, callback) 
 	WUMA.HasAccess(user, callback)
 end)
 

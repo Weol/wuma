@@ -15,7 +15,7 @@ WUMA.LoadoutWeapons = WUMA.LoadoutsWeapons or {}
 WUMA.Maps = WUMA.Maps or {}
 WUMA.ServerSettings = WUMA.ServerSettings or {}
 WUMA.ClientSettings = WUMA.ClientSettings or {}
-WUMA.Limits = WUMA.Limits or {}
+WUMA.CVarLimits = WUMA.CVarLimits or {}
 WUMA.Inheritance = {}
 
 --Hooks

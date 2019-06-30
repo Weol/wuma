@@ -170,6 +170,7 @@ function PANEL:Init()
 	end)
 	
 	WUMA.GUI.AddHook(WUMA.CVARLIMITSUPDATE, "WUMALimitsGUILimitsUpdateHook", function() 
+		self.cachedSuggestions = nil
 		self:ReloadSuggestions()
 	end)
 	
@@ -262,27 +263,49 @@ end
 function PANEL:ReloadSuggestions()
 	if not self.list_suggestions then return end
 
-	local tbl = WUMA.GetAllItems()
-	
-	for key, item in pairs(tbl) do
-		--Adding exceptions for wire entities, they never use entity class to check limits, so its useless to have them in menu
-		--Also checking if any entities have a sbox_max.. limit, if they do then they probably will use that, more probable than not atleast
-		if table.HasValue(WUMA.GetStandardLimits(), item.."s") or table.HasValue(WUMA.Limits or {}, item.."s") or string.match(item, "gmod_wire") then
-			tbl[key] = nil
+	if not self.cachedSuggestions then
+		local tbl = table.Merge(WUMA.GetAllItems(), WUMA.CVarLimits)
+
+		local exists = {}
+
+		for key, item in pairs(tbl) do
+			if not exists[item] then
+				--Adding exceptions for wire entities, they never use entity class to check limits, so its useless to have them in menu
+				if string.match(item, "gmod_wire") then
+					tbl[key] = nil
+				elseif (string.sub(item, 1, 5) == "gmod_") then
+					local str = string.sub(item, 6)
+
+					if table.HasValue(tbl, str.."s") then
+						tbl[key] = nil
+					end
+				elseif table.HasValue(tbl, item.."s") then
+					MsgN(item .. " -> " .. item.."s")
+					tbl[key] = nil
+				end
+
+				exists[item] = 1
+			end
 		end
+
+		local exists = {}
+		for key, item in pairs(tbl) do
+			local str = item
+			if not isstring(item) then
+				str = item:GetString()
+			end
+			
+			if exists[str] then
+				tbl[key] = nil
+			else
+				exists[str] = 1
+			end
+		end
+
+		self.cachedSuggestions = tbl
 	end
-	
-	for key, item in pairs(WUMA.Limits or {}) do
-		local str = item
-		if not isstring(item) then
-			str = item:GetString()
-		end
-		if not table.HasValue(tbl, str) then --Remove duplicates
-			table.insert(tbl, str)
-		end
-	end
-	
-	self:PopulateList("list_suggestions", tbl, true)
+
+	self:PopulateList("list_suggestions", self.cachedSuggestions, true)
 	
 	self.list_suggestions.VBar:SetScroll(0)
 end
