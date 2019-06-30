@@ -280,7 +280,6 @@ function PANEL:ReloadSuggestions()
 						tbl[key] = nil
 					end
 				elseif table.HasValue(tbl, item.."s") then
-					MsgN(item .. " -> " .. item.."s")
 					tbl[key] = nil
 				end
 
