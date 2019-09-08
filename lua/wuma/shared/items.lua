@@ -80,49 +80,105 @@ function WUMA.GetAdditionalEntities()
 	return {}
 end
 
+local entities_cache
 function WUMA.GetEntities()
-	local entities = table.GetKeys(list.Get("SpawnableEntities"))
-	table.Add(entities, WUMA.GetAdditionalEntities())
+	if entities_cache then return entities_cache end
+
+	local entities = {}
+
+	for k, v in pairs(list.Get("SpawnableEntities")) do
+		entities[k] = k
+	end
+
+	for k, v in pairs(WUMA.GetAdditionalEntities()) do
+		entities[v] = v
+	end
+	
+	entities_cache = entities
+
 	return entities
 end
 
+local npcs_cache
 function WUMA.GetNPCs()
-	return table.GetKeys(list.Get("NPC"))
+	if npcs_cache then return npcs_cache end
+
+	local npcs = {}
+
+	for k, v in pairs(list.Get("NPC")) do
+		npcs[k] = k
+	end
+
+	npcs_cache = npcs
+
+	return npcs
 end
 
+local vehicles_cache
 function WUMA.GetVehicles()
-	return table.GetKeys(list.Get("Vehicles"))
+	if vehicles_cache then return vehicles_cache end
+
+	local vehicles = {}
+
+	for k, v in pairs(list.Get("Vehicles")) do
+		vehicles[k] = k
+	end
+
+	vehicles_cache = vehicles
+
+	return vehicles
 end
 
+local tools_cache
 function WUMA.GetTools()
-	return table.GetKeys(weapons.GetStored('gmod_tool').Tool)
+	if tools_cache then return tools_cache end
+
+	local tools = {}
+
+	for k, v in pairs(weapons.GetStored('gmod_tool').Tool) do
+		tools[k] = k
+	end
+
+	tools_cache = tools
+
+	return tools
 end
 
+local weapons_cache
 function WUMA.GetWeapons()
-	local tbl = {}
+	if weapons_cache then return weapons_cache end
+	
+	local weapons = {}
 
 	for k, v in pairs(list.Get("Weapon")) do
 		if v.Spawnable then
-			table.insert(tbl, k)
+			weapons[k] = k
 		end
 	end
+
+	weapons_cache = weapons
 	
-	return tbl
+	return weapons
 end
 
 function WUMA.GetStandardLimits()
 	return cleanup.GetTable()
 end
 
+local all_cache
 function WUMA.GetAllItems()
+	if all_cache then return all_cache end
+
 	local tbl = {}
-	table.Add(tbl, WUMA.GetEntities())
-	table.Add(tbl, WUMA.GetNPCs())
-	table.Add(tbl, WUMA.GetVehicles())
-	table.Add(tbl, WUMA.GetTools())
-	table.Add(tbl, WUMA.GetWeapons())
-	table.Add(tbl, WUMA.GetStandardLimits())
+	tbl = table.Merge(tbl, WUMA.GetEntities())
+	tbl = table.Merge(tbl, WUMA.GetNPCs())
+	tbl = table.Merge(tbl, WUMA.GetVehicles())
+	tbl = table.Merge(tbl, WUMA.GetTools())
+	tbl = table.Merge(tbl, WUMA.GetWeapons())
+	tbl = table.Merge(tbl, WUMA.GetStandardLimits())
 	
+	all_cache = tbl
+
 	return tbl
 end
 

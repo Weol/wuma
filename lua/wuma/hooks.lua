@@ -22,6 +22,9 @@ hook.Add("PlayerSpawnedSENT", "WUMAPlayerSpawnedProp", WUMA.PlayerSpawnedSENT, -
 
 function WUMA.PlayerSpawnProp(ply, mdl)
 	if not ply or not mdl then return end
+
+	mdl = string.lower(mdl) --Models are alwyas lowercase
+
 	if (ply:CheckRestriction("prop", mdl) == false) then return false end
 	if (ply:CheckLimit("props", mdl) == false) then return false end
 end
@@ -29,6 +32,9 @@ hook.Add("PlayerSpawnProp", "WUMAPlayerSpawnProp", WUMA.PlayerSpawnProp, -1)
 
 function WUMA.PlayerSpawnedProp(ply, model, ent)
 	if not ply or not model or not ent then return end
+
+	model = string.lower(model) --Models are alwyas lowercase
+
 	ply:AddCount("props", ent, model)
 end
 hook.Add("PlayerSpawnedProp", "WUMAPlayerSpawnedProp", WUMA.PlayerSpawnedProp, -2)
@@ -48,6 +54,9 @@ hook.Add("PlayerUse", "WUMAPlayerUse", WUMA.PlayerUse)
 
 function WUMA.PlayerSpawnEffect(ply, mdl)
 	if not ply or not mdl then return end
+
+	mdl = string.lower(mdl) --Models are alwyas lowercase
+
 	if (ply:CheckRestriction("effect", mdl) == false) then return false end
 	if (ply:CheckLimit("effects", mdl) == false) then return false end
 end
@@ -55,6 +64,9 @@ hook.Add("PlayerSpawnEffect", "WUMAPlayerSpawnEffect", WUMA.PlayerSpawnEffect, -
 
 function WUMA.PlayerSpawnedEffect(ply, model, ent)
 	if not ply or not model or not ent then return end
+
+	model = string.lower(model) --Models are alwyas lowercase
+
 	ply:AddCount("effects", ent, model)
 end
 hook.Add("PlayerSpawnedEffect", "WUMAPlayerSpawnedEffect", WUMA.PlayerSpawnedEffect, -2)
@@ -74,6 +86,9 @@ hook.Add("PlayerSpawnedNPC", "WUMAPlayerSpawnedNPC", WUMA.PlayerSpawnedNPC, -2)
 
 function WUMA.PlayerSpawnRagdoll(ply, mdl)
 	if not ply or not mdl then return end
+
+	mdl = string.lower(mdl) --Models are alwyas lowercase
+
 	if (ply:CheckRestriction("ragdoll", mdl) == false) then return false end
 	if (ply:CheckLimit("ragdolls", mdl) == false) then return false end
 end
@@ -81,6 +96,9 @@ hook.Add("PlayerSpawnRagdoll", "WUMAPlayerSpawnRagdoll", WUMA.PlayerSpawnRagdoll
 
 function WUMA.PlayerSpawnedRagdoll(ply, model, ent)
 	if not ply or not model or not ent then return end
+
+	model = string.lower(model) --Models are alwyas lowercase
+
 	ply:AddCount("ragdolls", ent, model)
 end
 hook.Add("PlayerSpawnedRagdoll", "WUMAPlayerSpawnedRagdoll", WUMA.PlayerSpawnedRagdoll, -2)

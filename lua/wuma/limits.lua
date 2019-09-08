@@ -80,6 +80,10 @@ function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 	if (item == limit) then return false end
 	if (tonumber(item) ~= nil) then return false end
 
+	if (string.sub(item, 0, 7) == "models/") then
+		item = string.lower(item)
+	end
+
 	local limit = Limit:new({string=item, usergroup=usergroup, limit=limit, exclusive=exclusive, scope=scope})
 
 	WUMA.Limits[limit:GetID()] = limit
@@ -123,6 +127,13 @@ function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 end
 
 function WUMA.RemoveLimit(caller, usergroup, item)
+	if (string.sub(item, 0, 7) == "models/") then
+		local id = Limit:GenerateID(usergroup, item)
+		if not WUMA.Limits[id] then
+			item = string.lower(item)
+		end
+	end
+
 	local id = Limit:GenerateID(usergroup, item)
 	
 	if not WUMA.Limits[id] then return false end
@@ -187,6 +198,10 @@ function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 
 	if (item == limit) then return false end --No circular references
 	if (tonumber(item) ~= nil) then return false end --No numeric adv. limits
+
+	if (string.sub(item, 0, 7) == "models/") then
+		item = string.lower(item)
+	end
 	
 	local limit = Limit:new{string=item, limit=limit, exclusive=exclusive, scope=scope}
 
@@ -217,6 +232,14 @@ function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 end
 
 function WUMA.RemoveUserLimit(caller, user, item)
+	
+	if (string.sub(item, 0, 7) == "models/") then
+		local id = Limit:GenerateID(usergroup, item)
+		if not WUMA.Limits[id] then
+			item = string.lower(item)
+		end
+	end
+
 	local id = Limit:GenerateID(_, item)
 	
 	local affected = {}

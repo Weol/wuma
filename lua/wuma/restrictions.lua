@@ -77,6 +77,10 @@ end
 
 function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 
+	if (type == "prop" or type == "effect" or type == "ragdoll") then
+		item = string.lower(item) --Models are always lower case
+	end
+
 	local restriction = Restriction:new({type=type, string=item, usergroup=usergroup, allow=anti, scope=scope})
 	
 	WUMA.Restrictions[restriction:GetID()] = restriction
@@ -118,6 +122,13 @@ function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 end
 
 function WUMA.RemoveRestriction(caller, usergroup, type, item)
+
+	if (type == "prop" or type == "effect" or type == "ragdoll") then
+		local id = Restriction:GenerateID(type, usergroup, item)
+		if not WUMA.Restrictions[id] then
+			item = string.lower(item) --Models are always lower case
+		end
+	end
 
 	local id = Restriction:GenerateID(type, usergroup, item)
 
@@ -179,6 +190,10 @@ function WUMA.RemoveRestriction(caller, usergroup, type, item)
 end
 
 function WUMA.AddUserRestriction(caller, user, type, item, anti, scope)
+	if (type == "prop" or type == "effect" or type == "ragdoll") then
+		item = string.lower(item) --Models are always lower case
+	end
+
 	local restriction = Restriction:new({type=type, string=item, allow=anti, scope=scope})
 	
 	local affected = {}
@@ -206,6 +221,14 @@ function WUMA.AddUserRestriction(caller, user, type, item, anti, scope)
 end
 
 function WUMA.RemoveUserRestriction(caller, user, type, item)
+	
+	if (type == "prop" or type == "effect" or type == "ragdoll") then
+		local id = Restriction:GenerateID(type, usergroup, item)
+		if not WUMA.Restrictions[id] then
+			item = string.lower(item) --Models are always lower case
+		end
+	end
+
 	local id = Restriction:GenerateID(type, _, item)
 	
 	local affected = {}

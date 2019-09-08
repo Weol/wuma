@@ -9,13 +9,13 @@ local function checkPlayerSpawn(ply, ent, entTable)
 	local ret
 		
 	--Check if ent is restricted in all the different types
-	if (table.HasValue(WUMA.GetWeapons(), ent)) and (WUMA.PlayerSpawnSWEP(ply, ent, ent) == false) then ret = false end
+	if (WUMA.GetWeapons()[ent]) and (WUMA.PlayerSpawnSWEP(ply, ent, ent) == false) then ret = false end
 		
-	if (table.HasValue(WUMA.GetVehicles(), ent)) and (WUMA.PlayerSpawnVehicle(ply, _, ent) == false) then ret = false end
+	if (WUMA.GetVehicles()[ent]) and (WUMA.PlayerSpawnVehicle(ply, _, ent) == false) then ret = false end
 		
-	if (table.HasValue(WUMA.GetEntities(), ent)) and (WUMA.PlayerSpawnSENT(ply, ent) == false) then ret = false end
+	if (WUMA.GetEntities()[ent]) and (WUMA.PlayerSpawnSENT(ply, ent) == false) then ret = false end
 		
-	if (table.HasValue(WUMA.GetNPCs(), ent)) and (WUMA.PlayerSpawnNPC(ply, ent) == false) then ret = false end
+	if (WUMA.GetNPCs()[ent]) and (WUMA.PlayerSpawnNPC(ply, ent) == false) then ret = false end
 
 	return ret
 
@@ -51,4 +51,39 @@ if AdvDupe2 then
 		end
 	end)
 
+end
+
+local function checkDuplicatorSpawn(ply, entTable) 
+	local class = entTable.Class
+
+	if (class == "prop_physics") then 
+		if (WUMA.PlayerSpawnProp(ply, entTable.Model) == false) then return false else return true end 
+	end
+	
+	local ret = true
+		
+	--Check if class is restricted in all the different types
+	if (WUMA.GetWeapons()[class]) and (WUMA.PlayerSpawnSWEP(ply, class) == false) then ret = false end
+		
+	if (WUMA.GetVehicles()[class]) and (WUMA.PlayerSpawnVehicle(ply, _, class) == false) then ret = false end
+		
+	if (WUMA.GetEntities()[class]) and (WUMA.PlayerSpawnSENT(ply, class) == false) then ret = false end
+		
+	if (WUMA.GetNPCs()[class]) and (WUMA.PlayerSpawnNPC(ply, class) == false) then ret = false end
+ 
+	return ret
+
+end 
+
+local old_CreateEntityFromTable = old_CreateEntityFromTable or duplicator.CreateEntityFromTable
+duplicator.CreateEntityFromTable = function(ply, entTable)
+	local ret
+
+	ProtectedCall(function() 
+		if checkDuplicatorSpawn(ply, entTable) then
+			ret = old_CreateEntityFromTable(ply, entTable)
+		end
+	end)
+
+	return ret
 end
