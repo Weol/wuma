@@ -1,24 +1,21 @@
 # Weols User Management Addon
-WUMA is an addon that provides server administrators control over what their users can spawn. It enables them to restrict what a usergroup or individual player can spawn, or how many they can spawn. It also provides loadouts for a usergroups or individual player.
+WUMA is an addon for server administrators and allows you to restrict and limit anything from usergroups and individual players. It also features a loadout system that can be used to customize your own, another player, or a usergroups loadout. It integrates with any administrator addons that implements CAMI.
+
+You can check out the [wiki](https://github.com/Weol/WUMA/wiki) for a in-depth explanation of the interface.
 
 ## Restrictions
-
-Administrators may restrict any entity, weapon, vehicle, npc, tool, effect, ragdoll, prop model, or entity usage from a usergroup or an individual player. They can also add an anti-restriction which negate any normal restriction in place, this function is meant to add exceptions for players in a usergroup, or to negate an inherited restriction. Restrictions can also be added with a scope to restrict items for a certain period of time or on a specific map.
+You can restrict entities, weapons, vehicles, npcs, tools, effects, ragdolls, properties, and props. Make individual players exempt from their usergroup's restrictions. Inherit restrictions from other usergroups.
 
 ## Limits
-
-Administrators may limit any entity, weapon, vehicle, npc, effect, ragdoll, or prop model from a usergroup or an individual player. Items may be limited to any value, even infinity, which means it won't have any limit at all. Limits can also be grouped into advanded limits, which allows administrators to set a group of items to the same limit. This limit can be inclusive or exclusive, meaning that all the items can have the same static limit, or all the items may count towards the same limit. Limits can also be added with a scope to restrict items for a certain period of time or on a specific map.
+You can limit entities, weapons, vehicles, npcs, tools, effects, ragdolls, properties, and props. They can even be infinite limits. You can make different items share the same limit. This is very useful if you for example want players to only be able to spawn one vehicle at a time, but your server has many different vehicles. You can make all your vehicles share the same limit.
 
 ## Loadouts
+You can set or extend a usergroup's or a player's loadout. Specify how much ammo each weapon in the loadout should spawn with., and specify the loadout's primary weapon, which is the weapon players will be holding when they spawn.
 
-Administrators may edit any usergroup's or player's loadout. They can add and remove weapons, and set the weapons primary and secondary ammo. They can also assign a weapons as a primary weapon, meaning the players will spawn holding that weapon. Weapons in the loadout can also be added with a scope to add weapons to loadouts for a specific period of time or on a specific map.
+## Getting started
+You need to be superadmin in order to use WUMA. Use the command wuma_menu in order to open the WUMA interface. If you are using ULX then you will find the WUMA interface as a tab in the ULX interface.
 
-WUMA also features a loadout selector that players can access that will allow them to edit their own loadout. They cannot add weapons that are restricted from them.
+## Feedback & reporting issues
+Feel free to leave any feedback or feature requests, I may or may not change or add things if people want them.
 
-## Installation
-
-Simply clone or download the repository into you addons folder.
-
-## Compatibility
-
-WUMA implements CAMI which means it is compatible with any admin mod that also implements it. WUMA may conflict with any addons that change any of Garry's Mod standard libraries or certain sandbox functions.
+If you encounter any problems with the addon please report them to me so I can fix them. If you do please post any error messages and a list of all the addons you are using. Creating an issue is the most efficient way to get my attention.
