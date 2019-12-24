@@ -83,7 +83,7 @@ function WUMA.Initialize()
 	--Add hook so playerextention loads when the first player joins
 	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function() 
 		include(WUMA.HomeDirectory.."extentions/playerextention.lua")		
-		hook.Remove("WUMAPlayerAuthedPlayerExtentionInit")
+		hook.Remove("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit")
 	end)
 	
 	--All overides should be loaded after WUMA
