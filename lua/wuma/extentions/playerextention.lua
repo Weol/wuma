@@ -12,7 +12,6 @@ function ENT:CheckLimit(str, id)
 
 	if (self:HasLimit(str)) then
 		local limit = self:GetLimit(str)
-		WUMADebug(limit:Get() + WUMA.GetTotalLimits(self:SteamID(), str))
 		local limithit = limit:Check(limit:Get() + WUMA.GetTotalLimits(self:SteamID(), str))
 		if (limithit ~= nil) then return limithit end
 	end
