@@ -7,7 +7,7 @@ WUMA.Limits = WUMA.Limits or {}
 WUMA.UserLimitStrings = WUMA.UserLimitStrings or {}
 WUMA.UsergroupLimits = WUMA.UsergroupLimits or {}
 
-WUMA.ExcludeLimits = WUMA.CreateConVar("wuma_exclude_limits", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
+WUMA.ExcludeLimits = WUMA.CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
 
 function WUMA.LoadLimits()
 	local saved, tbl = WUMA.GetSavedLimits() or {}, {}
