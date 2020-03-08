@@ -1,12 +1,29 @@
 
 local ENT = FindMetaTable("Player")
 
+local exclude_limits = WUMA.ExcludeLimits
+
+local ignore = {
+	vehicles = 1,
+	sents = 1,
+	ragdolls = 1,
+	npcs = 1,
+	effects = 1,
+	props = 1
+}
+
 ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
 function ENT:CheckLimit(str, id)
-	if not id then return true end
+	if not id and ignore[str] then return true end
 
 	if (id and self:HasLimit(id)) then
-		local limithit = self:GetLimit(id):Check()
+		if (not exclude_limits:GetBool() and self:HasLimit(str)) then
+			local limit = self:GetLimit(str)
+			local limithit = limit:Check()
+			if (limithit == false) then return limithit end
+		end
+
+		local limithit =  self:GetLimit(id):Check()
 		if (limithit ~= nil) then return limithit end
 	end
 
@@ -33,13 +50,11 @@ function ENT:AddCount(str, ent, id)
 	elseif not id and str then
 		self.old_AddCount(self, str, ent)
 	end
-
 end
 
 ENT.old_GetCount = ENT.old_GetCount or ENT.GetCount
 function ENT:GetCount(str, minus, id)
 	minus = minus or 0
-	WUMADebug("GetCount(%s, %s, %s)", tostring(str), tostring(minus), tostring(id))
 
 	--Lets not do anything if we are running at client, let the sandbox function handle that
 	if CLIENT then return self.old_GetCount(self, str, minus) end
