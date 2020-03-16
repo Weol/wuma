@@ -35,7 +35,7 @@ local function additionalEntitiesFromDuplicatorEntityClasses()
 			prop_ragdoll = 1,
 			monster_zombie = 1
 		}
-	
+
 		local additional = table.GetKeys(duplicator.EntityClasses)
 		for k, v in pairs(additional) do
 			if (string.Left(v, 4) == "npc_") then --Assume any entity that starts with npc_ is an npc
@@ -47,7 +47,7 @@ local function additionalEntitiesFromDuplicatorEntityClasses()
 	end
 end
 
-local function additionalEntitiesFromDarkRP() 
+local function additionalEntitiesFromDarkRP()
 	if (DarkRP and DarkRP.DarkRPEntities) then
 		local additional = {}
 		for k, v in pairs(DarkRP.DarkRPEntities) do
@@ -65,7 +65,7 @@ local additionalEntitiesFunctions = {
 function WUMA.GetAdditionalEntities()
 	if (CLIENT) then
 		return WUMA.AdditionalEntities or {}
-	else 
+	else
 		local additional = {}
 		for _, func in pairs(additionalEntitiesFunctions) do
 			local success, info = pcall(function()
@@ -93,7 +93,7 @@ function WUMA.GetEntities()
 	for k, v in pairs(WUMA.GetAdditionalEntities()) do
 		entities[v] = v
 	end
-	
+
 	entities_cache = entities
 
 	return entities
@@ -147,7 +147,7 @@ end
 local weapons_cache
 function WUMA.GetWeapons()
 	if weapons_cache then return weapons_cache end
-	
+
 	local weapons = {}
 
 	for k, v in pairs(list.Get("Weapon")) do
@@ -157,12 +157,16 @@ function WUMA.GetWeapons()
 	end
 
 	weapons_cache = weapons
-	
+
 	return weapons
 end
 
 function WUMA.GetStandardLimits()
-	return cleanup.GetTable()
+	local tbl = {}
+	for k, v in pairs(cleanup.GetTable()) do
+		tbl[v] = v
+	end
+	return tbl
 end
 
 local all_cache
@@ -176,7 +180,7 @@ function WUMA.GetAllItems()
 	tbl = table.Merge(tbl, WUMA.GetTools())
 	tbl = table.Merge(tbl, WUMA.GetWeapons())
 	tbl = table.Merge(tbl, WUMA.GetStandardLimits())
-	
+
 	all_cache = tbl
 
 	return tbl
