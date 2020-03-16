@@ -7,10 +7,10 @@ WUMA.ConVars.Settings = WUMA.ConVars.Settings or {}
 
 WUMA.VERSION = "1.3.0"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
- 
+
 --Enums
 WUMA.DELETE = "WUMA_delete"
-WUMA.EMPTY = "WUMA_empty" 
+WUMA.EMPTY = "WUMA_empty"
 
 --Paths
 WUMA.DataDirectory = "wuma/"
@@ -26,8 +26,8 @@ function WUMA.Initialize()
 
 	include(WUMA.HomeDirectory.."files.lua")
 	include(WUMA.HomeDirectory.."log.lua")
-	 
-	--Initialize data files 
+
+	--Initialize data files
 	WUMA.Files.Initialize()
 
 	--Load objects
@@ -36,56 +36,57 @@ function WUMA.Initialize()
 
 	--Include CAMI before files that depend on it
 	include(WUMA.HomeDirectory.."shared/cami.lua")
-	AddCSLuaFile(WUMA.HomeDirectory.."shared/cami.lua") 
-	
+	AddCSLuaFile(WUMA.HomeDirectory.."shared/cami.lua")
+
 	--Include core
 	include(WUMA.HomeDirectory.."sql.lua")
-	include(WUMA.HomeDirectory.."util.lua") 	
+	include(WUMA.HomeDirectory.."util.lua")
 	include(WUMA.HomeDirectory.."functions.lua")
 	include(WUMA.HomeDirectory.."datahandler.lua")
 	include(WUMA.HomeDirectory.."users.lua")
 	include(WUMA.HomeDirectory.."limits.lua")
 	include(WUMA.HomeDirectory.."restrictions.lua")
 	include(WUMA.HomeDirectory.."loadouts.lua")
-	include(WUMA.HomeDirectory.."inheritance.lua") 
-	include(WUMA.HomeDirectory.."hooks.lua") 
+	include(WUMA.HomeDirectory.."inheritance.lua")
+	include(WUMA.HomeDirectory.."hooks.lua")
 	include(WUMA.HomeDirectory.."duplicator.lua")
 	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
 	include(WUMA.HomeDirectory.."extentions/entityextention.lua")
 
 	--Register WUMA access with CAMI
 	CAMI.RegisterPrivilege{Name=WUMA.WUMAGUI, MinAccess="superadmin", Description="Access to WUMA GUI"}
-	
+
 	--Who am I writing these for?
 	WUMALog("Weol's User Management Addon version %s", WUMA.VERSION)
-	
+
 	--Initialize database
 	WUMA.SQL.Initialize()
-	
-	--Load data 
+
+	--Load data
 	WUMA.LoadRestrictions()
 	WUMA.LoadLimits()
 	WUMA.LoadLoadouts()
 	WUMA.LoadInheritance()
-	
+
 	--Load shared files
 	WUMALog("Loading shared files")
 	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
-	WUMA.LoadFolder(WUMA.SharedDirectroy) 
-	
+	WUMA.LoadFolder(WUMA.SharedDirectroy)
+
 	--Load client files
 	WUMALog("Loading client files")
 	WUMA.LoadCLFolder(WUMA.ClientDirectory)
-	
+
 	--Allow the poor scopes to think
 	Scope:StartThink()
-	
+
 	--Add hook so playerextention loads when the first player joins
-	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function() 
-		include(WUMA.HomeDirectory.."extentions/playerextention.lua")		
+	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()
+		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
+		if E2Lib then include(WUMA.HomeDirectory.."expression2.lua") end
 		hook.Remove("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit")
 	end)
-	
+
 	--All overides should be loaded after WUMA
 	hook.Call("OnWUMALoaded")
 end
@@ -103,43 +104,43 @@ end
 function WUMA.CreateConVar(...)
 	local convar = CreateConVar(...)
 	WUMA.ConVars.Settings[convar:GetName()] = convar:GetString()
-	
-	cvars.AddChangeCallback(convar:GetName(), function(convar, old, new) 
+
+	cvars.AddChangeCallback(convar:GetName(), function(convar, old, new)
 		WUMA.ConVars.Settings[convar] = new
 
 		local tbl = {}
 		tbl[convar] = new
-		WUMA.GetAuthorizedUsers(function(users) 
+		WUMA.GetAuthorizedUsers(function(users)
 			WUMA.SendInformation(users,WUMA.GetStream("settings"),tbl)
 		end)
 	end)
-	
+
 	return convar
 end
 
 function WUMA.LoadFolder(dir)
 	local files, directories = file.Find(dir.."*", "LUA")
-	
+
 	for _, file in pairs(files) do
 		WUMADebug(" %s", file)
-	
+
 		include(dir..file)
 	end
-	
+
 	for _, directory in pairs(directories) do
-		WUMA.LoadFolder(dir..directory.."/") 
+		WUMA.LoadFolder(dir..directory.."/")
 	end
 end
 
 function WUMA.LoadCLFolder(dir)
 	local files, directories = file.Find(dir.."*", "LUA")
-	
-	for _, file in pairs(files) do	
+
+	for _, file in pairs(files) do
 		WUMADebug(" %s", dir..file)
-		
-		AddCSLuaFile(dir..file) 
+
+		AddCSLuaFile(dir..file)
 	end
-	
+
 	for _, directory in pairs(directories) do
 		WUMA.LoadCLFolder(dir..directory.."/")
 	end

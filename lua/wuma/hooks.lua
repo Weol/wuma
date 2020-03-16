@@ -16,7 +16,7 @@ hook.Add("PlayerSpawnSENT", "WUMAPlayerSpawnSENT", WUMA.PlayerSpawnSENT, -1)
 
 function WUMA.PlayerSpawnedSENT(ply, ent)
 	if not ply or not ent then return end
-	ply:AddCount("sents", ent, ent:GetClass()) 
+	ply:AddCount("sents", ent, ent:GetClass())
 end
 hook.Add("PlayerSpawnedSENT", "WUMAPlayerSpawnedProp", WUMA.PlayerSpawnedSENT, -2)
 
@@ -45,10 +45,21 @@ function WUMA.CanTool(ply, tr, tool)
 end
 hook.Add("CanTool", "WUMACanTool", WUMA.CanTool, -1)
 
+local use_last_return = {}
+local use_last_time = {}
 function WUMA.PlayerUse(ply, ent)
 	if not ply or not ent then return end
-	if ent:GetTable().VehicleName then ent = ent:GetTable().VehicleName else ent = ent:GetClass() end
-	return ply:CheckRestriction("use", ent)
+
+	if (use_last_time[ply:SteamID()] and os.time() < use_last_time[ply:SteamID()]) then
+		if (use_last_return[ply:SteamID()]== false) then return false end
+	else
+		if ent:GetTable().VehicleName then ent = ent:GetTable().VehicleName else ent = ent:GetClass() end
+
+		use_last_return[ply:SteamID()] = ply:CheckRestriction("use", ent)
+		use_last_time[ply:SteamID()] = os.time() + 2
+
+		if (use_last_return[ply:SteamID()] == false) then return false end
+	end
 end
 hook.Add("PlayerUse", "WUMAPlayerUse", WUMA.PlayerUse)
 
@@ -67,6 +78,7 @@ function WUMA.PlayerSpawnedEffect(ply, model, ent)
 
 	model = string.lower(model) --Models are alwyas lowercase
 
+	ent.WUMAModel = model
 	ply:AddCount("effects", ent, model)
 end
 hook.Add("PlayerSpawnedEffect", "WUMAPlayerSpawnedEffect", WUMA.PlayerSpawnedEffect, -2)
@@ -123,11 +135,21 @@ function WUMA.PlayerSpawnedSWEP(ply, ent)
 end
 hook.Add("PlayerSpawnedSWEP", "WUMAPlayerSpawnedSWEP", WUMA.PlayerSpawnedSWEP, -2)
 
-local pickup_last
+local pickup_last_return = {}
+local pickup_last_time = {}
 function WUMA.PlayerCanPickupWeapon(ply, weapon)
 	if not ply or not weapon then return end
-	if ply:ShouldDisregardPickup(weapon:GetClass()) then return end
-	return ply:CheckRestriction("pickup", weapon:GetClass())
+
+	if (pickup_last_time[ply:SteamID()] and os.time() < pickup_last_time[ply:SteamID()]) then
+		if (pickup_last_return[ply:SteamID()]== false) then return false end
+	else
+		if ply:ShouldDisregardPickup(weapon:GetClass()) then return end
+
+		pickup_last_return[ply:SteamID()] = ply:CheckRestriction("pickup", weapon:GetClass())
+		pickup_last_time[ply:SteamID()] = os.time() + 2
+
+		if (pickup_last_return[ply:SteamID()] == false) then return false end
+	end
 end
 hook.Add("PlayerCanPickupWeapon", "WUMAPlayerCanPickupWeapon", WUMA.PlayerCanPickupWeapon, -1)
 
@@ -148,4 +170,30 @@ function WUMA.PlayerCanProperty(ply, property, ent)
 	if not ply or not property then return end
 	if (ply:CheckRestriction("property", property) == false) then return false end
 end
-hook.Add( "CanProperty", "WUMAPlayerCanProperty", WUMA.PlayerCanProperty, -1)
+hook.Add("CanProperty", "WUMAPlayerCanProperty", WUMA.PlayerCanProperty, -1)
+
+local physgun_last_return = {}
+local physgun_last_time = {}
+function WUMA.PlayerPhysgunPickup(ply, ent)
+	if not ply or not ent then return end
+
+	if (physgun_last_time[ply:SteamID()] and os.time() < physgun_last_time[ply:SteamID()]) then
+		if (physgun_last_return[ply:SteamID()] == false) then return false end
+	else
+		local class = ent:GetClass()
+		if (class == "prop_ragdoll" or class == "prop_physics") then
+			class = ent:GetModel()
+		elseif (class == "prop_effect") then
+			class = ent.WUMAModel
+		elseif (ent:GetTable().VehicleName) then
+			class = ent:GetTable().VehicleName
+		end
+
+		physgun_last_return[ply:SteamID()] = ply:CheckRestriction("physgrab", class)
+		physgun_last_time[ply:SteamID()] = os.time() + 2
+
+		if (physgun_last_return[ply:SteamID()] == false) then return false end
+	end
+end
+hook.Add("PhysgunPickup", "WUMAPlayerPhysgunPickup", WUMA.PlayerPhysgunPickup, -1)
+hook.Add("CanPlayerUnfreeze", "WUMACanPlayerUnfreeze", WUMA.PlayerPhysgunPickup, -1)

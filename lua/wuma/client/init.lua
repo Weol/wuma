@@ -11,42 +11,45 @@ WUMA.EMPTY = "WUMA_empty"
 WUMA.ERROR = "WUMA_error"
 
 function WUMA.Initialize()
-	
+
 	include("log.lua")
 	include("datahandler.lua")
 	include("gui.lua")
-	
+
 	WUMADebug("Loading objects")
-	include("wuma/objects/object.lua")	
-	include("wuma/objects/userobject.lua") 
-	include("wuma/objects/access.lua") 
-	include("wuma/objects/stream.lua") 	
-	include("wuma/objects/scope.lua") 	
-	include("wuma/objects/loadout.lua") 	
-	include("wuma/objects/loadout_weapon.lua") 	
-	include("wuma/objects/restriction.lua") 	
-	include("wuma/objects/limit.lua") 	
-	
+	include("wuma/shared/objects.lua")
+	include("wuma/objects/object.lua")
+	include("wuma/objects/userobject.lua")
+	include("wuma/objects/access.lua")
+	include("wuma/objects/stream.lua")
+	include("wuma/objects/scope.lua")
+	include("wuma/objects/loadout.lua")
+	include("wuma/objects/loadout_weapon.lua")
+	include("wuma/objects/restriction.lua")
+	include("wuma/objects/limit.lua")
+
 	--Load shared folder
 	WUMADebug("Loading shared folder")
 	WUMA.IncludeFolder("wuma/shared/")
-	 
+
 	--Load vgui folder
 	WUMADebug("Loading VGUI folder")
 	WUMA.IncludeFolder(WUMA.HomePath.."vgui/")
 
+	--All overides should be loaded after WUMA
+	hook.Call("OnWUMALoaded")
 end
 
 function WUMA.IncludeFolder(dir)
 	dir = dir or ""
 	local files, directories = file.Find(dir.."*", "LUA")
-	
-	for _, file in pairs(files) do	
+
+	for _, file in pairs(files) do
 		WUMADebug(" %s", dir..file)
-		
-		include(dir..file) 
+
+		include(dir..file)
 	end
-	
+
 	for _, directory in pairs(directories) do
 		WUMA.IncludeFolder(dir..directory.."/")
 	end
@@ -65,6 +68,19 @@ end
 
 function WUMA.GetServerTime()
 	return os.time() + (WUMA.ServerSettings["server_time_offset"] or 0)
+end
+
+function WUMA.NotifyTypeRestriction(type)
+	notification.AddLegacy(string.format("%s are restricted!", type), NOTIFY_ERROR, 3)
+end
+
+function WUMA.NotifyRestriction(type, str)
+	notification.AddLegacy(string.format("This %s (%s) is restricted!", type, str), NOTIFY_ERROR, 3)
+end
+
+function WUMA.NotifyLimitHit(str)
+	notification.AddLegacy(string.format("You've hit the %s limit!", str), NOTIFY_ERROR, 3)
+	surface.PlaySound("buttons/button10.wav")
 end
 
 WUMA.Initialize()
