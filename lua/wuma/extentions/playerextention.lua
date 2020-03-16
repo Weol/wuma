@@ -17,10 +17,15 @@ function ENT:CheckLimit(str, id)
 	if not id and ignore[str] then return true end
 
 	if (id and self:HasLimit(id)) then
-		if (not exclude_limits:GetBool() and self:HasLimit(str)) then
-			local limit = self:GetLimit(str)
-			local limithit = limit:Check()
-			if (limithit == false) then return limithit end
+		if not exclude_limits:GetBool() then
+			if self:HasLimit(str) then
+				local limit = self:GetLimit(str)
+				local limithit = limit:Check()
+				if (limithit == false) then return limithit end
+			else
+				local limithit = self.old_CheckLimit(self, str)
+				if (limithit == false) then return limithit end
+			end
 		end
 
 		local limithit =  self:GetLimit(id):Check()

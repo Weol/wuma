@@ -57,8 +57,9 @@ function static:GenerateID(usergroup, str)
 end
 
 function static:GenerateHit(str, ply)
-	ply:SendLua(string.format([[notification.AddLegacy("You've hit the %s limit!", NOTIFY_ERROR, 3)]], str))
-	ply:SendLua([[surface.PlaySound("buttons/button10.wav")]])
+	ply:SendLua(string.format([[
+		 WUMA.NotifyLimitHit("%s")
+	]], str))
 end
 
 function object:__tostring()

@@ -282,7 +282,7 @@ function WUMA.GetTotalLimits(user_id, str)
 end
 
 function WUMA.ChangeTotalLimits(user_id, string, delta)
-	if not WUMA.UserLimitStrings[user_id] and (delta > 0) then
+	if not WUMA.UserLimitStrings[user_id] then
 		WUMA.UserLimitStrings[user_id] = {}
 	end
 
