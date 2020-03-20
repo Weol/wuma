@@ -18,13 +18,7 @@ Restriction.types = {
 	tool = {print="Tool", print2="Tools", search="Search..", items=function() return WUMA.GetTools() end},
 	ragdoll = {print="Ragdoll", print2="Ragdolls", search="Model"},
 	property = {print="Property", print2="Properties", search="Property"},
-<<<<<<< HEAD
-	physgrab = {print="Physgrab", print2="Physgrab", search="Search/Model"},
-=======
->>>>>>> master
 	use = {print="Use", print2="Uses", search="Search..", items=function()
-		local tbl = {}
-		table.Add(table.Add(table.Add(tbl, WUMA.GetEntities()), WUMA.GetVehicles()), WUMA.GetNPCs())
 		return tbl
 	end}
 }

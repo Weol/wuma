@@ -1,122 +1,132 @@
 
-WUMAStream = {}
+local object, static = WUMA.ClassFactory.Builder("WUMAStream")
 
-function static:new(tbl)
-	tbl = tbl or {}
-	local obj = setmetatable({}, object)
+object:AddProperty("name", "Name")
+object:AddProperty("send_function", "SendFunction")
+object:AddProperty("server_put_preprocessor", "ServerPutPreprocessor")
+object:AddProperty("server_delete_preprocessor", "ServerDeletePreprocessor")
+object:AddProperty("client_put_preprocessor", "ClientPutPreprocessor")
+object:AddProperty("client_delete_preprocessor", "ClientDeletePreprocessor")
+object:AddProperty("authentication_callback", "AuthenticationCallback")
+object:AddProperty("data", "Data")
+object:AddProperty("subscribers", "Subscribers")
+object:AddProperty("hooks", "Hooks")
 
-	return obj
-end
-
-function WUMAStream:construct(tbl)
-	tbl = tbl or {}
-	local mt = table.Copy(object)
-	mt.m = {}
-
-	local obj = setmetatable({}, mt)
-
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-
-	obj.name = tbl.name or false
-	obj.send = tbl.send or false
-	obj.server = tbl.server or false
-	obj.client = tbl.client or false
-	obj.auth = tbl.auth or false
-	obj.id = tbl.id or false
-
-	obj._id = WUMAStream._id
-
-	return obj
-end
-
-WUMAStream = {}
-
-local object = {}
-local static = {}
-
-WUMAStream._id = "WUMAStream"
-object._id = "WUMAStream"
-
-function WUMAStream:new(tbl)
-	tbl = tbl or {}
-	local mt = table.Copy(object)
-	mt.m = {}
-
-	local obj = setmetatable({}, mt)
-
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-
-	obj.name = tbl.name or false
-	obj.send = tbl.send or false
-	obj.server = tbl.server or false
-	obj.client = tbl.client or false
-	obj.auth = tbl.auth or false
-	obj.id = tbl.id or false
-
-	obj._id = WUMAStream._id
-
-	return obj
+function object:__construct(tbl)
+	hook.Add("PlayerDisconnected", "WUMAStreamPlayerDisconnected" .. self:GetName(), function(player) self:Unsubscribe(player) end)
 end
 
 function object:__tostring()
-	return self.name
+	return self:GetName()
 end
 
-function object:__call(...)
-	if SERVER then
-		return self.server({...})
+function object:AddHook(id, func)
+	self:GetHooks()[id] = func
+end
+
+function object:RemoveHook(id)
+	self:GetHooks()[id] = nil
+end
+
+function object:RunHook(update_data, delete_data)
+	for func in self:GetHooks() do
+		func(update_data, delete_data)
+	end
+end
+
+function object:Put(key, value)
+	local data = self:GetData()
+	if istable(key) then
+		for k, v in pairs(key) do
+			data[k] = v
+		end
+		self:Send(key, self:GetSubscribers())
 	else
-		return self.client({...})
+		data[k] = v
+		self:Send({k = v}, self:GetSubscribers())
 	end
 end
 
-function object:__eq(that)
-	if istable(that) and that._id and that._id == self._id then
-		return (self:Get() == that:Get())
-	elseif not(tonumber(that) == nil) then
-		return (self:Get() == that)
+function object:Delete(key)
+	local data = self:GetData()
+	if istable(key) then
+		for k in key do
+			data[k] = nil
+		end
+		self:Send(key, self:GetSubscribers(), true)
+	else
+		data[k] = v
+		self:Send({k = v}, self:GetSubscribers(), true)
 	end
-	return false
 end
 
-function object:GetStatic()
-	return WUMAStream
-end
+if SERVER then
+	function object:Send(data, player, delete)
+		if not delete and self:ServerPutPreprocessor() then
+			data = self:ServerPutPreprocessor()(data)
+		elseif delete and self:ServerDeletePreprocessor() then
+			data = self:ServerDeletePreprocessor()(data)
+		end
 
-function object:Send(user, data)
-	if not self.server then return false end
-	local arguments = self.server(user, data)
-	if not self.send then return false end
-	if arguments then
-		self.send(unpack(arguments))
+		local headers = {delete = delete, stream = self:GetName()}
+		for player in players do
+			self:IsAuthorized(player, function(authorized)
+				if authorized then
+					self:GetSendFunction()(player, data, headers)
+				else
+					WUMADebug("%s (%s) is not unauthorized to read from this datastream (%s), unsubscribing player!", player:Nick(), player:SteamID(), self:GetName())
+					self:Unsubscribe(player)
+				end
+			end)
+		end
+	end
+
+	function object:Subscribe(player)
+		self:GetSubscribers()[player:SteamID()] = player
+		self:Send(self:GetData(), {player})
+	end
+
+	function object:Unsubscribe(player)
+		self:GetSubscribers()[player:SteamID()] = nil
+	end
+else
+	function object:Recieve(data_update, headers)
+		if (headers.delete) then
+			if self:GetClientDeletePreprocessor() then
+				data_update = self:GetClientDeletePreprocessor()(data_update)
+			end
+
+			local data = self:GetData()
+			for key in pairs(data_update) do
+				data[key] = nil
+			end
+			self:RunHook({}, data)
+		else
+			if self:GetClientPutPreprocessor() then
+				data_update = self:GetClientPutPreprocessor()(data_update)
+			end
+
+			table.Merge(self:GetData(), data_update)
+			self:RunHook(data, {})
+		end
+	end
+
+	function object:Subscribe()
+
+	end
+
+	function object:Unsubscribe()
+
 	end
 end
 
 function object:IsAuthorized(user, callback)
-	if not self.auth then
+	if not self:GetAuthenticationCallback() then
 		WUMAError("FATAL SECURITY RISK! A NET_STREAM OBJECT HAS NO AUTHORIZATION FUNCTION!")
 		callback(false)
 	else
-		self.auth(user, callback)
+		self:GetAuthenticationCallback(user, callback)
 	end
 end
 
-function object:GetUniqueID()
-	return obj.m._uniqueid or false
-end
-
-AccessorFunc(object, "server", "ServerFunction")
-AccessorFunc(object, "client", "ClientFunction")
-AccessorFunc(object, "auth", "AuthenticationFunction")
-AccessorFunc(object, "name", "Name")
-
-function object:GetOrigin()
-	return self.origin
-end
-
-object.__index = object
-static.__index = static
-
-setmetatable(WUMAStream, static)
-
-WUMA.CreateObject(WUMAStream)
+WUMAStream = WUMA.ClassFactory.Create()

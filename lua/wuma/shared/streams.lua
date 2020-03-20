@@ -17,7 +17,7 @@ function WUMA.GetStream(name)
 end
 
 local Settings = WUMA.RegisterStream{name="settings", send=WUMA.SendInformation}
-Settings:SetServerFunction(function(user, data)
+Settings:SetServerPreprocessor(function(user, data)
 	local metadata = {
 		wuma_server_time=os.time(),
 		wuma_limit_count=table.Count(WUMA.Limits),
@@ -27,57 +27,57 @@ Settings:SetServerFunction(function(user, data)
 
 	return {user, Settings, table.Merge(WUMA.ConVars.Settings, metadata)}
 end)
-Settings:SetClientFunction(function(data)
+Settings:SetClientPreprocessor(function(data)
 	for name, value in pairs(data[1]) do
 		WUMA.ServerSettings[string.sub(name, 6)] = value
 	end
 	hook.Call(WUMA.SETTINGSUPDATE, _, WUMA.ServerSettings)
 	WUMA.ServerSettings["server_time_offset"] = WUMA.ServerSettings["server_time"] - os.time()
 end)
-Settings:SetAuthenticationFunction(WUMA.HasAccess)
+Settings:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Inheritance = WUMA.RegisterStream{name="inheritance", send=WUMA.SendInformation}
-Inheritance:SetServerFunction(function(user, data)
+Inheritance:SetServerPreprocessor(function(user, data)
 	return {user, Inheritance, WUMA.GetAllInheritances()}
 end)
-Inheritance:SetClientFunction(function(data)
+Inheritance:SetClientPreprocessor(function(data)
 	WUMA.Inheritance = data[1]
 	hook.Call(WUMA.INHERITANCEUPDATE, _, data[1])
 end)
-Inheritance:SetAuthenticationFunction(WUMA.HasAccess)
+Inheritance:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Subscription = WUMA.RegisterStream{name="subscription", send=WUMA.SendInformation}
-Subscription:SetServerFunction(function(user, data)
+Subscription:SetServerPreprocessor(function(user, data)
 	if (data[2]) then
 		WUMA.RemoveDataSubscription(user, data[1], data[3])
 	else
 		WUMA.AddDataSubscription(user, data[1], data[3])
 	end
 end)
-Subscription:SetAuthenticationFunction(WUMA.HasAccess)
+Subscription:SetAuthenticationCallback(WUMA.HasAccess)
 
 local CVarLimits = WUMA.RegisterStream{name="cvarlimits", send=WUMA.SendInformation}
-CVarLimits:SetServerFunction(function(user, data)
+CVarLimits:SetServerPreprocessor(function(user, data)
 	return {user, CVarLimits, WUMA.ConVars.Limits}
 end)
-CVarLimits:SetClientFunction(function(data)
+CVarLimits:SetClientPreprocessor(function(data)
 	WUMA.CVarLimits = data[1]
 	hook.Call(WUMA.CVARLIMITSUPDATE)
 end)
-CVarLimits:SetAuthenticationFunction(WUMA.HasAccess)
+CVarLimits:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Groups = WUMA.RegisterStream{name="groups", send=WUMA.SendInformation}
-Groups:SetServerFunction(function(user, data)
+Groups:SetServerPreprocessor(function(user, data)
 	return {user, Groups, WUMA.GetUserGroups()}
 end)
-Groups:SetClientFunction(function(data)
+Groups:SetClientPreprocessor(function(data)
 	WUMA.ServerGroups = data[1]
 	hook.Call(WUMA.USERGROUPSUPDATE)
 end)
-Groups:SetAuthenticationFunction(WUMA.HasAccess)
+Groups:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Users = WUMA.RegisterStream{name="users", send=WUMA.SendInformation, auto_update=true}
-Users:SetServerFunction(function(user, data)
+Users:SetServerPreprocessor(function(user, data)
 	local users = {}
 	for _, ply in pairs(player.GetAll()) do
 		local id = ply:SteamID()
@@ -91,7 +91,7 @@ Users:SetServerFunction(function(user, data)
 	end
 	return {user, Users, users}
 end)
-Users:SetClientFunction(function(data)
+Users:SetClientPreprocessor(function(data)
 	local players = {}
 	for _, v in pairs(data[1]) do
 		players[v.steamid] = v
@@ -110,24 +110,24 @@ Users:SetClientFunction(function(data)
 
 	hook.Call(WUMA.SERVERUSERSUPDATE)
 end)
-Users:SetAuthenticationFunction(WUMA.HasAccess)
+Users:SetAuthenticationCallback(WUMA.HasAccess)
 
 local User = WUMA.RegisterStream{name="user", send=WUMA.SendInformation}
-User:SetServerFunction(function(user, data)
+User:SetServerPreprocessor(function(user, data)
 	return {user, User, WUMA.GetUserData(data[1])}
 end)
-User:SetClientFunction(function(data)
+User:SetClientPreprocessor(function(data)
 	if not data.steamid then return end
 	WUMA.UserData[data.steamid] = data
 	hook.Call(WUMA.USERDATAUPDATE, data.steamid)
 end)
-User:SetAuthenticationFunction(WUMA.HasAccess)
+User:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Lookup = WUMA.RegisterStream{name="lookup", send=WUMA.SendInformation}
-Lookup:SetServerFunction(function(user, data)
+Lookup:SetServerPreprocessor(function(user, data)
 	return {user, Lookup, WUMA.Lookup(data[1]) or {}}
 end)
-Lookup:SetClientFunction(function(data)
+Lookup:SetClientPreprocessor(function(data)
 	local tbl = {}
 	for i=1, table.Count(data[1]) do
 		WUMA.LookupUsers[data[1][i].steamid] = data[1][i]
@@ -135,30 +135,30 @@ Lookup:SetClientFunction(function(data)
 	end
 	hook.Call(WUMA.LOOKUPUSERSUPDATE, _, tbl)
 end)
-Lookup:SetAuthenticationFunction(WUMA.HasAccess)
+Lookup:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Maps = WUMA.RegisterStream{name="maps", send=WUMA.SendInformation}
-Maps:SetServerFunction(function(user, data)
+Maps:SetServerPreprocessor(function(user, data)
 	local maps = {file.Find("maps/*.bsp", "GAME")}
 	return {user, Maps, maps[1]}
 end)
-Maps:SetClientFunction(function(data)
+Maps:SetClientPreprocessor(function(data)
 	WUMA.Maps = data[1]
 	hook.Call(WUMA.MAPSUPDATE)
 end)
-Maps:SetAuthenticationFunction(WUMA.HasAccess)
+Maps:SetAuthenticationCallback(WUMA.HasAccess)
 
 local WhoIs = WUMA.RegisterStream{name="whois", send=WUMA.SendInformation}
-WhoIs:SetServerFunction(function(user, data)
+WhoIs:SetServerPreprocessor(function(user, data)
 	return {user, Maps, WUMA.Lookup(data[1])}
 end)
-WhoIs:SetClientFunction(function(data)
+WhoIs:SetClientPreprocessor(function(data)
 	WUMA.LookupUsers[data.steamid] = data.nick
 end)
-WhoIs:SetAuthenticationFunction(WUMA.HasAccess)
+WhoIs:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Restrictions = WUMA.RegisterStream{name="restrictions", send=WUMA.SendCompressedData}
-Restrictions:SetServerFunction(function(user, data)
+Restrictions:SetServerPreprocessor(function(user, data)
 	if data[1] then
 		if WUMA.CheckUserFileExists(data[1], Restriction) then
 			local tbl = WUMA.GetSavedRestrictions(data[1])
@@ -179,12 +179,12 @@ Restrictions:SetServerFunction(function(user, data)
 		end
 	end
 end)
-Restrictions:SetAuthenticationFunction(function(user, callback)
+Restrictions:SetAuthenticationCallback(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
 local Limits = WUMA.RegisterStream{name="limits", send=WUMA.SendCompressedData}
-Limits:SetServerFunction(function(user, data)
+Limits:SetServerPreprocessor(function(user, data)
 	if data[1] then
 		if WUMA.CheckUserFileExists(data[1], Limit) then
 			local tbl = WUMA.GetSavedLimits(data[1])
@@ -205,12 +205,12 @@ Limits:SetServerFunction(function(user, data)
 		end
 	end
 end)
-Limits:SetAuthenticationFunction(function(user, callback)
+Limits:SetAuthenticationCallback(function(user, callback)
 	WUMA.HasAccess(user, callback)
 end)
 
 local Loadouts = WUMA.RegisterStream{name="loadouts", send=WUMA.SendCompressedData}
-Loadouts:SetServerFunction(function(user, data)
+Loadouts:SetServerPreprocessor(function(user, data)
 	if data[1] then
 		if WUMA.CheckUserFileExists(data[1], Loadout) then
 			local tbl = WUMA.GetSavedLoadouts(data[1])
@@ -231,10 +231,10 @@ Loadouts:SetServerFunction(function(user, data)
 		end
 	end
 end)
-Loadouts:SetAuthenticationFunction(WUMA.HasAccess)
+Loadouts:SetAuthenticationCallback(WUMA.HasAccess)
 
 local Personal = WUMA.RegisterStream{name="personal", send=WUMA.SendCompressedData}
-Personal:SetServerFunction(function(user, data)
+Personal:SetServerPreprocessor(function(user, data)
 	if (data[1] == "subscribe") then
 		WUMA.AddDataSubscription(user, user:SteamID(), Loadout:GetID())
 
@@ -278,15 +278,15 @@ Personal:SetServerFunction(function(user, data)
 		end
 	end
 end)
-Personal:SetAuthenticationFunction(function(user, callback)
+Personal:SetAuthenticationCallback(function(user, callback)
 	WUMA.HasAccess(user, callback, "wuma personalloadout")
 end)
 
 local RestrictionItems = WUMA.RegisterStream{name="restrictionitems", send=WUMA.SendInformation}
-RestrictionItems:SetServerFunction(function(user, data)
+RestrictionItems:SetServerPreprocessor(function(user, data)
 	return {user, RestrictionItems, WUMA.GetAdditionalEntities()}
 end)
-RestrictionItems:SetClientFunction(function(data)
+RestrictionItems:SetClientPreprocessor(function(data)
 	WUMA.AdditionalEntities = data[1]
 end)
-RestrictionItems:SetAuthenticationFunction(WUMA.HasAccess)
+RestrictionItems:SetAuthenticationCallback(WUMA.HasAccess)

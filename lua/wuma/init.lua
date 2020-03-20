@@ -41,7 +41,7 @@ function WUMA.Initialize()
 	--Include core
 	include(WUMA.HomeDirectory.."sql.lua")
 	include(WUMA.HomeDirectory.."util.lua")
-	include(WUMA.HomeDirectory.."functions.lua")
+	include(WUMA.HomeDirectory.."commands.lua")
 	include(WUMA.HomeDirectory.."datahandler.lua")
 	include(WUMA.HomeDirectory.."users.lua")
 	include(WUMA.HomeDirectory.."limits.lua")

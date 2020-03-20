@@ -1,20 +1,91 @@
 
 WUMA = WUMA or {}
+
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
-WUMA.NET = WUMA.NET or {}
-WUMA.NET.INTSIZE = 5
+WUMA.Actions = WUMA.Actions or {}
+WUMA.ActionRegister = WUMA.ActionRegister or {}
+
+function WUMA.RegisterAction(tbl)
+	local action = WUMAAction:new(tbl)
+	WUMA.Actions[stream:GetName()] = stream
+	return action
+end
+
+function WUMA.GetAction(name)
+	return WUMA.Actions[name]
+end
+
+if SERVER then
+	util.AddNetworkString("WUMADataStream")
+	local function recieve_data(len, player)
+		local name = net.ReadString()
+		local data = net.ReadTable()
+		local unique_id = net.ReadTable()
+
+		local action = WUMA.GetAction(name)
+		action:Recieve(player, data, function(player, name, response)
+			net.Start("WUMADataStream")
+				net.WriteString(name)
+				net.WriteTable(response or {})
+				net.WriteInt(unique_id)
+				net.WriteBool(not not not response) --True if response is not false or nil, otherwise its false
+			net.Send(player)
+		end)
+	end
+	net.Receive("WUMADataStream", recieve_data)
+else
+	local awaiting_response = {}
+	local action_unique_ids = 0
+	local function send_data(name, data, success_function, failure_function)
+		assert(name)
+		assert(data)
+		assert(istable(data))
+
+		action_unique_ids = action_unique_ids + 1
+
+		if success_function or failure_function then
+			awaiting_response[action_unique_ids] = {success = success_function, failure = failure_function}
+		end
+
+		net.Start("WUMADataStream")
+			net.WriteString(name)
+			net.WriteTable(data)
+			net.WriteInt(action_unique_ids)
+		net.SendToServer()
+	end
+
+	local function recieve_data(name, data)
+		local name = net.ReadString()
+		local data = net.ReadTable()
+		local unique_id = net.ReadInt()
+		local failed = net.ReadBool()
+
+		if awaiting_response[unique_id] then
+			awaiting_response[unique_id][success]
+		end
+	end
+	net.Receive("WUMADataStream", recieve_data)
+end
+
+
+
+local function subscriptions(player, name, unsubscribe)
+
+end
+WUMA.Actions.Subscribe = WUMA.RegisterAction{name = "subscribe", send_function = send_data, authentication_callback = WUMA.HasAccess}
+WUMA.Actions.Subscribe:SetServerProcessor(subscribe)
 
 if SERVER then
 
-	WUMA.NET.MAX_SIZE = WUMA.CreateConVar("wuma_net_send_size", 32, FCVAR_ARCHIVE, "How much data is sent from the server simultaneously (in kb). Cannot be over 60kb.")
-	cvars.AddChangeCallback(WUMA.NET.MAX_SIZE:GetName(), function(convar, old, new)
-		if (tonumber(new) > 60) then WUMA.NET.MAX_SIZE:SetInt(60) end
-		if (tonumber(new) < 1) then WUMA.NET.MAX_SIZE:SetInt(1) end
+	local send_max_size = WUMA.CreateConVar("wuma_net_send_size", 32, FCVAR_ARCHIVE, "How much data is sent from the server simultaneously (in kb). Cannot be over 60kb.")
+	cvars.AddChangeCallback(send_max_size:GetName(), function(convar, old, new)
+		if (tonumber(new) > 60) then send_max_size:SetInt(60) end
+		if (tonumber(new) < 1) then send_max_size:SetInt(1) end
 	end)
 
-	WUMA.NET.INTERVAL = WUMA.CreateConVar("wuma_net_send_interval", "0.2", FCVAR_ARCHIVE, "How fast data is sent from the server (Time in seconds between chunks).")
+	local send_interval = WUMA.CreateConVar("wuma_net_send_interval", "0.2", FCVAR_ARCHIVE, "How fast data is sent from the server (Time in seconds between chunks).")
 
 	util.AddNetworkString("WUMACompressedDataStream")
 	local function doSendData(users, data, id, await, index)
@@ -35,7 +106,7 @@ if SERVER then
 	WUMA.DataQueue = {}
 	function WUMA.QueueData(user, data, id, await)
 		if not (timer.Exists("WUMAPopDataQueue")) then
-			timer.Create("WUMAPopDataQueue", WUMA.NET.INTERVAL:GetFloat(), 0, WUMA.PopDataQueue)
+			timer.Create("WUMAPopDataQueue", send_interval:GetFloat(), 0, WUMA.PopDataQueue)
 		end
 
 		table.insert(WUMA.DataQueue, {user=user, data=data, id=id, await=await})
@@ -58,7 +129,7 @@ if SERVER then
 
 		if not data then return end
 
-		local max_size = WUMA.NET.MAX_SIZE:GetInt()
+		local send_max_size = send_max_size:GetInt()
 		local queuedata = WUMA.QueueData
 		local compress = util.Compress
 		local tojson = util.TableToJSON
@@ -68,8 +139,8 @@ if SERVER then
 		end
 		local data_len = string.len(data)
 
-		max_size = math.Clamp(max_size, 1, 60) --Clamp size to 60kb, leaving 2kb free for overhead.
-		local mx = math.ceil(max_size*1000)
+		send_max_size = math.Clamp(send_max_size, 1, 60) --Clamp size to 60kb, leaving 2kb free for overhead.
+		local mx = math.ceil(send_max_size*1000)
 
 		if (data_len > mx) then
 			for i = 0, data_len, mx + 1 do
