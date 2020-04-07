@@ -21,12 +21,12 @@ function WUMA.AssignUserRegulations(user)
 	WUMA.AssignUserLoadout(user)
 end
 
-function WUMA.AssignRestrictions(user, usergroup)	
+function WUMA.AssignRestrictions(user, usergroup)
 	WUMA.AssignUsergroupRestrictions(user, usergroup)
 	WUMA.AssignUserRestrictions(user)
 end
 
-function WUMA.AssignUsergroupRestrictions(user, usergroup)	
+function WUMA.AssignUsergroupRestrictions(user, usergroup)
 	local usergroup = usergroup or user:GetUserGroup()
 	local restrictions = WUMA.UsergroupRestrictions[usergroup] or {}
 
@@ -40,7 +40,7 @@ function WUMA.AssignUsergroupRestrictions(user, usergroup)
 	if WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup) then
 		WUMA.AssignUsergroupRestrictions(user, WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup))
 	end
-end 
+end
 
 function WUMA.AssignUserRestrictions(user)
 	if WUMA.CheckUserFileExists(user, Restriction) then
@@ -56,7 +56,7 @@ function WUMA.AssignLimits(user, usergroup)
 	if cache then
 		user:SetLimitCache(cache)
 	end
-	
+
 	WUMA.AssignUsergroupLimits(user, usergroup)
 	WUMA.AssignUserLimits(user)
 end
@@ -74,7 +74,7 @@ function WUMA.AssignUsergroupLimits(user, usergroup)
 			user:AddLimit(object:Clone())
 		end
 	end
-	
+
 	if WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup) then
 		WUMA.AssignUsergroupLimits(user, WUMA.GetUsergroupAncestor(Limit:GetID(), usergroup))
 	end
@@ -98,7 +98,7 @@ function WUMA.AssignUsergroupLoadout(user, usergroup)
 	local usergroup = usergroup or user:GetUserGroup()
 
 	if not(WUMA.Loadouts[usergroup]) then return end
-	
+
 	local loadout = WUMA.Loadouts[usergroup]:Clone()
 
 	user:SetLoadout(loadout)
@@ -122,31 +122,31 @@ end
 
 function WUMA.GetUserData(user, typ)
 	if not isstring(user) then user = user:SteamID() end
-	
+
 	if not WUMA.IsSteamID(user) then return false end
 
 	local restrictions = false
 	local limits = false
 	local loadout = false
-	
+
 	if typ then
 		if (typ == Restriction:GetID() and WUMA.CheckUserFileExists(user, Restriction)) then
 			return WUMA.ReadUserRestrictions(user)
-		elseif (typ == Limit:GetID() and WUMA.CheckUserFileExists(user, Limit)) then 
+		elseif (typ == Limit:GetID() and WUMA.CheckUserFileExists(user, Limit)) then
 			return WUMA.ReadUserLimits(user)
-		elseif (typ == Loadout:GetID() and WUMA.CheckUserFileExists(user, Loadout)) then 
+		elseif (typ == Loadout:GetID() and WUMA.CheckUserFileExists(user, Loadout)) then
 			return WUMA.ReadUserLoadout(user)
 		else
 			return false
 		end
 	end
-	
+
 	if WUMA.CheckUserFileExists(user, Restriction) then restrictions = WUMA.ReadUserRestrictions(user) end
 	if WUMA.CheckUserFileExists(user, Limit) then limits = WUMA.ReadUserLimits(user) end
 	if WUMA.CheckUserFileExists(user, Loadout) then loadout = WUMA.ReadUserLoadout(user) end
 
 	if not restrictions and not limits and not loadout then return false end
-		
+
 	return {
 		steamid = user,
 		restrictions = restrictions,
@@ -156,19 +156,19 @@ function WUMA.GetUserData(user, typ)
 end
 
 function WUMA.GetUsers(group)
-	if not group then 
+	if not group then
 		local tbl = {}
-		for _, ply in pairs(player.GetAll()) do 
+		for _, ply in pairs(player.GetAll()) do
 			tbl[ply:SteamID()] = ply
 		end
 		return tbl
-	end	
+	end
 
 	--Check for normal usergroup
 	if isstring(group) then
 		local tbl = {}
-		for _, ply in pairs(player.GetAll()) do 
-			if (ply:GetUserGroup() == group) then 
+		for _, ply in pairs(player.GetAll()) do
+			if (ply:GetUserGroup() == group) then
 				tbl[ply:SteamID()] = ply
 			end
 		end
@@ -216,31 +216,31 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.ShowWUMAMenu(ply, cmd, args)
-	WUMA.HasAccess(ply, function(bool) 
+	WUMA.HasAccess(ply, function(bool)
 		if bool then
 			ply:SendLua([[WUMA.GUI.Toggle()]])
 		else
 			ply:ChatPrint("You do not have access to this command")
 		end
-	end)	
+	end)
 end
 concommand.Add( "wuma_menu", WUMA.ShowWUMAMenu)
 
 function WUMA.ShowPersonalLoadout(ply, cmd, args)
-	WUMA.HasAccess(ply, function(bool) 
+	WUMA.HasAccess(ply, function(bool)
 		if bool then
 			ply:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
 		else
 			ply:ChatPrint("You do not have access to this command")
 		end
-	end, "wuma personalloadout")	
+	end, "wuma personalloadout")
 end
 concommand.Add("wuma_loadout", WUMA.ShowPersonalLoadout)
 
 function WUMA.UserChatCommand(user, text, public)
-	if (text == WUMA.PersonalLoadoutCommand:GetString()) then 
+	if (text == WUMA.PersonalLoadoutCommand:GetString()) then
 		user:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
-		return "" 
+		return ""
 	end
 end
 hook.Add("PlayerSay", "WUMAChatCommand", WUMA.UserChatCommand)
@@ -259,7 +259,7 @@ end
 hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", WUMA.UserDisconnect)
 
 function WUMA.PlayerLoadout(user)
-	if not user.InitalLoadoutCheck then 
+	if not user.InitalLoadoutCheck then
 		WUMA.AssignLoadout(user)
 		user.InitalLoadoutCheck = true
 	end
@@ -268,10 +268,11 @@ end
 hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
-	WUMA.InitializeUser(user) 
-	timer.Simple(1, function() 
+	WUMA.InitializeUser(user)
+	timer.Simple(1, function()
 		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)
 	end)
+	WUMA.RefreshLoadout(user, user:GetUserGroup())
 end
 hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", WUMA.PlayerInitialSpawn)
 
