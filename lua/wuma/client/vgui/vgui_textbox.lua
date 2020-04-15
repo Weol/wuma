@@ -76,7 +76,7 @@ function PANEL:OnLoseFocus()
 	end
 	
 	self:UpdateConvarValue()
-	hook.Call("OnTextEntryLoseFocus", _, self)
+	hook.Call("OnTextEntryLoseFocus", nil, self)
 	self:FocusLost()
 	
 end
