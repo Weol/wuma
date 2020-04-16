@@ -15,7 +15,7 @@ function WUMA.LoadRestrictions()
 		WUMA.Restrictions[id] = restriction
 		
 		if not WUMA.UsergroupRestrictions[usergroup] then WUMA.UsergroupRestrictions[usergroup] = {} end
-		WUMA.UsergroupRestrictions[usergroup][id] = 1 --Its really the key we are saving
+		WUMA.UsergroupRestrictions[usergroup][id] = true --Its really the key we are saving
 	end
 end
 
@@ -86,7 +86,7 @@ function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 	WUMA.Restrictions[restriction:GetID()] = restriction
 	
 	if not WUMA.UsergroupRestrictions[restriction:GetUserGroup()] then WUMA.UsergroupRestrictions[restriction:GetUserGroup()] = {} end
-	WUMA.UsergroupRestrictions[restriction:GetUserGroup()][restriction:GetID()] = 1
+	WUMA.UsergroupRestrictions[restriction:GetUserGroup()][restriction:GetID()] = true
 	
 	local affected = WUMA.UpdateUsergroup(usergroup, function(ply)
 		ply:AddRestriction(restriction:Clone())
