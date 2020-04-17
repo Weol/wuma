@@ -18,7 +18,7 @@ function WUMA.LoadLimits()
 		WUMA.Limits[id] = limit
 
 		if not WUMA.UsergroupLimits[usergroup] then WUMA.UsergroupLimits[usergroup] = {} end
-		WUMA.UsergroupLimits[usergroup][id] = 1 --Its really the key we are saving
+		WUMA.UsergroupLimits[usergroup][id] = true --Its really the key we are saving
 	end
 end
 
@@ -93,7 +93,7 @@ function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 	WUMA.Limits[limit:GetID()] = limit
 
 	if not WUMA.UsergroupLimits[usergroup] then WUMA.UsergroupLimits[usergroup] = {} end
-	WUMA.UsergroupLimits[usergroup][limit:GetID()] = 1
+	WUMA.UsergroupLimits[usergroup][limit:GetID()] = true
 
 	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
 		user:AddLimit(limit:Clone())
