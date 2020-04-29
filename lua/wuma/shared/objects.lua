@@ -9,22 +9,32 @@ end
 
 local factory = {}
 
-function factory:AddProperty(name, default, accessor, setter_function, getter_function)
-	setter_function = setter_function or function(self, value) self[name] = value end
-	getter_function = getter_function or function(self) return self[name] end
+function factory:AddProperty(name, accessor, default, setter_function, getter_function)
+	if setter_function != false then
+		setter_function = function(self, value) self[name] = value end
+		builder.metatable["Set" .. accessor] = setter_function
+	end
 
-	self.properties[name] = function(self) setter_function(self, default) end
-	builder.metatable["Set" .. accessor] = setter_function
-	builder.metatable["Get" .. accessor] = getter_function
+	if getter_function != false then
+		getter_function = function(self) return self[name] end
+		builder.metatable["Get" .. accessor] = getter_function
+	end
+
+	self.properties[name] = default
 end
 
-function factory:AddMetaData(name, default, accessor, setter_function, getter_function)
-	setter_function = setter_function or function(self, value) self[name] = value end
-	getter_function = getter_function or function(self) return self[name] end
+function factory:AddMetaData(name, accessor, default, setter_function, getter_function)
+	if setter_function != false then
+		setter_function = function(self, value) self[name] = value end
+		builder.metatable["Set" .. accessor] = setter_function
+	end
 
-	self.metadata[name] = function(self) setter_function(self, default) end
-	builder.metatable["Set" .. accessor] = setter_function
-	builder.metatable["Get" .. accessor] = getter_function
+	if getter_function != false then
+		getter_function = function(self) return self[name] end
+		builder.metatable["Get" .. accessor] = getter_function
+	end
+
+	self.metadata[name] = default
 end
 
 factory.__index = factory
@@ -53,21 +63,23 @@ WUMA.ClassFactory.Create(builder)
 
 	static_functions._id = builder.metatable._id
 
-	static_functions.new = function(self, tbl)
-		tbl = tbl or {}
+	static_functions.New = function(self, args)
+		args = args or {}
 		local obj = setmetatable({}, metatable)
 
 		for k, v in pairs(builder.properties) do
-			obj[k] = tbl[k] or v(obj)
+			obj[k] = args[k] or v
 		end
 
 		for k, v in pairs(builder.metadata) do
-			obj[k] = tbl[k] or v(obj)
+			obj[k] = args[k] or v
 		end
 
 		obj._uniqueid = generateUniqueId()
 
-		if builder.__construct then builder.__construct(obj, tbl) end
+		if builder.__construct then builder.__construct(obj, args) end
+
+		return obj
 	end
 
 	metatable.GetStatic = function(self) return static_functions end
@@ -89,7 +101,6 @@ WUMA.ClassFactory.Create(builder)
 	metatable.GetUniqueID = function(self)
 		return self._uniqueid
 	end
-	static_functions = metatable.GetUniqueID
 
 	return static_functions
 end

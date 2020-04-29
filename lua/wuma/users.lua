@@ -194,14 +194,6 @@ function WUMA.HasAccess(user, callback, access)
 	CAMI.PlayerHasAccess(user, access or WUMA.WUMAGUI, callback)
 end
 
-function WUMA.UserToTable(user)
-	if istable(user) then
-		return user
-	else
-		return {user}
-	end
-end
-
 function WUMA.IsSteamID(steamid)
 	if not isstring(steamid) then return false end
 	return (steamid == string.match(steamid, [[STEAM_%d:%d:%d*]]))
@@ -216,7 +208,7 @@ function WUMA.GetUserGroups()
 end
 
 function WUMA.ShowWUMAMenu(ply, cmd, args)
-	WUMA.HasAccess(ply, function(bool)
+	WUMA.HasAccess(ply, "wuma gui", function(bool)
 		if bool then
 			ply:SendLua([[WUMA.GUI.Toggle()]])
 		else
@@ -227,13 +219,13 @@ end
 concommand.Add( "wuma_menu", WUMA.ShowWUMAMenu)
 
 function WUMA.ShowPersonalLoadout(ply, cmd, args)
-	WUMA.HasAccess(ply, function(bool)
+	WUMA.HasAccess(ply, "wuma personalloadout", function(bool)
 		if bool then
 			ply:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
 		else
 			ply:ChatPrint("You do not have access to this command")
 		end
-	end, "wuma personalloadout")
+	end)
 end
 concommand.Add("wuma_loadout", WUMA.ShowPersonalLoadout)
 

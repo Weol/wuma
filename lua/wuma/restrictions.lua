@@ -13,7 +13,7 @@ function WUMA.LoadRestrictions()
 		local id = restriction:GetID()
 		local usergroup = restriction:GetUserGroup()
 		WUMA.Restrictions[id] = restriction
-		
+
 		if not WUMA.UsergroupRestrictions[usergroup] then WUMA.UsergroupRestrictions[usergroup] = {} end
 		WUMA.UsergroupRestrictions[usergroup][id] = 1 --Its really the key we are saving
 	end
@@ -21,12 +21,12 @@ end
 
 function WUMA.GetSavedRestrictions(user)
 	local tbl = {}
-	
+
 	if (user) then
 		tbl = WUMA.ReadUserRestrictions(user)
 	else
-		saved =util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")) or {} 
-		
+		saved =util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")) or {}
+
 		for key, obj in pairs(saved) do
 			if istable(obj) then
 				tbl[key] = Restriction:new(obj)
@@ -41,14 +41,14 @@ function WUMA.ReadUserRestrictions(user)
 	if not isstring(user) then user = user:SteamID() end
 
 	local tbl = {}
-	
+
 	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user, Restriction))) or {}
-		
+
 	for key, obj in pairs(saved) do
 		obj.parent = user
 		tbl[key] = Restriction:new(obj)
-	end 
-	
+	end
+
 	return tbl
 end
 
@@ -62,7 +62,7 @@ function WUMA.GetRestrictions(user)
 	end
 end
 
-function WUMA.RestrictionsExist() 
+function WUMA.RestrictionsExist()
 	if (table.Count(WUMA.Restrictions) > 0) then return true end
 end
 
@@ -71,7 +71,7 @@ function WUMA.HasRestriction(usergroup, type, item)
 		if WUMA.GetSavedRestrictions()[Restriction:GenerateID(type, usergroup, item)] then return true end
 	else
 		if WUMA.GetSavedRestrictions()[usergroup:GetID()] then return true end
-	end 
+	end
 	return false
 end
 
@@ -82,12 +82,12 @@ function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 	end
 
 	local restriction = Restriction:new({type=type, string=item, usergroup=usergroup, allow=anti, scope=scope})
-	
+
 	WUMA.Restrictions[restriction:GetID()] = restriction
-	
+
 	if not WUMA.UsergroupRestrictions[restriction:GetUserGroup()] then WUMA.UsergroupRestrictions[restriction:GetUserGroup()] = {} end
 	WUMA.UsergroupRestrictions[restriction:GetUserGroup()][restriction:GetID()] = 1
-	
+
 	local affected = WUMA.UpdateUsergroup(usergroup, function(ply)
 		ply:AddRestriction(restriction:Clone())
 	end)
@@ -104,12 +104,12 @@ function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 		end
 	end
 	recursive(usergroup)
-	
+
 	WUMA.AddClientUpdate(Restriction, function(tbl)
 		tbl[restriction:GetID()] = restriction:GetBarebones()
 		return tbl
 	end)
-	
+
 	WUMA.ScheduleDataUpdate(Restriction:GetID(), function(tbl)
 		tbl[restriction:GetID()] = restriction:GetBarebones()
 		return tbl
@@ -118,7 +118,7 @@ function WUMA.AddRestriction(caller, usergroup, type, item, anti, scope)
 	WUMA.InvalidateCache(Restriction:GetID())
 
 	return affected
-	
+
 end
 
 function WUMA.RemoveRestriction(caller, usergroup, type, item)
@@ -133,15 +133,15 @@ function WUMA.RemoveRestriction(caller, usergroup, type, item)
 	local id = Restriction:GenerateID(type, usergroup, item)
 
 	if not WUMA.Restrictions[id] then return end
- 
+
 	WUMA.Restrictions[id]:Delete()
 	WUMA.Restrictions[id] = nil
-	
+
 	if WUMA.UsergroupRestrictions[usergroup] then
 		WUMA.UsergroupRestrictions[usergroup][id] = nil
 		if (table.Count(WUMA.UsergroupRestrictions[usergroup]) < 1) then WUMA.UsergroupRestrictions[usergroup] = nil end
 	end
-	
+
 	local restriction
 	local ancestor = WUMA.GetUsergroupAncestor(Restriction:GetID(), usergroup)
 	while ancestor do
@@ -151,12 +151,12 @@ function WUMA.RemoveRestriction(caller, usergroup, type, item)
 		end
 		ancestor = WUMA.GetUsergroupAncestor(Restriction:GetID(), ancestor)
 	end
-	
+
 	local affected = WUMA.UpdateUsergroup(usergroup, function(ply)
 		ply:RemoveRestriction(Restriction:GenerateID(type, _, item))
 		if restriction then ply:AddRestriction(restriction) end
 	end)
-	
+
 	local function recursive(group)
 		local heirs = WUMA.GetUsergroupHeirs(Restriction:GetID(), group)
 		for k, heir in pairs(heirs) do
@@ -172,15 +172,15 @@ function WUMA.RemoveRestriction(caller, usergroup, type, item)
 		end
 	end
 	recursive(usergroup)
-	
+
 	WUMA.AddClientUpdate(Restriction, function(tbl)
 		tbl[Restriction:GenerateID(type, usergroup, item)] = WUMA.DELETE
 		return tbl
 	end)
-	
+
 	WUMA.ScheduleDataUpdate(Restriction:GetID(), function(tbl)
 		tbl[Restriction:GenerateID(type, usergroup, item)] = nil
-		
+
 		return tbl
 	end)
 
@@ -195,33 +195,33 @@ function WUMA.AddUserRestriction(caller, user, type, item, anti, scope)
 	end
 
 	local restriction = Restriction:new({type=type, string=item, allow=anti, scope=scope})
-	
+
 	local affected = {}
 
 	if isentity(user) then
 		user:AddRestriction(restriction)
-		
+
 		affected = {user}
 		user = user:SteamID()
 	end
-		
+
 	WUMA.AddClientUpdate(Restriction, function(tbl)
 		tbl[restriction:GetID()] = restriction
-		
+
 		return tbl
-	end, user)	
-	
+	end, user)
+
 	WUMA.ScheduleUserDataUpdate(user, Restriction:GetID(), function(tbl)
 		tbl[restriction:GetID()] = restriction
-		
+
 		return tbl
 	end)
-	
+
 	return affected
 end
 
 function WUMA.RemoveUserRestriction(caller, user, type, item)
-	
+
 	if (type == "prop" or type == "effect" or type == "ragdoll") and isstring(item) then
 		local id = Restriction:GenerateID(type, usergroup, item)
 		if not WUMA.Restrictions[id] then
@@ -230,26 +230,26 @@ function WUMA.RemoveUserRestriction(caller, user, type, item)
 	end
 
 	local id = Restriction:GenerateID(type, _, item)
-	
+
 	local affected = {}
 
 	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
 	if isentity(user) then
 		user:RemoveRestriction(id, true)
-		
+
 		affected = {user}
 		user = user:SteamID()
 	end
-	
+
 	WUMA.AddClientUpdate(Restriction, function(tbl)
 		tbl[id] = WUMA.DELETE
-		
+
 		return tbl
 	end, user)
-	
+
 	WUMA.ScheduleUserDataUpdate(user, Restriction:GetID(), function(tbl)
 		tbl[id] = nil
-		
+
 		return tbl
 	end)
 
@@ -258,10 +258,9 @@ end
 
 function WUMA.RefreshGroupRestrictions(user, usergroup)
 	user:SetRestrictions({})
-	
+
 	WUMA.AssignRestrictions(user, usergroup)
 end
 
 WUMA.RegisterDataID(Restriction:GetID(), "restrictions.txt", WUMA.GetSavedRestrictions, WUMA.isTableEmpty)
 WUMA.RegisterUserDataID(Restriction:GetID(), "restrictions.txt", WUMA.GetSavedRestrictions, WUMA.isTableEmpty)
-

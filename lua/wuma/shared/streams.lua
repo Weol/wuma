@@ -180,7 +180,7 @@ Restrictions:SetServerPreprocessor(function(user, data)
 	end
 end)
 Restrictions:SetAuthenticationCallback(function(user, callback)
-	WUMA.HasAccess(user, callback)
+	WUMA.HasAccess(user, "wuma gui", callback)
 end)
 
 local Limits = WUMA.RegisterStream{name="limits", send=WUMA.SendCompressedData}
@@ -206,7 +206,7 @@ Limits:SetServerPreprocessor(function(user, data)
 	end
 end)
 Limits:SetAuthenticationCallback(function(user, callback)
-	WUMA.HasAccess(user, callback)
+	WUMA.HasAccess(user, "wuma gui", callback)
 end)
 
 local Loadouts = WUMA.RegisterStream{name="loadouts", send=WUMA.SendCompressedData}
@@ -279,7 +279,7 @@ Personal:SetServerPreprocessor(function(user, data)
 	end
 end)
 Personal:SetAuthenticationCallback(function(user, callback)
-	WUMA.HasAccess(user, callback, "wuma personalloadout")
+	WUMA.HasAccess(user, "wuma personalloadout", callback)
 end)
 
 local RestrictionItems = WUMA.RegisterStream{name="restrictionitems", send=WUMA.SendInformation}
