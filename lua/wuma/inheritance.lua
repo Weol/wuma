@@ -8,8 +8,8 @@ WUMA.Inheritance = WUMA.Inheritance or {}
 
 function WUMA.GetSavedInheritance()
 	local inheritance = {}
-	if WUMA.Files.Exists(WUMA.DataDirectory.."inheritance.txt") then
-		inheritance = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."inheritance.txt")) or {}
+	if WUMA.Files.Exists("wuma/inheritance.txt") then
+		inheritance = util.JSONToTable(WUMA.Files.Read("wuma/inheritance.txt")) or {}
 	end
 	return inheritance
 end

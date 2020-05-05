@@ -25,7 +25,7 @@ function WUMA.GetSavedRestrictions(user)
 	if (user) then
 		tbl = WUMA.ReadUserRestrictions(user)
 	else
-		saved =util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."restrictions.txt")) or {}
+		saved =util.JSONToTable(WUMA.Files.Read("wuma/restrictions.txt")) or {}
 
 		for key, obj in pairs(saved) do
 			if istable(obj) then

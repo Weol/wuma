@@ -12,55 +12,51 @@ WUMA.AUTHOR = "Erik 'Weol' Rahka"
 WUMA.DELETE = "WUMA_delete"
 WUMA.EMPTY = "WUMA_empty"
 
---Paths
-WUMA.DataDirectory = "wuma/"
-WUMA.SharedDirectroy = "wuma/shared/"
-WUMA.ClientDirectory = "wuma/client/"
-WUMA.ObjectsDirectory = "wuma/objects/"
-WUMA.UserDataDirectory = "users/"
-WUMA.HomeDirectory = "wuma/"
-
-WUMA.WUMAGUI = "wuma gui"
-
 function WUMA.Initialize()
 
-	include(WUMA.HomeDirectory.."files.lua")
-	include(WUMA.HomeDirectory.."log.lua")
+	include("wuma/files.lua")
+	include("wuma/log.lua")
 
-	--Initialize data files
-	WUMA.Files.Initialize()
+	--Create Data folder
+	WUMA.Files.CreateDir("wuma/")
+
+	--Create userfiles folder
+	WUMA.Files.CreateDir("wuma/users/")
 
 	--Load objects
-	WUMA.LoadFolder(WUMA.ObjectsDirectory)
-	WUMA.LoadCLFolder(WUMA.ObjectsDirectory)
+	WUMA.LoadFolder("wuma/objects/")
+	WUMA.LoadCLFolder("wuma/objects/")
 
 	--Include CAMI before files that depend on it
-	include(WUMA.HomeDirectory.."shared/cami.lua")
-	AddCSLuaFile(WUMA.HomeDirectory.."shared/cami.lua")
+	include("wuma/shared/cami.lua")
+	AddCSLuaFile("wuma/shared/cami.lua")
 
 	--Include core
-	include(WUMA.HomeDirectory.."sql.lua")
-	include(WUMA.HomeDirectory.."util.lua")
-	include(WUMA.HomeDirectory.."commands.lua")
-	include(WUMA.HomeDirectory.."datahandler.lua")
-	include(WUMA.HomeDirectory.."users.lua")
-	include(WUMA.HomeDirectory.."limits.lua")
-	include(WUMA.HomeDirectory.."restrictions.lua")
-	include(WUMA.HomeDirectory.."loadouts.lua")
-	include(WUMA.HomeDirectory.."inheritance.lua")
-	include(WUMA.HomeDirectory.."hooks.lua")
-	include(WUMA.HomeDirectory.."duplicator.lua")
-	include(WUMA.HomeDirectory.."extentions/playerextention.lua")
-	include(WUMA.HomeDirectory.."extentions/entityextention.lua")
+	include("wuma/sql.lua")
+	include("wuma/util.lua")
+	include("wuma/commands.lua")
+	include("wuma/datahandler.lua")
+	include("wuma/users.lua")
+	include("wuma/limits.lua")
+	include("wuma/restrictions.lua")
+	include("wuma/loadouts.lua")
+	include("wuma/inheritance.lua")
+	include("wuma/hooks.lua")
+	include("wuma/duplicator.lua")
+	include("wuma/extentions/playerextention.lua")
+	include("wuma/extentions/entityextention.lua")
 
 	--Register WUMA access with CAMI
-	CAMI.RegisterPrivilege{Name=WUMA.WUMAGUI, MinAccess="superadmin", Description="Access to WUMA GUI"}
+	CAMI.RegisterPrivilege{Name="wuma gui", MinAccess="superadmin", Description="Access to WUMA GUI"}
 
 	--Who am I writing these for?
 	WUMALog("Weol's User Management Addon version %s", WUMA.VERSION)
 
-	--Initialize database
-	WUMA.SQL.Initialize()
+	--Initialize lookup table
+	if not sql.TableExists(WUMA.SQL.WUMALookupTable) then
+		sql.Query(string.format("CREATE TABLE %s (steamid varchar(22) NOT NULL PRIMARY KEY, nick varchar(42), usergroup varchar(42), t int);", str))
+		sql.Query(string.format("CREATE INDEX WUMALOOKUPINDEX ON %s(nick);", WUMA.SQL.WUMALookupTable))
+	end
 
 	--Load data
 	WUMA.LoadRestrictions()
@@ -70,20 +66,20 @@ function WUMA.Initialize()
 
 	--Load shared files
 	WUMALog("Loading shared files")
-	WUMA.LoadCLFolder(WUMA.SharedDirectroy)
-	WUMA.LoadFolder(WUMA.SharedDirectroy)
+	WUMA.LoadCLFolder("wuma/shared/")
+	WUMA.LoadFolder("wuma/shared/")
 
 	--Load client files
 	WUMALog("Loading client files")
-	WUMA.LoadCLFolder(WUMA.ClientDirectory)
+	WUMA.LoadCLFolder("wuma/client/")
 
 	--Allow the poor scopes to think
 	Scope:StartThink()
 
 	--Add hook so playerextention loads when the first player joins
 	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()
-		include(WUMA.HomeDirectory.."extentions/playerextention.lua")
-		if E2Lib then include(WUMA.HomeDirectory.."expression2.lua") end
+		include("wuma/extentions/playerextention.lua")
+		if E2Lib then include("wuma/expression2.lua") end
 		hook.Remove("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit")
 	end)
 

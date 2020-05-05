@@ -3,7 +3,6 @@ WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
 
-WUMA.WUMALookupTable = "WUMALookup"
 WUMA.Settings = WUMA.Settings or {}
 WUMA.SettingsHooks = WUMA.SettingsHooks or {}
 
@@ -14,23 +13,34 @@ function WUMA.GenerateUniqueID()
 	return id
 end
 
+function WUMA.SQLQuery(str, ...)
+	local args = { ... }
+	for k, v in pairs(args) do
+		args[k] = sql.SQLStr(v, isstring(v))
+	end
+
+	local tbl = sql.Query(string.format(str, unpack(args)))
+	return tbl
+end
+WUMASQL = WUMA.SQLQuery --You know why
+
 function WUMA.AddLookup(user)
-	WUMASQL("REPLACE INTO %s (steamid, nick, usergroup, t) values ('%s', '%s', '%s', %s);", WUMA.SQL.WUMALookupTable, user:SteamID(), user:Nick(), user:GetUserGroup(), tostring(os.time()))
+	WUMASQL("REPLACE INTO WUMALookup (steamid, nick, usergroup, t) values ('%s', '%s', '%s', %s);", user:SteamID(), user:Nick(), user:GetUserGroup(), tostring(os.time()))
 end
 
 function WUMA.RemoveLookup(user)
-	WUMASQL("DELETE FROM %s WHERE steamid=%s;", WUMA.SQL.WUMALookupTable, user:SteamID())
+	WUMASQL("DELETE FROM WUMALookup WHERE steamid=%s;", user:SteamID())
 end
 
 function WUMA.Lookup(user)
 	if isstring(user) then
 		if WUMA.IsSteamID(user) then
-			return WUMASQL("SELECT * FROM %s WHERE steamid LIKE '%s%s LIMIT 50;", WUMA.WUMALookupTable, user, "%'")
+			return WUMASQL("SELECT * FROM WUMALookup WHERE steamid LIKE '%s%s LIMIT 50;", user, "%'")
 		else
-			return WUMASQL("SELECT * FROM %s WHERE nick LIKE %s%s%s LIMIT 50;", WUMA.WUMALookupTable, "'%", user, "%'")
+			return WUMASQL("SELECT * FROM WUMALookup WHERE nick LIKE %s%s%s LIMIT 50;", "'%", user, "%'")
 		end
 	elseif (isnumber(user)) then
-		return WUMASQL("SELECT * FROM %s ORDER BY t ASC LIMIT %s", WUMA.WUMALookupTable, tostring(user))
+		return WUMASQL("SELECT * FROM WUMALookup ORDER BY t ASC LIMIT %s", tostring(user))
 	end
 end
 
@@ -65,21 +75,21 @@ function WUMA.Cache(id, data)
 			head = {id = id, data = data, next = nil}
 			tail = head
 			cacheCounter = cacheCounter + 1
-		else 
+		else
 			local link = {id = id, data = data, next = head}
 			head = link
 			cacheCounter = cacheCounter + 1
 		end
-		
+
 		if (cacheCounter >= cacheSize) then
 			local counter = 0
 			local l = head
 			while l do
 				if (counter > cacheSize - 2) then
-					l.next = nil	
+					l.next = nil
 					l = nil
 					cacheCounter = counter
-				else 
+				else
 					l = l.next
 					counter = counter + 1
 				end
@@ -97,14 +107,14 @@ function WUMA.Cache(id, data)
 				end
 				return link.data --Return the data
 			end
-			
+
 			previous = link --Set previous to current link
 			link = link.next --Set current link to next link
 		end
 	end
 end
 
-function WUMA.InvalidateCache(id) 
+function WUMA.InvalidateCache(id)
 	if not head then return end
 	local link = head
 	local previous
@@ -112,7 +122,7 @@ function WUMA.InvalidateCache(id)
 		if (link.id == id) then
 			if (previous) then
 				previous.next = link.next
-			else 
+			else
 				head = head.next
 			end
 			cacheCounter = cacheCounter - 1

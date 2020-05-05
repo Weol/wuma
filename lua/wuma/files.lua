@@ -8,10 +8,10 @@ WUMA.Files = WUMA.Files or {}
 function WUMA.Files.Initialize()
 
 	--Create Data folder
-	WUMA.Files.CreateDir(WUMA.DataDirectory)
+	WUMA.Files.CreateDir("wuma/")
 
 	--Create userfiles folder
-	WUMA.Files.CreateDir(WUMA.DataDirectory..WUMA.UserDataDirectory)
+	WUMA.Files.CreateDir("wuma/users/")
 
 end
 
@@ -24,9 +24,9 @@ end
 
 function WUMA.Files.Append(path, text)
 	path = string.lower(path)
-	local f = file.Exists(WUMA.DataDirectory..path, "DATA")
+	local f = file.Exists("wuma/"..path, "DATA")
 	if (not f) then
-		Files.Write(WUMA.DataDirectory..path, text)
+		Files.Write("wuma/"..path, text)
 		return
 	end
 	file.Append(path, text)

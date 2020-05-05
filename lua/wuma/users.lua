@@ -177,21 +177,7 @@ function WUMA.GetUsers(group)
 end
 
 function WUMA.GetAuthorizedUsers(callback)
-	CAMI.GetPlayersWithAccess(WUMA.WUMAGUI, callback)
-end
-
-function WUMA.HasAccess(user, callback, access)
-	local access = access or WUMA.WUMAGUI
-
-	local cb = function(bool)
-		WUMA.STCache(user:SteamID()..access, bool)
-		callback(bool)
-		return
-	end
-
-	local cached = WUMA.STCache(user:SteamID()..access)
-	if cached then return callback(cached) end
-	CAMI.PlayerHasAccess(user, access or WUMA.WUMAGUI, callback)
+	CAMI.GetPlayersWithAccess("wuma gui", callback)
 end
 
 function WUMA.IsSteamID(steamid)
@@ -207,19 +193,19 @@ function WUMA.GetUserGroups()
 	return groups
 end
 
-function WUMA.ShowWUMAMenu(ply, cmd, args)
-	WUMA.HasAccess(ply, "wuma gui", function(bool)
+function WUMA.ShowWUMAMenu(user, cmd)
+	CAMI.PlayerHasAccess(user, "wuma gui", function(bool)
 		if bool then
-			ply:SendLua([[WUMA.GUI.Toggle()]])
+			user:SendLua([[WUMA.GUI.Toggle()]])
 		else
-			ply:ChatPrint("You do not have access to this command")
+			user:ChatPrint("You do not have access to this command")
 		end
 	end)
 end
 concommand.Add( "wuma_menu", WUMA.ShowWUMAMenu)
 
-function WUMA.ShowPersonalLoadout(ply, cmd, args)
-	WUMA.HasAccess(ply, "wuma personalloadout", function(bool)
+function WUMA.ShowPersonalLoadout(ply, cmd)
+	CAMI.PlayerHasAccess(ply, "wuma personalloadout", function(bool)
 		if bool then
 			ply:SendLua([[WUMA.GUI.CreateLoadoutSelector()]])
 		else
@@ -260,6 +246,8 @@ end
 hook.Add("PlayerLoadout", "WUMAPlayerLoadout", WUMA.PlayerLoadout)
 
 function WUMA.PlayerInitialSpawn(user)
+	WUMARPC("WUMA.CalculateServer", os.time())
+
 	WUMA.InitializeUser(user)
 	timer.Simple(1, function()
 		WUMA.GetAuthorizedUsers(function(users) WUMA.GetStream("users"):Send(users) end)

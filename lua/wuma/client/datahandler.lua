@@ -356,7 +356,7 @@ function WUMA.ProcessInformationUpdate(enum, data)
 end
 
 local DisregardSettingsChange = false
-function WUMA.UpdateSettings(settings)
+function WUMA.UpdateSettings(settings, added, removed)
 	DisregardSettingsChange = true
 
 	if (WUMA.GUI.Tabs.Settings) then
@@ -365,7 +365,7 @@ function WUMA.UpdateSettings(settings)
 
 	DisregardSettingsChange = false
 end
-hook.Add(WUMA.SETTINGSUPDATE, "WUMAGUISettings", function(settings) WUMA.UpdateSettings(settings) end)
+WUMA.Settings:AddHook("WUMAGUISettings", WUMA.UpdateSettings)
 
 function WUMA.OnSettingsUpdate(setting, value)
 	if not DisregardSettingsChange then

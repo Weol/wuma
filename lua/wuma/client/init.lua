@@ -66,8 +66,13 @@ function WUMA.IsSteamID(steamid)
 	return string.match(steamid, [[STEAM_\d{1}:\d{1}:\d*]])
 end
 
+local server_time_offset = 0
+function WUMA.CalculateServerTimeDifference(server_time)
+	server_time_offset = server_time - os.time()
+end
+
 function WUMA.GetServerTime()
-	return os.time() + (WUMA.ServerSettings["server_time_offset"] or 0)
+	return os.time() + server_time_offset
 end
 
 function WUMA.NotifyTypeRestriction(type)

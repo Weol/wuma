@@ -10,12 +10,12 @@ end
 local factory = {}
 
 function factory:AddProperty(name, accessor, default, setter_function, getter_function)
-	if setter_function != false then
+	if setter_function ~= false then
 		setter_function = function(self, value) self[name] = value end
 		builder.metatable["Set" .. accessor] = setter_function
 	end
 
-	if getter_function != false then
+	if getter_function ~= false then
 		getter_function = function(self) return self[name] end
 		builder.metatable["Get" .. accessor] = getter_function
 	end
@@ -24,12 +24,12 @@ function factory:AddProperty(name, accessor, default, setter_function, getter_fu
 end
 
 function factory:AddMetaData(name, accessor, default, setter_function, getter_function)
-	if setter_function != false then
+	if setter_function ~= false then
 		setter_function = function(self, value) self[name] = value end
 		builder.metatable["Set" .. accessor] = setter_function
 	end
 
-	if getter_function != false then
+	if getter_function ~= false then
 		getter_function = function(self) return self[name] end
 		builder.metatable["Get" .. accessor] = getter_function
 	end
@@ -50,7 +50,7 @@ WUMA.ClassFactory.Builder(classname)
 
 	setmetatable(builder, {
 		__newindex = function(k, v)
-			rawset(builder.metatablem, k, v)
+			rawset(builder.metatable, k, v)
 		end
 	})
 

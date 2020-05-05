@@ -20,7 +20,7 @@ function WUMA.GetSavedLoadouts(user)
 	if (user) then
 		tbl = WUMA.ReadUserLoadout(user)
 	else
-		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."loadouts.txt")) or {}
+		local saved = util.JSONToTable(WUMA.Files.Read("wuma/loadouts.txt")) or {}
 
 		for key, obj in pairs(saved) do
 			if istable(obj) then

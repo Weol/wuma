@@ -28,7 +28,7 @@ function WUMA.GetSavedLimits(user)
 	if (user) then
 		tbl = WUMA.ReadUserLimits(user)
 	else
-		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {}
+		local saved = util.JSONToTable(WUMA.Files.Read("wuma/limits.txt")) or {}
 
 		for key, obj in pairs(saved) do
 			if istable(obj) then

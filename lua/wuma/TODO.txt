@@ -1,0 +1,5 @@
+
+These used to be in the clientside settings table, fix them somehow
+wuma_limit_count=table.Count(WUMA.Limits),
+wuma_restriction_count=table.Count(WUMA.Restrictions),
+wuma_loadout_count=table.Count(WUMA.Loadouts)

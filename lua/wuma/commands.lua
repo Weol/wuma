@@ -1,532 +1,180 @@
 
 WUMA = WUMA or {}
-WUMA.AccessRegister = {}
 
-WUMA.EchoChanges = WUMA.CreateConVar("wuma_echo_changes", "2", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "0=Nobody, 1=Access, 2=Everybody, 3=Relevant")
-WUMA.EchoToChat = WUMA.CreateConVar("wuma_echo_to_chat", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable / disable echo in chat.")
+if SERVER then
+	WUMA.EchoChanges = WUMA.CreateConVar("wuma_echo_changes", "2", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "0 = Nobody, 1 = Access, 2 = Everybody, 3 = Relevant")
+	WUMA.EchoToChat = WUMA.CreateConVar("wuma_echo_to_chat", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable / disable echo in chat.")
 
-function WUMA.RegisterAccess(tbl)
-	WUMA.AccessRegister[tbl.name] = WUMAAccess:new(tbl)
-	return WUMA.AccessRegister[tbl.name]
-end
+	function WUMA.RegisterCommands(commands)
+		local privliges = CAMI.GetPrivileges()
 
-function WUMA.RegisterCAMIAccessPriviliges()
-	for name, access in pairs(WUMA.AccessRegister) do
-		if not access:IsStrict() then
-			CAMI.RegisterPrivilege{Name="wuma "..access:GetName(), MinAccess=access:GetAccess(), Description=access:GetHelp()}
+		for _, command in pairs(commands) do
+			local privligeName = "wuma " .. command:GetPrivilage()
+			if not privliges[privligeName] then
+				CAMI.RegisterPrivilege{Name = privligeName, MinAccess = "superadmin", Description = command:GetHelp()}
+			end
 		end
 	end
-end
 
-function WUMA.ProcessAccess(cmd, data)
-	local access = WUMA.AccessRegister[cmd]
+	function WUMA.EchoFunction(args, affected, caller)
 
-	if access then
-		local arguments = {}
-		local tables = {}
-		local static = {}
-		local insert = table.insert
-		local getkeys = table.GetKeys
-		local copy = table.Copy
-		local merge = table.Merge
-		local count = table.Count
-		local unpack = unpack
+		if not args then return end
 
-		for i = 1, count(access:GetArguments()) do
-			if data[i] then
-				if istable(data[i]) then
-					tables[i] = {}
-					for _, v in pairs(data[i]) do
-						insert(tables[i], access:GetArguments()[i][1](v))
+		local msg = args[1]
+		table.remove(args, 1)
+
+		local str = string.format(msg, caller:Nick(), unpack(args))
+
+		if WUMA.EchoChanges then
+			if (WUMA.EchoChanges:GetInt() == 1) then
+				WUMA.GetAuthorizedUsers(function(users)
+					for _, user in pairs(users) do
+						if WUMA.EchoToChat:GetBool() then
+							user:ChatPrint(str)
+						else
+							user:PrintMessage(HUD_PRINTCONSOLE, str)
+						end
 					end
-				else
-					static[i] = access:GetArguments()[i][1](data[i])
-				end
-			else
-				static[i] = nil
-			end
-		end
-
-		if (count(tables) > 0) then
-			local function recursive(i)
-				if not ans then ans = {} end
-				local tbl = tables[getkeys(tables)[i]]
-				local key = getkeys(tables)[i]
-				for k, v in pairs(tbl) do
-					if (tables[getkeys(tables)[i+1]]) then
-						ans[key] = v
-						recursive(i+1)
-					else
-						ans[key] = v
-						insert(arguments, merge(copy(ans), copy(static)))
-					end
-				end
-			end
-			recursive(1)
-
-			for _, args in pairs(arguments) do
-				access(unpack(args))
-			end
-		else
-			access(unpack(static))
-		end
-
-	else
-		WUMADebug("Could not find access! (%s)", cmd)
-	end
-end
-
-function WUMA.CheckAccess(access, user,  )
-	CAMI.PlayerHasAccess(user, "wuma "..access:GetName(), callback)
-end
-
-function WUMA.CheckSelfAccess(access, user, callback)
-	CAMI.PlayerHasAccess(user, "wuma "..WUMA.AccessRegister["personalloadout"]:GetName(), callback)
-end
-
-function WUMA.EchoFunction(args, affected, caller)
-
-	if not args then return end
-
-	local msg = args[1]
-	table.remove(args, 1)
-
-	local str = string.format(msg, caller:Nick(), unpack(args))
-
-	if WUMA.EchoChanges then
-		if (WUMA.EchoChanges:GetInt() == 1) then
-			WUMA.GetAuthorizedUsers(function(users)
-				for _, user in pairs(users) do
+				end)
+			elseif (WUMA.EchoChanges:GetInt() == 2) then
+				for _, user in pairs(player.GetAll()) do
 					if WUMA.EchoToChat:GetBool() then
 						user:ChatPrint(str)
 					else
 						user:PrintMessage(HUD_PRINTCONSOLE, str)
 					end
 				end
-			end)
-		elseif (WUMA.EchoChanges:GetInt() == 2) then
-			for _, user in pairs(player.GetAll()) do
-				if WUMA.EchoToChat:GetBool() then
-					user:ChatPrint(str)
-				else
-					user:PrintMessage(HUD_PRINTCONSOLE, str)
-				end
-			end
-		elseif (WUMA.EchoChanges:GetInt() == 3) then
-			if affected and istable(affected) then
-				for _, user in pairs(affected) do
-					if WUMA.EchoToChat:GetBool() then
-						user:ChatPrint(str)
-					else
-						user:PrintMessage(HUD_PRINTCONSOLE, str)
+			elseif (WUMA.EchoChanges:GetInt() == 3) then
+				if affected and istable(affected) then
+					for _, user in pairs(affected) do
+						if WUMA.EchoToChat:GetBool() then
+							user:ChatPrint(str)
+						else
+							user:PrintMessage(HUD_PRINTCONSOLE, str)
+						end
 					end
 				end
 			end
 		end
-	end
 
-	WUMALog(str)
+		WUMALog(str)
+	end
 end
 
 WUMA.Commands = {}
 
 WUMA.Commands.Restrict = WUMACommand:New{name = "restrict", help = "Restrict something from a usergroup"}
 WUMA.Commands.Restrict:SetFunction(WUMA.AddRestriction)
-WUMA.Commands.Restrict:AddRequiredArgument(WUMAAccess.USERGROUP)
-WUMA.Commands.Restrict:AddRequiredArgument(WUMAAccess.STRING, table.GetKeys(Restriction:GetTypes()))
-WUMA.Commands.Restrict:AddRequiredArgument(WUMAAccess.STRING)
-WUMA.Commands.Restrict:AddOptionalArgument(WUMAAccess.NUMBER)
-WUMA.Commands.Restrict:AddOptionalArgument(WUMAAccess.SCOPE)
-WUMA.Commands.Restrict:SetDefaultAccess("superadmin")
+WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.Restrict:AddOptionalArgument(WUMACommand.NUMBER)
+WUMA.Commands.Restrict:AddOptionalArgument(WUMACommand.SCOPE)
 
-WUMA.Commands.RestrictUser = WUMACommand:New{name="restrictuser", help="Restrict something from a player"}
+WUMA.Commands.RestrictUser = WUMACommand:New{name = "restrictuser", help = "Restrict something from a player"}
 WUMA.Commands.RestrictUser:SetFunction(WUMA.AddUserRestriction)
-WUMA.Commands.RestrictUser:AddArgument(WUMAAccess.STEAMID)
-WUMA.Commands.RestrictUser:AddArgument(WUMAAccess.STRING, _, table.GetKeys(Restriction:GetTypes()))
-WUMA.Commands.RestrictUser:AddArgument(WUMAAccess.STRING, true)
-WUMA.Commands.RestrictUser:AddArgument(WUMAAccess.NUMBER, true)
-WUMA.Commands.RestrictUser:AddArgument(WUMAAccess.SCOPE, true)
-WUMA.Commands.RestrictUser:SetLogFunction(WUMA.EchoFunction)
-WUMA.Commands.RestrictUser:SetAccessFunction(WUMA.CheckAccess)
-WUMA.Commands.RestrictUser:SetAccess("superadmin")
-
-local Unrestrict = WUMA.RegisterAccess{name="unrestrict", help="Unrestrict something from a usergroup"}
-Unrestrict:SetFunction(function(caller, usergroup, typ, item)
-	if not usergroup or not typ then return WUMADebug("Invalid access arguments (unrestrict)!") end
-
-	if not isstring(item) or (item == 0) then item = nil end
-
-	local sucess = WUMA.RemoveRestriction(caller, usergroup, typ, item)
-
-	if not (sucess == false) then
-		if item then
-			item = " " .. item
-			typ = Restriction:GetTypes()[typ].print
-		else
-			item = ""
-			typ = Restriction:GetTypes()[typ].print2
-		end
-
-		return {"%s unrestricted %s%s from %s", typ, item or "", usergroup}, sucess, caller
-	end
-end)
-Unrestrict:AddArgument(WUMAAccess.PLAYER)
-Unrestrict:AddArgument(WUMAAccess.USERGROUP)
-Unrestrict:AddArgument(WUMAAccess.STRING, _, table.GetKeys(Restriction:GetTypes()))
-Unrestrict:AddArgument(WUMAAccess.STRING, true)
-Unrestrict:SetLogFunction(WUMA.EchoFunction)
-Unrestrict:SetAccessFunction(WUMA.CheckAccess)
-Unrestrict:SetAccess("superadmin")
-
-local UnrestrictUser = WUMA.RegisterAccess{name="unrestrictuser", help="Unrestrict something from a player"}
-UnrestrictUser:SetFunction(function(caller, target, typ, item)
-	if not target or not typ then return WUMADebug("Invalid access arguments (unrestrictuser)!") end
-
-	if not isstring(item) or (item == 0) then item = nil end
-
-	local sucess = WUMA.RemoveUserRestriction(caller, target, typ, item)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-
-		if item then
-			item = " " .. item
-			typ = Restriction:GetTypes()[typ].print
-		else
-			item = ""
-			typ = Restriction:GetTypes()[typ].print2
-		end
-
-		return {"%s unrestricted %s%s from %s", typ, item or "", nick}, sucess, caller
-	end
-end)
-UnrestrictUser:AddArgument(WUMAAccess.PLAYER)
-UnrestrictUser:AddArgument(WUMAAccess.PLAYER)
-UnrestrictUser:AddArgument(WUMAAccess.STRING, _, table.GetKeys(Restriction:GetTypes()))
-UnrestrictUser:AddArgument(WUMAAccess.STRING, true)
-UnrestrictUser:SetLogFunction(WUMA.EchoFunction)
-UnrestrictUser:SetAccessFunction(WUMA.CheckAccess)
-UnrestrictUser:SetAccess("superadmin")
-
-local SetLimit = WUMA.RegisterAccess{name="setlimit", help="Set somethings limit."}
-SetLimit:SetFunction(function(caller, usergroup, item, limit, exclusive, scope)
-	if not usergroup or not item or not limit then return WUMADebug("Invalid access arguments (setlimit)!") end
-
-	if (exclusive == 1) then exclusive = true else exclusive = false end
-
-	local sucess = WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
-
-	if not (sucess == false) then
-		local prefix = " %s"
-		local scope_str = ""
-		if scope then
-			scope_str = scope:GetPrint2()
-			prefix = " "..scope:GetScopeType().log_prefix.." %s"
-		end
-
-		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
-
-		return {"%s set %s limit to %s for %s"..prefix, item, limit, usergroup, scope_str}, sucess, caller
-	end
-end)
-SetLimit:AddArgument(WUMAAccess.PLAYER)
-SetLimit:AddArgument(WUMAAccess.USERGROUP)
-SetLimit:AddArgument(WUMAAccess.STRING)
-SetLimit:AddArgument(WUMAAccess.STRING)
-SetLimit:AddArgument(WUMAAccess.NUMBER, true)
-SetLimit:AddArgument(WUMAAccess.SCOPE, true)
-SetLimit:SetLogFunction(WUMA.EchoFunction)
-SetLimit:SetAccessFunction(WUMA.CheckAccess)
-SetLimit:SetAccess("superadmin")
-
-local SetUserLimit = WUMA.RegisterAccess{name="setuserlimit", help="Set the limit something for a player"}
-SetUserLimit:SetFunction(function(caller, target, item, limit, exclusive, scope)
-	if not target or not item or not limit then return WUMADebug("Invalid access arguments (setuserlimit)!") end
-
-	limit = limit
-
-
-	if (exclusive == 1) then exclusive = true else exclusive = false end
-
-	local sucess = WUMA.AddUserLimit(caller, target, item, limit, exclusive, scope)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-
-		local prefix = " %s"
-		local scope_str = ""
-		if scope then
-			scope_str = scope:GetPrint2()
-			prefix = " "..scope:GetScopeType().log_prefix.." %s"
-		end
-		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
-
-		return {"%s set %s limit to %s for %s"..prefix, item, limit, nick, scope_str}, sucess, caller
-	end
-end)
-SetUserLimit:AddArgument(WUMAAccess.PLAYER)
-SetUserLimit:AddArgument(WUMAAccess.PLAYER)
-SetUserLimit:AddArgument(WUMAAccess.STRING)
-SetUserLimit:AddArgument(WUMAAccess.STRING)
-SetUserLimit:AddArgument(WUMAAccess.NUMBER, true)
-SetUserLimit:AddArgument(WUMAAccess.SCOPE, true)
-SetUserLimit:SetLogFunction(WUMA.EchoFunction)
-SetUserLimit:SetAccessFunction(WUMA.CheckAccess)
-SetUserLimit:SetAccess("superadmin")
-
-local UnsetLimit = WUMA.RegisterAccess{name="unsetlimit", help="Unset somethings limit."}
-UnsetLimit:SetFunction(function(caller, usergroup, item)
-	if not usergroup or not item then return WUMADebug("Invalid access arguments (unsetlimit)!") end
-
-
-
-	local sucess = WUMA.RemoveLimit(caller, usergroup, item)
-
-	if not (sucess == false) then
-		return {"%s unset %s limit for %s", item, usergroup}, sucess, caller
-	end
-end)
-UnsetLimit:AddArgument(WUMAAccess.PLAYER)
-UnsetLimit:AddArgument(WUMAAccess.USERGROUP)
-UnsetLimit:AddArgument(WUMAAccess.STRING)
-UnsetLimit:SetLogFunction(WUMA.EchoFunction)
-UnsetLimit:SetAccessFunction(WUMA.CheckAccess)
-UnsetLimit:SetAccess("superadmin")
-
-local UnsetUserLimit = WUMA.RegisterAccess{name="unsetuserlimit", help="Unset the limit something for a player"}
-UnsetUserLimit:SetFunction(function(caller, target, item)
-	if not target or not item then return WUMADebug("Invalid access arguments (unsetuserlimit)!") end
-
-
-
-	local sucess = WUMA.RemoveUserLimit(caller, target, item)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s unset %s limit for %s", item, nick}, sucess, caller
-	end
-end)
-UnsetUserLimit:AddArgument(WUMAAccess.PLAYER)
-UnsetUserLimit:AddArgument(WUMAAccess.PLAYER)
-UnsetUserLimit:AddArgument(WUMAAccess.STRING)
-UnsetUserLimit:SetLogFunction(WUMA.EchoFunction)
-UnsetUserLimit:SetAccessFunction(WUMA.CheckAccess)
-UnsetUserLimit:SetAccess("superadmin")
-
-local AddLoadout = WUMA.RegisterAccess{name="addloadout", help="Add a weapon to a usergroups loadout."}
-AddLoadout:SetFunction(function(caller, usergroup, item, primary, secondary, respect, scope)
-	if not usergroup or not item or not primary or not secondary then return WUMADebug("Invalid access arguments (addloadout)!") end
-
-
-
-	if (respect == 1) then respect = true else respect = false end
-
-	local sucess = WUMA.AddLoadoutWeapon(caller, usergroup, item, primary, secondary, respect, scope)
-
-	if not (sucess == false) then
-		local prefix = " %s"
-		local scope_str = ""
-		if scope then
-			scope_str = scope:GetPrint2()
-			prefix = " "..scope:GetScopeType().log_prefix.." %s"
-		end
-
-		return {"%s added %s to %ss loadout"..prefix, item, usergroup, scope_str}, sucess, caller
-	end
-end)
-AddLoadout:AddArgument(WUMAAccess.PLAYER)
-AddLoadout:AddArgument(WUMAAccess.USERGROUP)
-AddLoadout:AddArgument(WUMAAccess.STRING)
-AddLoadout:AddArgument(WUMAAccess.NUMBER)
-AddLoadout:AddArgument(WUMAAccess.NUMBER)
-AddLoadout:AddArgument(WUMAAccess.NUMBER)
-AddLoadout:AddArgument(WUMAAccess.SCOPE, true)
-AddLoadout:SetLogFunction(WUMA.EchoFunction)
-AddLoadout:SetAccessFunction(WUMA.CheckAccess)
-AddLoadout:SetAccess("superadmin")
-
-local AddUserLoadout = WUMA.RegisterAccess{name="adduserloadout", help="Add a weapon to a users loadout."}
-AddUserLoadout:SetFunction(function(caller, target, item, primary, secondary, respect, scope)
-	if not target or not item or not primary or not secondary then return WUMADebug("Invalid access arguments (adduserloadout)!") end
-
-
-
-	if (respect == 1) then respect = true else respect = false end
-
-	local sucess = WUMA.AddUserLoadoutWeapon(caller, target, item, primary, secondary, respect, scope)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-
-		local prefix = " %s"
-		local scope_str = ""
-		if scope then
-			scope_str = scope:GetPrint2()
-			prefix = " "..scope:GetScopeType().log_prefix.." %s"
-		end
-
-		return {"%s added %s to %ss loadout"..prefix, item, nick, scope_str}, sucess, caller
-	end
-end)
-AddUserLoadout:AddArgument(WUMAAccess.PLAYER)
-AddUserLoadout:AddArgument(WUMAAccess.PLAYER)
-AddUserLoadout:AddArgument(WUMAAccess.STRING)
-AddUserLoadout:AddArgument(WUMAAccess.NUMBER)
-AddUserLoadout:AddArgument(WUMAAccess.NUMBER)
-AddUserLoadout:AddArgument(WUMAAccess.NUMBER)
-AddUserLoadout:AddArgument(WUMAAccess.SCOPE, true)
-AddUserLoadout:SetLogFunction(WUMA.EchoFunction)
-AddUserLoadout:SetAccessFunction(WUMA.CheckAccess)
-AddUserLoadout:SetAccess("superadmin")
-
-local RemoveLoadout = WUMA.RegisterAccess{name="removeloadout", help="Remove a weapon from a usergroups loadout."}
-RemoveLoadout:SetFunction(function(caller, usergroup, item)
-	if not usergroup or not item then return WUMADebug("Invalid access arguments (removeloadout)!") end
-
-
-	local sucess = WUMA.RemoveLoadoutWeapon(caller, usergroup, item)
-
-	if not (sucess == false) then
-		return {"%s removed %s from %ss loadout", item, usergroup}, sucess, caller
-	end
-end)
-RemoveLoadout:AddArgument(WUMAAccess.PLAYER)
-RemoveLoadout:AddArgument(WUMAAccess.USERGROUP)
-RemoveLoadout:AddArgument(WUMAAccess.STRING)
-RemoveLoadout:SetLogFunction(WUMA.EchoFunction)
-RemoveLoadout:SetAccessFunction(WUMA.CheckAccess)
-RemoveLoadout:SetAccess("superadmin")
-
-local RemoveUserLoadout = WUMA.RegisterAccess{name="removeuserloadout", help="Restrict something from a usergroup."}
-RemoveUserLoadout:SetFunction(function(caller, target, item)
-	if not target or not item then return WUMADebug("Invalid access arguments (removeuserloadout)!") end
-
-
-
-	local sucess = WUMA.RemoveUserLoadoutWeapon(caller, target, item)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s removed %s from %ss loadout", item, nick}, sucess, caller
-	end
-end)
-RemoveUserLoadout:AddArgument(WUMAAccess.PLAYER)
-RemoveUserLoadout:AddArgument(WUMAAccess.PLAYER)
-RemoveUserLoadout:AddArgument(WUMAAccess.STRING)
-RemoveUserLoadout:SetLogFunction(WUMA.EchoFunction)
-RemoveUserLoadout:SetAccessFunction(WUMA.CheckAccess)
-RemoveUserLoadout:SetAccess("superadmin")
-
-local ClearLoadout = WUMA.RegisterAccess{name="clearloadout", help="Clear a usergroups loadout."}
-ClearLoadout:SetFunction(function(caller, usergroup)
-	if not usergroup then return WUMADebug("Invalid access arguments (clearloadout)!") end
-
-	local sucess = WUMA.ClearLoadout(caller, usergroup)
-
-	if not (sucess == false) then
-		return {"%s cleared %ss loadout", usergroup}, sucess, caller
-	end
-end)
-ClearLoadout:AddArgument(WUMAAccess.PLAYER)
-ClearLoadout:AddArgument(WUMAAccess.USERGROUP)
-ClearLoadout:SetLogFunction(WUMA.EchoFunction)
-ClearLoadout:SetAccessFunction(WUMA.CheckAccess)
-ClearLoadout:SetAccess("superadmin")
-
-local ClearUserLoadout = WUMA.RegisterAccess{name="clearuserloadout", help="Clear a user loadout."}
-ClearUserLoadout:SetFunction(function(caller, target)
-	if not target then return WUMADebug("Invalid access arguments (clearuserloadout)!") end
-
-	local sucess = WUMA.ClearUserLoadout(caller, target)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-		return {"%s cleared %ss loadout", nick}, sucess, caller
-	end
-end)
-ClearUserLoadout:AddArgument(WUMAAccess.PLAYER)
-ClearUserLoadout:AddArgument(WUMAAccess.PLAYER)
-ClearUserLoadout:SetLogFunction(WUMA.EchoFunction)
-ClearUserLoadout:SetAccessFunction(WUMA.CheckAccess)
-ClearUserLoadout:SetAccess("superadmin")
-
-local SetPrimaryWeapon = WUMA.RegisterAccess{name="setprimaryweapon", help="Set a groups primary weapon."}
-SetPrimaryWeapon:SetFunction(function(caller, usergroup, item)
-	if not usergroup or not item then return WUMADebug("Invalid access arguments (setprimaryweapon)!") end
-
-	local sucess, set = WUMA.SetLoadoutPrimaryWeapon(caller, usergroup, item, scope)
-
-	if not (sucess == false) then
-		if not set then
-			return {"%s unset primary weapon for %s", usergroup}, sucess, caller
-		else
-			return {"%s set %s as primary weapon for %s", item, usergroup}, sucess, caller
-		end
-	end
-end)
-SetPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
-SetPrimaryWeapon:AddArgument(WUMAAccess.USERGROUP)
-SetPrimaryWeapon:AddArgument(WUMAAccess.STRING)
-SetPrimaryWeapon:SetLogFunction(WUMA.EchoFunction)
-SetPrimaryWeapon:SetAccessFunction(WUMA.CheckAccess)
-SetPrimaryWeapon:SetAccess("superadmin")
-
-local SetUserPrimaryWeapon = WUMA.RegisterAccess{name="setuserprimaryweapon", help="Set a users primary weapon."}
-SetUserPrimaryWeapon:SetFunction(function(caller, target, item)
-	if not target or not item then return WUMADebug("Invalid access arguments (setuserprimaryweapon)!") end
-
-	local sucess, set = WUMA.SetUserLoadoutPrimaryWeapon(caller, target, item, scope)
-
-	if not (sucess == false) then
-		if isentity(target) then nick = target:Nick() else nick = target end
-		if not set then
-			return {"%s unset primary weapon for %s", nick}, sucess, caller
-		else
-			return {"%s set %s as primary weapon for %s", item, nick}, sucess, caller
-		end
-	end
-end)
-SetUserPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
-SetUserPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
-SetUserPrimaryWeapon:AddArgument(WUMAAccess.STRING)
-SetUserPrimaryWeapon:SetLogFunction(WUMA.EchoFunction)
-SetUserPrimaryWeapon:SetAccessFunction(WUMA.CheckAccess)
-SetUserPrimaryWeapon:SetAccess("superadmin")
-
-local SetEnforceLoadout = WUMA.RegisterAccess{name="setenforceloadout", help="Set a groups primary weapon."}
-SetEnforceLoadout:SetFunction(function(caller, usergroup, enable)
-	if not usergroup or not enable then return WUMADebug("Invalid access arguments (setenforceloadout)!") end
-
-	if (enable == 1) then enable = true else enable = false end
-
-	WUMA.SetEnforceLoadout(caller, usergroup, enable)
-end)
-SetEnforceLoadout:AddArgument(WUMAAccess.PLAYER)
-SetEnforceLoadout:AddArgument(WUMAAccess.USERGROUP)
-SetEnforceLoadout:AddArgument(WUMAAccess.STRING)
-SetEnforceLoadout:SetLogFunction(WUMA.EchoFunction)
-SetEnforceLoadout:SetAccessFunction(WUMA.CheckAccess)
-SetEnforceLoadout:SetAccess("superadmin")
-
-local SetUserEnforceLoadout = WUMA.RegisterAccess{name="setuserenforceloadout", help="Set a users primary weapon."}
-SetUserEnforceLoadout:SetFunction(function(caller, target, enable)
-	if not target or not enable then return WUMADebug("Invalid access arguments (setuserenforceloadout)!") end
-
-	if (enable == 1) then enable = true else enable = false end
-
-	WUMA.SetUserEnforceLoadout(caller, target, enable)
-end)
-SetUserEnforceLoadout:AddArgument(WUMAAccess.PLAYER)
-SetUserEnforceLoadout:AddArgument(WUMAAccess.PLAYER)
-SetUserEnforceLoadout:AddArgument(WUMAAccess.NUMBER)
-SetUserEnforceLoadout:SetLogFunction(WUMA.EchoFunction)
-SetUserEnforceLoadout:SetAccessFunction(WUMA.CheckAccess)
-SetUserEnforceLoadout:SetAccess("superadmin")
-
-local ChangeSettings = WUMA.RegisterAccess{name="changesettings", help="Change WUMA settings"}
-ChangeSettings:SetFunction(function(caller, setting, value)
-	if not setting or not value then return WUMADebug("Invalid access arguments (changesettings)!") end
-
+WUMA.Commands.RestrictUser:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.RestrictUser:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.STRING)
+WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.NUMBER)
+WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.SCOPE)
+
+WUMA.Commands.Unrestrict = WUMACommand:New{name = "unrestrict", help = "Unrestrict something from a usergroup"}
+WUMA.Commands.Unrestrict:SetFunction(WUMA.RemoveRestriction)
+WUMA.Commands.Unrestrict:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.Unrestrict:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.Unrestrict:AddOptionalArgument(WUMACommand.STRING)
+
+WUMA.Commands.UnrestrictUser = WUMACommand:New{name = "unrestrictuser", help = "Unrestrict something from a player"}
+WUMA.Commands.UnrestrictUser:SetFunction(WUMA.RemoveUserRestriction)
+WUMA.Commands.UnrestrictUser:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.UnrestrictUser:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.UnrestrictUser:AddOptionalArgument(WUMACommand.STRING)
+
+WUMA.Commands.SetLimit = WUMACommand:New{name = "setlimit", help = "Set somethings limit."}
+WUMA.Commands.SetLimit:SetFunction(WUMA.AddLimit)
+WUMA.Commands.SetLimit:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.SetLimit:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.SetLimit:AddRequiredArgument(WUMACommand.ANY)
+WUMA.Commands.SetLimit:AddOptionalArgument(WUMACommand.BOOLEAN)
+WUMA.Commands.SetLimit:AddOptionalArgument(WUMACommand.SCOPE)
+
+WUMA.Commands.SetUserLimit = WUMACommand:New{name = "setuserlimit", help = "Set the limit something for a player"}
+WUMA.Commands.SetUserLimit:SetFunction(WUMA.AddUserLimit)
+WUMA.Commands.SetUserLimit:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.SetUserLimit:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.SetUserLimit:AddRequiredArgument(WUMACommand.ANY)
+WUMA.Commands.SetUserLimit:AddOptionalArgument(WUMACommand.BOOLEAN)
+WUMA.Commands.SetUserLimit:AddOptionalArgument(WUMACommand.SCOPE)
+
+WUMA.Commands.UnsetLimit = WUMACommand:New{name = "unsetlimit", help = "Unset somethings limit."}
+WUMA.Commands.UnsetLimit:SetFunction(WUMA.RemoveLimit))
+WUMA.Commands.UnsetLimit:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.UnsetLimit:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.UnsetUserLimit = WUMACommand:New{name = "unsetuserlimit", help = "Unset the limit something for a player"}
+WUMA.Commands.UnsetUserLimit:SetFunction(WUMA.RemoveUserLimit)
+WUMA.Commands.UnsetUserLimit:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.UnsetUserLimit:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.AddLoadout = WUMACommand:New{name = "addloadout", help = "Add a weapon to a usergroups loadout."}
+WUMA.Commands.AddLoadout:SetFunction(WUMA.AddLoadoutWeapon)
+WUMA.Commands.AddLoadout:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.AddLoadout:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.AddLoadout:AddRequiredArgument(WUMACommand.NUMBER)
+WUMA.Commands.AddLoadout:AddRequiredArgument(WUMACommand.NUMBER)
+WUMA.Commands.AddLoadout:AddRequiredArgument(WUMACommand.BOOLEAN)
+WUMA.Commands.AddLoadout:AddOptionalArgument(WUMACommand.SCOPE)
+
+WUMA.Commands.AddUserLoadout = WUMACommand:New{name = "adduserloadout", help = "Add a weapon to a users loadout."}
+WUMA.Commands.AddUserLoadout:SetFunction(WUMA.AddUserLoadoutWeapon)
+WUMA.Commands.AddUserLoadout:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.AddUserLoadout:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.AddUserLoadout:AddRequiredArgument(WUMACommand.NUMBER)
+WUMA.Commands.AddUserLoadout:AddRequiredArgument(WUMACommand.NUMBER)
+WUMA.Commands.AddUserLoadout:AddRequiredArgument(WUMACommand.BOOLEAN)
+WUMA.Commands.AddUserLoadout:AddOptionalArgument(WUMACommand.SCOPE)
+
+WUMA.Commands.RemoveLoadout = WUMACommand:New{name = "removeloadout", help = "Remove a weapon from a usergroups loadout."}
+WUMA.Commands.RemoveLoadout:SetFunction(WUMA.RemoveLoadoutWeapon)
+WUMA.Commands.RemoveLoadout:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.RemoveLoadout:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.RemoveUserLoadout = WUMACommand:New{name = "removeuserloadout", help = "Restrict something from a usergroup."}
+WUMA.Commands.RemoveUserLoadout:SetFunction(WUMA.RemoveUserLoadoutWeapon)
+WUMA.Commands.RemoveUserLoadout:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.RemoveUserLoadout:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.ClearLoadout = WUMACommand:New{name = "clearloadout", help = "Clear a usergroups loadout."}
+WUMA.Commands.ClearLoadout:SetFunction(WUMA.ClearLoadout)
+WUMA.Commands.ClearLoadout:AddRequiredArgument(WUMACommand.USERGROUP)
+
+WUMA.Commands.ClearUserLoadout = WUMACommand:New{name = "clearuserloadout", help = "Clear a user loadout."}
+WUMA.Commands.ClearUserLoadout:SetFunction(WUMA.ClearUserLoadout)
+WUMA.Commands.ClearUserLoadout:AddRequiredArgument(WUMACommand.STEAMID)
+
+WUMA.Commands.SetPrimaryWeapon = WUMACommand:New{name = "setprimaryweapon", help = "Set a groups primary weapon."}
+WUMA.Commands.SetPrimaryWeapon:SetFunction(WUMA.SetLoadoutPrimaryWeapon)
+WUMA.Commands.SetPrimaryWeapon:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.SetPrimaryWeapon:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.SetUserPrimaryWeapon = WUMACommand:New{name = "setuserprimaryweapon", help = "Set a users primary weapon."}
+WUMA.Commands.SetUserPrimaryWeapon:SetFunction(WUMA.SetUserLoadoutPrimaryWeapon)
+WUMA.Commands.SetUserPrimaryWeapon:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.SetUserPrimaryWeapon:AddRequiredArgument(WUMACommand.STRING)
+
+WUMA.Commands.SetEnforceLoadout = WUMACommand:New{name = "setenforceloadout", help = "Set a groups primary weapon."}
+WUMA.Commands.SetEnforceLoadout:SetFunction(WUMA.SetEnforceLoadout)
+WUMA.Commands.SetEnforceLoadout:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.SetEnforceLoadout:AddRequiredArgument(WUMACommand.BOOLEAN)
+
+WUMA.Commands.SetUserEnforceLoadout = WUMACommand:New{name = "setuserenforceloadout", help = "Set a users primary weapon."}
+WUMA.Commands.SetUserEnforceLoadout:SetFunction(WUMA.SetUserEnforceLoadout)
+WUMA.Commands.SetUserEnforceLoadout:AddRequiredArgument(WUMACommand.STEAMID)
+WUMA.Commands.SetUserEnforceLoadout:AddRequiredArgument(WUMACommand.BOOLEAN)
+
+WUMA.Commands.ChangeSettings = WUMACommand:New{name = "changesettings", help = "Change WUMA settings"}
+WUMA.Commands.ChangeSettings:SetFunction(function(caller, setting, value)
 	local actual_value = util.JSONToTable(value)[1]
 	local convar = GetConVar("wuma_"..setting)
 
@@ -540,89 +188,46 @@ ChangeSettings:SetFunction(function(caller, setting, value)
 		if actual_value then actual_value = 1 else actual_value = 0 end
 		convar:SetInt(actual_value)
 	end
-
 end)
-ChangeSettings:AddArgument(WUMAAccess.PLAYER)
-ChangeSettings:AddArgument(WUMAAccess.STRING)
-ChangeSettings:AddArgument(WUMAAccess.STRING)
-ChangeSettings:SetAccessFunction(WUMA.CheckAccess)
-ChangeSettings:SetAccess("superadmin")
+WUMA.Commands.ChangeSettings:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.ChangeSettings:AddRequiredArgument(WUMACommand.STRING)
 
-local ChangeInheritance = WUMA.RegisterAccess{name="changeinheritance", help="Change WUMA settings"}
-ChangeInheritance:SetFunction(function(caller, enum, target, usergroup)
-	if not enum or not target then return WUMADebug("Invalid access arguments (changeinheritance)!") end
-
+WUMA.Commands.ChangeInheritance = WUMACommand:New{name = "changeinheritance", help = "Change WUMA settings"}
+WUMA.Commands.ChangeInheritance:SetFunction(function(caller, enum, target, usergroup)
 	if (usergroup) then
 		WUMA.SetUsergroupInheritance(enum, target, usergroup)
 	else
 		WUMA.UnsetUsergroupInheritance(enum, target)
 	end
 end)
-ChangeInheritance:AddArgument(WUMAAccess.PLAYER)
-ChangeInheritance:AddArgument(WUMAAccess.STRING)
-ChangeInheritance:AddArgument(WUMAAccess.STRING)
-ChangeInheritance:AddArgument(WUMAAccess.STRING, true)
-ChangeInheritance:SetAccessFunction(WUMA.CheckAccess)
-ChangeInheritance:SetAccess("superadmin")
+WUMA.Commands.ChangeInheritance:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.ChangeInheritance:AddRequiredArgument(WUMACommand.USERGROUP)
+WUMA.Commands.ChangeInheritance:AddOptionalArgument(WUMACommand.USERGROUP)
 
-local AddPersonalLoadout = WUMA.RegisterAccess{name="addpersonalloadout", help="Adds a weapon to a users personal loadout.", strict=true}
-AddPersonalLoadout:SetFunction(function(caller, item, primary, secondary)
-	if not item or not primary or not secondary then return WUMADebug("Invalid access arguments (addpersonalloadout)!") end
-
-
-
-	primary = -1
-	secondary = -1
-
-	WUMA.AddUserLoadoutWeapon(caller, caller, item, primary, secondary, true)
+WUMA.Commands.AddPersonalLoadout = WUMACommand:New{name = "addpersonalloadout", help = "Adds a weapon to a users personal loadout.", access = "personalloadout"}
+WUMA.Commands.AddPersonalLoadout:SetFunction(function(caller, item)
+	WUMA.AddUserLoadoutWeapon(caller, caller, item, -1, -1, true)
 end)
-AddPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
-AddPersonalLoadout:AddArgument(WUMAAccess.STRING)
-AddPersonalLoadout:AddArgument(WUMAAccess.NUMBER)
-AddPersonalLoadout:AddArgument(WUMAAccess.NUMBER)
-AddPersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
-AddPersonalLoadout:SetAccess("superadmin")
+WUMA.Commands.AddPersonalLoadout:AddRequiredArgument(WUMACommand.STRING)
 
-local RemovePersonalLoadout = WUMA.RegisterAccess{name="removepersonalloadout", help="Removes a weapon from users personal loadout.", strict=true}
-RemovePersonalLoadout:SetFunction(function(caller, item)
-	if not item then return WUMADebug("Invalid access arguments (removepersonalloadout)!") end
-
+WUMA.Commands.RemovePersonalLoadout = WUMACommand:New{name = "removepersonalloadout", help = "Removes a weapon from users personal loadout.", access = "personalloadout"}
+WUMA.Commands.RemovePersonalLoadout:SetFunction(function(caller, item)
 	WUMA.RemoveUserLoadoutWeapon(caller, caller, item)
 end)
-RemovePersonalLoadout:AddArgument(WUMAAccess.PLAYER)
-RemovePersonalLoadout:AddArgument(WUMAAccess.STRING)
-RemovePersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
-RemovePersonalLoadout:SetAccess("superadmin")
+WUMA.Commands.RemovePersonalLoadout:AddRequiredArgument(WUMACommand.STRING)
 
-local ClearPersonalLoadout = WUMA.RegisterAccess{name="clearpersonalloadout", help="Clear personal loadout."}
-ClearPersonalLoadout:SetFunction(function(caller)
-
+WUMA.Commands.ClearPersonalLoadout = WUMACommand:New{name = "clearpersonalloadout", help = "Clear personal loadout.", access = "personalloadout"}
+WUMA.Commands.ClearPersonalLoadout:SetFunction(function(caller)
 	WUMA.ClearUserLoadout(caller, caller)
-
 end)
-ClearPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
-ClearPersonalLoadout:AddArgument(WUMAAccess.PLAYER)
-ClearPersonalLoadout:SetLogFunction(WUMA.EchoFunction)
-ClearPersonalLoadout:SetAccessFunction(WUMA.CheckSelfAccess)
-ClearPersonalLoadout:SetAccess("superadmin")
 
-local SetPersonalPrimaryWeapon = WUMA.RegisterAccess{name="setpersonalprimaryweapon", help="Sets a users own primary weapon.", strict=true}
-SetPersonalPrimaryWeapon:SetFunction(function(caller, item)
-	if not item then return WUMADebug("Invalid access arguments (setpersonalprimaryweapon)!") end
-
-
-
+WUMA.Commands.SetPersonalPrimaryWeapon = WUMACommand:New{name = "setpersonalprimaryweapon", help = "Sets a users own primary weapon.", access = "personalloadout"}
+WUMA.Commands.SetPersonalPrimaryWeapon:SetFunction(function(caller, item)
 	WUMA.SetUserLoadoutPrimaryWeapon(caller, caller, item)
 end)
-SetPersonalPrimaryWeapon:AddArgument(WUMAAccess.PLAYER)
-SetPersonalPrimaryWeapon:AddArgument(WUMAAccess.STRING)
-SetPersonalPrimaryWeapon:SetAccessFunction(WUMA.CheckSelfAccess)
-SetPersonalPrimaryWeapon:SetAccess("superadmin")
+WUMA.Commands.SetPersonalPrimaryWeapon:AddRequiredArgument(WUMACommand.STRING)
 
-local PersonalLoadout = WUMA.RegisterAccess{name="personalloadout", help="Allows users to set their own loadout."}
-PersonalLoadout:SetFunction(function() end)
-PersonalLoadout:SetAccessFunction(WUMA.CheckAccess)
-PersonalLoadout:SetAccess("superadmin")
-
---Register all accesses with CAMI
-WUMA.RegisterCAMIAccessPriviliges()
+if SERVER then
+	--Register all accesses with CAMI
+	WUMA.RegisterCommands(WUMA.Commands)
+end
