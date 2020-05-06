@@ -16,6 +16,20 @@ ENT.old_CheckLimit = ENT.old_CheckLimit or ENT.CheckLimit
 function ENT:CheckLimit(str, id)
 	if not id and ignore[str] then return true end
 
+	if id and (string.Left(id, 5) == "gmod_") then
+		convar = GetConVar("sbox_max" .. string.sub(id, 6))
+		if convar then
+			str = string.sub(id, 6)
+			id = nil
+		else
+			convar = GetConVar("sbox_max" .. string.sub(id, 6) .. "s")
+			if convar then
+				str = string.sub(id, 6) .. "s"
+				id = nil
+			end
+		end
+	end
+
 	if (id and self:HasLimit(id)) then
 		if not exclude_limits:GetBool() then
 			if self:HasLimit(str) then

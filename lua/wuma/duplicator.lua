@@ -32,6 +32,17 @@ if AdvDupe2 then
 			for _, entity in pairs(data[1].CreatedEntities) do
 				if IsValid(entity) then
 					local str = entity:GetClass()
+					if (string.Left(str, 5) == "gmod_") then
+						convar = GetConVar("sbox_max" .. string.sub(str, 6))
+						if convar then
+							str = string.sub(str, 6)
+						else
+							convar = GetConVar("sbox_max" .. string.sub(str, 6) .. "s")
+							if convar then
+								str = string.sub(str, 6) .. "s"
+							end
+						end
+					end
 
 					if (string.lower(entity:GetClass()) == "prop_ragdoll") then
 						str = entity:GetModel()
