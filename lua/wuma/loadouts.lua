@@ -1,518 +1,158 @@
 
-WUMA = WUMA or {}
-local WUMADebug = WUMADebug
-local WUMALog = WUMALog
 WUMA.Loadouts = WUMA.Loadouts or {}
 
-function WUMA.LoadLoadouts()
-	local saved, tbl = WUMA.GetSavedLoadouts() or {}, {}
+WUMA.PersonalLoadoutCommand = WUMA.CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", FCVAR_ARCHIVE, "Chat command to open the loadout selector")
 
-	for k, v in pairs(saved) do
-		tbl[v:GetUserGroup()] = v
-	end
+--Second argument is a WUMA LoadoutWeapon, not an actual gmod swep
+function WUMA.GiveWeapon(player, givenBy, weapon)
+	local swep = player:Give(weapon:GetClass())
+		if IsValid(swep) then
+		swep.SpawnedByWUMA = givenBy
 
-	WUMA.Loadouts = tbl
-end
+		if not swep then error("cannot get the given weapon") end
 
-function WUMA.GetSavedLoadouts(user)
-	local tbl = {}
+		local primary_ammo = weapon:GetPrimaryAmmo()
+		local secondary_ammo = weapon:GetSecondaryAmmo()
 
-	if (user) then
-		tbl = WUMA.ReadUserLoadout(user)
-	else
-		local saved = util.JSONToTable(WUMA.Files.Read("wuma/loadouts.txt")) or {}
+		if (primary_ammo < 0) then primary_ammo = swep:GetMaxClip1() * 4 end
+		if (primary_ammo < 0) then primary_ammo = 3 end
 
-		for key, obj in pairs(saved) do
-			if istable(obj) then
-				obj.parent = user
-				tbl[key] = Loadout:new(obj)
-			end
-		end
-	end
+		if (secondary_ammo < 0) then secondary_ammo = swep:GetMaxClip2() * 4 end
+		if (secondary_ammo < 0) then secondary_ammo = 3 end
 
-	return tbl
-end
+		swep:SetClip1(0)
+		swep:SetClip2(0)
 
-function WUMA.ReadUserLoadout(user)
-	if not isstring(user) then user = user:SteamID() end
-
-	local saved = util.JSONToTable(WUMA.Files.Read(WUMA.GetUserFile(user, Loadout))) or {}
-	saved.parent = user
-
-	local loadout = Loadout:new(saved)
-	return loadout
-end
-
-function WUMA.GetSavedLoadout(user)
-	return WUMA.GetSavedLoadouts(user)
-end
-
-function WUMA.GetLoadouts(user)
-	if user and not isstring(user) then
-		return user:GetLoadout()
-	elseif user and isstring(user) then
-		return WUMA.Loadouts[user]
-	else
-		return WUMA.Loadouts
-	end
-end
-
-function WUMA.LoadoutsExist()
-	if (table.Count(WUMA.Loadouts) > 0) then return true end
-end
-
-function WUMA.HasPersonalLoadout(user)
-	return WUMA.Files.Exists(WUMA.GetUserFile(user, Loadout))
-end
-
-function WUMA.SetLoadoutPrimaryWeapon(caller, usergroup, item)
-	if not(WUMA.Loadouts[usergroup]) then return false end
-
-	local primary = WUMA.Loadouts[usergroup]:GetPrimary()
-	if (WUMA.Loadouts[usergroup]:GetPrimary() == item) then item = nil end
-
-	WUMA.Loadouts[usergroup]:SetPrimary(item)
-
-	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
-		if tbl[usergroup] then
-			tbl[usergroup]:SetPrimary(item)
-		end
-		return tbl
-	end)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not tbl[usergroup] or not istable(tbl[usergroup]) then
-			tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
-			tbl[usergroup].weapons = {}
-
-			return tbl
+		if (swep:GetMaxClip1() <= 0) then
+			player:SetAmmo(primary_ammo, swep:GetPrimaryAmmoType())
+		elseif (swep:GetMaxClip1() > primary_ammo) then
+			swep:SetClip1(primary_ammo)
+			player:SetAmmo(0, swep:GetPrimaryAmmoType())
 		else
-			tbl[usergroup]:SetPrimary(item)
-			return tbl
+			player:SetAmmo(primary_ammo-swep:GetMaxClip1(), swep:GetPrimaryAmmoType())
+			swep:SetClip1(swep:GetMaxClip1())
 		end
-	end)
 
-	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
-		if user:HasLoadout() then
-			if user:GetLoadout():IsPersonal() then
-				if user:GetLoadout():GetAncestor() then
-					user:GetLoadout():GetAncestor():SetPrimary(item)
-				end
-			else
-				user:GetLoadout():SetPrimary(item)
-			end
-		end
-	end)
-
-	WUMA.InvalidateCache(Loadout:GetID())
-
-	return affected, item
-end
-
-function WUMA.SetEnforceLoadout(caller, usergroup, enforce)
-	if not(WUMA.Loadouts[usergroup]) then return false end
-
-	WUMA.Loadouts[usergroup]:SetEnforce(enforce)
-
-	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
-		if tbl[usergroup] then
-			tbl[usergroup]:SetEnforce(enforce)
-		end
-		return tbl
-	end)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not tbl[usergroup] or not istable(tbl[usergroup]) then
-			tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
-			tbl[usergroup].weapons = {}
-
-			return tbl
+		if (swep:GetMaxClip2() <= 0) then
+			player:SetAmmo(secondary_ammo, swep:GetSecondaryAmmoType())
+		elseif (swep:GetMaxClip2() > secondary_ammo) then
+			swep:SetClip2(secondary_ammo)
+			player:SetAmmo(0, swep:GetSecondaryAmmoType())
 		else
-			tbl[usergroup]:SetEnforce(enforce)
-			return tbl
+			player:SetAmmo(secondary_ammo-swep:GetMaxClip2(), swep:GetSecondaryAmmoType())
+			swep:SetClip2(swep:GetMaxClip2())
 		end
-	end)
-
-	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
-		if user:HasLoadout() then
-			if user:GetLoadout():IsPersonal() then
-				if user:GetLoadout():GetAncestor() then
-					user:GetLoadout():GetAncestor():SetEnforce(enforce)
-					if not user:GetLoadout():GetEnforce() then
-						if user:GetLoadout():GetAncestor():GetEnforce() then
-							user:GetLoadout():GetAncestor():Give()
-						else
-							WUMA.GiveLoadout(user)
-						end
-					end
-				end
-			else
-				user:GetLoadout():SetEnforce(enforce)
-				if not enforce then
-					WUMA.GiveLoadout(user)
-				end
-			end
-		end
-	end)
-
-	WUMA.InvalidateCache(Loadout:GetID())
-
-	return affected
+	end
 end
 
-function WUMA.AddLoadoutWeapon(caller, usergroup, item, primary, secondary, respect, scope)
-
-	WUMA.Loadouts[usergroup] = WUMA.Loadouts[usergroup] or Loadout:new({usergroup=usergroup})
-
-	if scope then scope:SetProperty("class", item) end
-
-	WUMA.Loadouts[usergroup]:AddWeapon(item, primary, secondary, respect, scope)
-
-	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
-		if not WUMA.Loadouts[usergroup] then return end
-		if not user:HasLoadout() then
-			user:SetLoadout(WUMA.Loadouts[usergroup]:Clone())
-			WUMA.GiveLoadout(user)
-		elseif user:HasLoadout() then
-			if user:GetLoadout():IsPersonal() then
-				if user:GetLoadout():GetAncestor() then
-					user:GetLoadout():GetAncestor():AddWeapon(item, primary, secondary, respect, scope)
-				else
-					user:GetLoadout():SetAncestor(WUMA.Loadouts[usergroup]:Clone())
-					if not user:GetLoadout():GetEnforce() then
-						user:GetLoadout():GetAncestor():Give(item)
-					end
-				end
-			else
-				user:GetLoadout():AddWeapon(item, primary, secondary, respect, scope)
-			end
-		end
-	end)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not tbl[usergroup] or not istable(tbl[usergroup]) then
-			tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
-			tbl[usergroup].weapons = {}
-			tbl[usergroup]:SetWeapon(item, WUMA.Loadouts[usergroup]:GetWeapon(item))
-
-			return tbl
+local function stripWeapon(player, givenBy, class)
+	local swep = player:GetWeapon(class)
+	if IsValid(swep) and (swep.SpawnedByWUMA == givenBy) then
+		local primary_weapon = WUMA.GetSetting(player:GetUserGroup(), "loadout_primary_weapon")
+		if (class == player:GetActiveWeapon()) and primary_weapon then
+			player:SelectWeapon(primary_weapon)
 		else
-			tbl[usergroup]:SetWeapon(item, WUMA.Loadouts[usergroup]:GetWeapon(item))
-			return tbl
-		end
-	end)
-
-	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
-		if not tbl[usergroup] then
-			tbl[usergroup] = Loadout:new({usergroup=usergroup})
-		end
-		tbl[usergroup]:AddWeapon(item, primary, secondary, respect, scope)
-
-		return tbl
-	end)
-
-	WUMA.InvalidateCache(Loadout:GetID())
-
-	return affected
-
-end
-
-function WUMA.RemoveLoadoutWeapon(caller, usergroup, item)
-	if not WUMA.Loadouts[usergroup] then return false end
-	WUMA.Loadouts[usergroup]:RemoveWeapon(item)
-
-	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
-		if user:HasLoadout() then
-			if user:GetLoadout():IsPersonal() then
-				if user:GetLoadout():GetAncestor() then
-					user:GetLoadout():GetAncestor():RemoveWeapon(item)
-					if (user:GetLoadout():GetAncestor():GetWeaponCount() == 0) then
-						user:GetLoadout():PurgeAncestor()
-					end
-				end
-			else
-				user:GetLoadout():RemoveWeapon(item)
-				if (user:GetLoadout():GetWeaponCount() == 0) then
-					user:ClearLoadout()
-					WUMA.GiveLoadout(user)
-				end
-			end
-		end
-	end)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not tbl[usergroup] or not istable(tbl[usergroup]) then
-			tbl[usergroup] = table.Copy(WUMA.Loadouts[usergroup])
-			tbl[usergroup].weapons = {}
-			tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
-
-			return tbl
-		else
-			tbl[usergroup]:SetWeapon(item, WUMA.DELETE)
-			return tbl
-		end
-	end)
-
-	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
-		if tbl[usergroup] then
-			tbl[usergroup]:RemoveWeapon(item)
-
-			if (tbl[usergroup]:GetWeaponCount() < 1) then
-				tbl[usergroup] = nil
+			local next_weapon = player:GetWeapons()[1]
+			if next_weapon then
+				player:SelectWeapon(next_weapon)
 			end
 		end
 
-		return tbl
-	end)
+		player:StripWeapon(class)
+	end
+end
 
-	if (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then
-		WUMA.Loadouts[usergroup] = nil
+local function insertWeapon(weapon)
+	WUMASQL(
+		[[INSERT INTO `WUMALoadouts` (`parent`, `class`, `primary_ammo`, `secondary_ammo`, `ignore_restrictions`) VALUES ("%s", "%s", "%s", "%s", %s);]],
+		weapon:GetParent(),
+		weapon:GetClass(),
+		weapon:GetPrimaryAmmo(),
+		weapon:GetSecondaryAmmo(),
+		weapon:GetIsIgnoreRestrictions() or "NULL"
+	)
+end
+
+local function deleteWeapon(parent, class)
+	WUMASQL(
+		[[DELETE FROM `WUMALoadouts` WHERE `parent` == "%s" and `class` == "%s"]],
+		parent,
+		class
+	)
+end
+
+function WUMA.SetLoadoutPrimaryWeapon(caller, parent, class)
+	WUMA.SetSetting(parent, "loadout_primary_weapon", class)
+
+	hook.Call("WUMALoadoutPrimaryWeaponChanged", nil, caller, parent, class)
+end
+
+function WUMA.SetEnforceLoadout(caller, parent, enforce)
+	WUMA.SetSetting(parent, "loadout_enforce", enforce)
+
+	hook.Call("WUMALoadoutEnforceChanged", nil, caller, parent, enforce)
+end
+
+function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_ammo, ignore_restrictions, scope)
+	local weapon = LoadoutWeapon:New{parent=parent, class=class, primary_ammo=primary_ammo, secondary_ammo=secondary_ammo, ignore_restrictions=ignore_restrictions, scope=scope}
+
+	if WUMA.Loadouts[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
+		WUMA.Loadouts[parent] = WUMA.Loadouts[parent] or {}
+		WUMA.Loadouts[parent][weapon:GetClass()] = weapon
 	end
 
-	WUMA.InvalidateCache(Loadout:GetID())
-
-	return affected
-
-end
-
-function WUMA.ClearLoadout(caller, usergroup)
-	if not WUMA.Loadouts[usergroup] then return false end
-
-	WUMA.Loadouts[usergroup] = nil
-
-	local affected = WUMA.UpdateUsergroup(usergroup, function(user)
-		user:ClearLoadout()
-		WUMA.GiveLoadout(user)
-	end)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		tbl[usergroup] = WUMA.DELETE
-		return tbl
-	end)
-
-	WUMA.ScheduleDataUpdate(Loadout:GetID(), function(tbl)
-		tbl[usergroup] = nil
-
-		return tbl
-	end)
-
-	WUMA.InvalidateCache(Loadout:GetID())
-
-	return affected
-
-end
-
-function WUMA.SetUserLoadoutPrimaryWeapon(caller, user, item)
-
-	local affected = {}
-
-	local loadout
-	if isentity(user) then
-		affected = {user}
-
-		if not user:HasLoadout() then return false end
-		if user:HasLoadout() and not user:GetLoadout():IsPersonal() then return false end
-		loadout = user:GetLoadout()
-	else
-		if not WUMA.CheckUserFileExists(user, Loadout) then return false end
-		loadout = WUMA.ReadUserLoadout(user)
+	local players = WUMA.GetPlayers(parent)
+	for steamid, player in pairs(players) do
+		WUMA.GiveWeapon(player, parent, weapon)
 	end
 
-	local primary = loadout:GetPrimary()
-	if (primary == item) then item = nil end
+	insertWeapon(weapon)
 
-	loadout:SetPrimary(item)
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
-		tbl:SetPrimary(item)
-		return tbl
-	end, user)
-
-	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl)
-		tbl:SetPrimary(item)
-
-		return tbl
-	end)
-
-	return affected, item
+	hook.Call("WUMALoadoutAdded", nil, caller, weapon)
 end
 
-function WUMA.SetUserEnforceLoadout(caller, user, enforce)
-
-	local steamid
-	local loadout
-	if isentity(user) then
-		if not user:HasLoadout() then return false end
-		if user:HasLoadout() and not user:GetLoadout():IsPersonal() then return false end
-		user:GetLoadout():SetEnforce(enforce)
-
-		if not enforce then
-			WUMA.GiveLoadout(user)
-		end
-	else
-	end
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
-		tbl:SetEnforce(enforce)
-		return tbl
-	end, user)
-
-	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl)
-		tbl:SetEnforce(enforce)
-
-		return tbl
-	end)
-end
-
-function WUMA.AddUserLoadoutWeapon(caller, user, item, primary, secondary, respect, scope)
-
-	if scope then scope:SetProperty("class", item) end
-
-	local affected = {}
-
-	local loadout
-	if isentity(user) then
-		if not user:HasLoadout() then
-			local loadout = Loadout:new{parent=user}
-			loadout:AddWeapon(item, primary, secondary, respect, scope)
-			user:SetLoadout(loadout)
-			WUMA.GiveLoadout(user)
-		elseif not user:GetLoadout():IsPersonal() then
-			local loadout = Loadout:new{parent=user}
-			loadout:AddWeapon(item, primary, secondary, respect, scope)
-			user:SetLoadout(loadout)
-			WUMA.GiveLoadout(user)
-		else
-			user:GetLoadout():AddWeapon(item, primary, secondary, respect, scope)
-		end
-
-		affected = {user}
-
-		loadout = user:GetLoadout()
-	else
-		loadout = WUMA.ReadUserLoadout(user)
-	end
-
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
-		tbl:AddWeapon(item, primary, secondary, respect, scope)
-
-		if loadout then
-			tbl:SetEnforce(loadout:GetEnforce())
-		end
-
-		return tbl
-	end, user)
-
-	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl)
-		tbl:AddWeapon(item, primary, secondary, respect, scope)
-
-		return tbl
-	end)
-
-	return affected
-end
-
-function WUMA.RemoveUserLoadoutWeapon(caller, user, item)
-
-	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
-	if isentity(user) and user:HasLoadout() and user:GetLoadout():IsPersonal() then
-		user:GetLoadout():RemoveWeapon(item)
-
-		if (user:GetLoadout():GetWeaponCount() < 1) then
-			user:ClearLoadout()
+function WUMA.RemoveLoadoutWeapon(caller, parent, class)
+	if WUMA.Loadouts[parent] then
+		WUMA.Loadouts[parent][class] = nil
+		if table.IsEmpty(WUMA.Loadouts[parent]) then
+			WUMA.Loadouts[parent] = nil
 		end
 	end
 
-	local affected = {}
-
-	local loadout
-	if isentity(user) then
-		loadout = user:GetLoadout()
-
-		affected = {user}
-	else
-		loadout = WUMA.ReadUserLoadout(user)
+	local players = WUMA.GetPlayers(parent)
+	for steamid, player in pairs(players) do
+		stripWeapon(player, parent, class)
 	end
 
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		if not istable(tbl) or not tbl._id then tbl = Loadout:new{parent=user} end
-		tbl:SetWeapon(item, WUMA.DELETE)
+	deleteWeapon(parent, class)
 
-		if loadout then
-			tbl:SetEnforce(loadout:GetEnforce())
+	hook.Call("WUMALoadoutRemoved", nil, caller, parent, class)
+end
+
+function WUMA.ReadLoadouts(parent)
+	local loadouts = WUMASQL([[SELECT * FROM `WUMALoadouts` WHERE `parent` == "%s"]], parent)
+	if loadouts then
+		local preprocessed = {}
+		for _, args in pairs(loadouts) do
+			local loadout = Loadout:New(args)
+			preprocessed[loadout:GetClass()] = loadout
 		end
-
-		return tbl
-	end, user)
-
-	WUMA.ScheduleUserDataUpdate(user, Loadout:GetID(), function(tbl)
-		tbl:RemoveWeapon(item)
-
-		return tbl
-	end)
-
-	return affected
+		return preprocessed
+	end
 end
 
-function WUMA.ClearUserLoadout(caller, user)
-
-	local affected = {}
-
-	if isstring(user) and WUMA.GetUsers()[user] then user = WUMA.GetUsers()[user] end
-	if isentity(user) then
-		user:ClearLoadout()
-
-		affected = {user}
-
-		WUMA.GiveLoadout(user)
+local function playerInitialSpawn(player)
+	if not WUMA.Loadouts[player:GetUserGroup()] then
+		WUMA.Loadouts[player:GetUserGroup()] = WUMA.ReadLoadouts(player:GetUserGroup())
 	end
 
-	WUMA.AddClientUpdate(Loadout, function(tbl)
-		return WUMA.DELETE
-	end, user)
-
-	WUMA.ScheduleUserDataUpdate(user, Loadout, function(tbl)
-		tbl:SetWeapons({})
-
-		return tbl
-	end)
-
-	if isentity(user) then
-		WUMA.GiveLoadout(user)
+	if not WUMA.Loadouts[player:SteamID()] then
+		WUMA.Loadouts[player:SteamID()] = WUMA.ReadLoadouts(player:SteamID())
 	end
-
-	return affected
 end
+hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawnLimits", playerInitialSpawn)
 
-function WUMA.GiveLoadout(user)
-	hook.Call("PlayerLoadout", GAMEMODE, user)
+local function playerUsergroupChanged(player)
+	--player:Loadout()
 end
-
-function WUMA.RefreshLoadout(user, usergroup)
-	user:ClearLoadout()
-
-	WUMA.AssignLoadout(user, usergroup)
-	WUMA.AssignUserLoadout(user)
-
-	timer.Simple(2, function()
-		WUMA.GiveLoadout(user)
-	end)
-end
-
-function WUMA.RefreshUserLoadout(user)
-	user:ClearLoadout()
-	WUMA.AssignUserLoadout(user)
-	WUMA.GiveLoadout(user)
-end
-
-function WUMA.RefreshUsergroupLoadout(user, usergroup)
-	user:ClearLoadout()
-	WUMA.AssignLoadout(user, usergroup)
-	WUMA.GiveLoadout(user)
-end
-
-WUMA.RegisterDataID(Loadout:GetID(), "loadouts.txt", WUMA.GetSavedLoadouts, WUMA.isTableEmpty)
-WUMA.RegisterUserDataID(Loadout:GetID(), "loadouts.txt", WUMA.GetSavedLoadouts, function(tbl) return (tbl:GetWeaponCount() < 1) end)
+hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", playerUsergroupChanged)

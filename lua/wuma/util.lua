@@ -13,16 +13,20 @@ function WUMA.GenerateUniqueID()
 	return id
 end
 
-function WUMA.SQLQuery(str, ...)
+local function query(str, ...)
 	local args = { ... }
 	for k, v in pairs(args) do
 		args[k] = sql.SQLStr(v, isstring(v))
 	end
 
-	local tbl = sql.Query(string.format(str, unpack(args)))
-	return tbl
+	local query = string.format(str, unpack(args))
+	local response = sql.Query(query)
+	if (response == false) then
+		error(string.format("query failed (%s)", query))
+	end
+	return response
 end
-WUMASQL = WUMA.SQLQuery --You know why
+WUMASQL = query
 
 function WUMA.AddLookup(user)
 	WUMASQL("REPLACE INTO WUMALookup (steamid, nick, usergroup, t) values ('%s', '%s', '%s', %s);", user:SteamID(), user:Nick(), user:GetUserGroup(), tostring(os.time()))
@@ -46,23 +50,6 @@ end
 
 function WUMA.GetSteamIDbyNick(id)
 	return WUMA.Lookup(user)
-end
-
-local stcache = {}
-function WUMA.STCache(id, data)
-	if data then
-		stcache[id] = {data=data, t=os.time()}
-	else
-		local entry = stcache[id]
-		if entry then
-			if (entry.t + 2 > os.time()) then
-				stcache[id].t = os.time()
-				return stcache[id].data
-			else
-				stcache[id] = nil
-			end
-		end
-	end
 end
 
 local cacheCounter = 0
@@ -110,26 +97,6 @@ function WUMA.Cache(id, data)
 
 			previous = link --Set previous to current link
 			link = link.next --Set current link to next link
-		end
-	end
-end
-
-function WUMA.InvalidateCache(id)
-	if not head then return end
-	local link = head
-	local previous
-	while (link ~= nil) do
-		if (link.id == id) then
-			if (previous) then
-				previous.next = link.next
-			else
-				head = head.next
-			end
-			cacheCounter = cacheCounter - 1
-			break
-		else
-			previous = link
-			link = link.next
 		end
 	end
 end

@@ -7,11 +7,10 @@ if SERVER then
 
 	function WUMA.RegisterCommands(commands)
 		local privliges = CAMI.GetPrivileges()
-
 		for _, command in pairs(commands) do
-			local privligeName = "wuma " .. command:GetPrivilage()
-			if not privliges[privligeName] then
-				CAMI.RegisterPrivilege{Name = privligeName, MinAccess = "superadmin", Description = command:GetHelp()}
+			local priviligeName = "wuma " .. command:GetPrivilage()
+			if not privliges[priviligeName] then
+				CAMI.RegisterPrivilege{Name = priviligeName, MinAccess = "superadmin", Description = command:GetHelp()}
 			end
 		end
 	end
@@ -61,12 +60,101 @@ if SERVER then
 	end
 end
 
+local STEAMID = function(str)
+	if isplayer(str) then
+		return str:SteamID()
+	end
+
+	if (WUMA.IsSteamID(str)) then
+		return str
+	end
+
+	error(string.format("Invalid steamid argument (%s)", str))
+end
+
+local STRING = function(str)
+	return tostring(str)
+end
+
+local USERGROUP = function(str)
+	local usergroups = WUMA.GetUserGroups()
+
+	if table.HasValue(usergroups, str) then
+		return str
+	end
+
+	error(string.format("Invalid usergroup argument (%s)", str))
+end
+
+local NUMBER = function(str)
+	if isnumber(str) then
+		return str
+	end
+
+	if tonumber(str) ~= nil then
+		return tonumber(str)
+	end
+
+	error(string.format("Invalid numeric argument (%s)", str))
+end
+
+local SCOPE = function(str)
+	if istable(str) then
+		return Scope:new(tbl)
+	end
+
+	if (isstring(str)) then
+		local tbl = util.JSONToTable(str)
+
+		if tbl and tbl.type then
+			return Scope:new {type = tbl.type, data = tbl.data}
+		end
+	end
+
+	error(string.format("Invalid scope argument (%s)", str))
+end
+
+local BOOLEAN = function(str)
+	if isbool(str) then
+		return str
+	end
+
+	if isstring(str) then
+		if (string.lower(str) == "true") then
+			return true
+		elseif (string.lower(str) == "false") then
+			return false
+		else
+			error(string.format("Invalid boolean argument (%s)", str))
+		end
+	end
+
+	if str and isnumber(str) then
+		if str == 1 then
+			return true
+		elseif (str == 0) then
+			return false
+		end
+	end
+
+	error(string.format("Invalid boolean argument (%s)", str))
+end
+
+local RESTRICTIONTYPE = function(str)
+	if WUMA.RestrictionTypes[str] then
+		return WUMA.RestrictionTypes[str]
+	end
+
+	error(string.format("Invalid restriction type argument (%s)", str))
+end
+
+
 WUMA.Commands = {}
 
 WUMA.Commands.Restrict = WUMACommand:New{name = "restrict", help = "Restrict something from a usergroup"}
 WUMA.Commands.Restrict:SetFunction(WUMA.AddRestriction)
 WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.USERGROUP)
-WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.RESTRICTIONTYPE)
 WUMA.Commands.Restrict:AddRequiredArgument(WUMACommand.STRING)
 WUMA.Commands.Restrict:AddOptionalArgument(WUMACommand.NUMBER)
 WUMA.Commands.Restrict:AddOptionalArgument(WUMACommand.SCOPE)
@@ -74,7 +162,7 @@ WUMA.Commands.Restrict:AddOptionalArgument(WUMACommand.SCOPE)
 WUMA.Commands.RestrictUser = WUMACommand:New{name = "restrictuser", help = "Restrict something from a player"}
 WUMA.Commands.RestrictUser:SetFunction(WUMA.AddUserRestriction)
 WUMA.Commands.RestrictUser:AddRequiredArgument(WUMACommand.STEAMID)
-WUMA.Commands.RestrictUser:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.RestrictUser:AddRequiredArgument(WUMACommand.RESTRICTIONTYPE)
 WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.STRING)
 WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.NUMBER)
 WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.SCOPE)
@@ -82,13 +170,13 @@ WUMA.Commands.RestrictUser:AddOptionalArgument(WUMACommand.SCOPE)
 WUMA.Commands.Unrestrict = WUMACommand:New{name = "unrestrict", help = "Unrestrict something from a usergroup"}
 WUMA.Commands.Unrestrict:SetFunction(WUMA.RemoveRestriction)
 WUMA.Commands.Unrestrict:AddRequiredArgument(WUMACommand.USERGROUP)
-WUMA.Commands.Unrestrict:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.Unrestrict:AddRequiredArgument(WUMACommand.RESTRICTIONTYPE)
 WUMA.Commands.Unrestrict:AddOptionalArgument(WUMACommand.STRING)
 
 WUMA.Commands.UnrestrictUser = WUMACommand:New{name = "unrestrictuser", help = "Unrestrict something from a player"}
 WUMA.Commands.UnrestrictUser:SetFunction(WUMA.RemoveUserRestriction)
 WUMA.Commands.UnrestrictUser:AddRequiredArgument(WUMACommand.STEAMID)
-WUMA.Commands.UnrestrictUser:AddRequiredArgument(WUMACommand.STRING)
+WUMA.Commands.UnrestrictUser:AddRequiredArgument(WUMACommand.RESTRICTIONTYPE)
 WUMA.Commands.UnrestrictUser:AddOptionalArgument(WUMACommand.STRING)
 
 WUMA.Commands.SetLimit = WUMACommand:New{name = "setlimit", help = "Set somethings limit."}
@@ -108,7 +196,7 @@ WUMA.Commands.SetUserLimit:AddOptionalArgument(WUMACommand.BOOLEAN)
 WUMA.Commands.SetUserLimit:AddOptionalArgument(WUMACommand.SCOPE)
 
 WUMA.Commands.UnsetLimit = WUMACommand:New{name = "unsetlimit", help = "Unset somethings limit."}
-WUMA.Commands.UnsetLimit:SetFunction(WUMA.RemoveLimit))
+WUMA.Commands.UnsetLimit:SetFunction(WUMA.RemoveLimit)
 WUMA.Commands.UnsetLimit:AddRequiredArgument(WUMACommand.USERGROUP)
 WUMA.Commands.UnsetLimit:AddRequiredArgument(WUMACommand.STRING)
 
@@ -145,14 +233,6 @@ WUMA.Commands.RemoveUserLoadout:SetFunction(WUMA.RemoveUserLoadoutWeapon)
 WUMA.Commands.RemoveUserLoadout:AddRequiredArgument(WUMACommand.STEAMID)
 WUMA.Commands.RemoveUserLoadout:AddRequiredArgument(WUMACommand.STRING)
 
-WUMA.Commands.ClearLoadout = WUMACommand:New{name = "clearloadout", help = "Clear a usergroups loadout."}
-WUMA.Commands.ClearLoadout:SetFunction(WUMA.ClearLoadout)
-WUMA.Commands.ClearLoadout:AddRequiredArgument(WUMACommand.USERGROUP)
-
-WUMA.Commands.ClearUserLoadout = WUMACommand:New{name = "clearuserloadout", help = "Clear a user loadout."}
-WUMA.Commands.ClearUserLoadout:SetFunction(WUMA.ClearUserLoadout)
-WUMA.Commands.ClearUserLoadout:AddRequiredArgument(WUMACommand.STEAMID)
-
 WUMA.Commands.SetPrimaryWeapon = WUMACommand:New{name = "setprimaryweapon", help = "Set a groups primary weapon."}
 WUMA.Commands.SetPrimaryWeapon:SetFunction(WUMA.SetLoadoutPrimaryWeapon)
 WUMA.Commands.SetPrimaryWeapon:AddRequiredArgument(WUMACommand.USERGROUP)
@@ -174,7 +254,7 @@ WUMA.Commands.SetUserEnforceLoadout:AddRequiredArgument(WUMACommand.STEAMID)
 WUMA.Commands.SetUserEnforceLoadout:AddRequiredArgument(WUMACommand.BOOLEAN)
 
 WUMA.Commands.ChangeSettings = WUMACommand:New{name = "changesettings", help = "Change WUMA settings"}
-WUMA.Commands.ChangeSettings:SetFunction(function(caller, setting, value)
+WUMA.Commands.ChangeSettings:SetFunction(function(_, setting, value)
 	local actual_value = util.JSONToTable(value)[1]
 	local convar = GetConVar("wuma_"..setting)
 
@@ -193,11 +273,11 @@ WUMA.Commands.ChangeSettings:AddRequiredArgument(WUMACommand.STRING)
 WUMA.Commands.ChangeSettings:AddRequiredArgument(WUMACommand.STRING)
 
 WUMA.Commands.ChangeInheritance = WUMACommand:New{name = "changeinheritance", help = "Change WUMA settings"}
-WUMA.Commands.ChangeInheritance:SetFunction(function(caller, enum, target, usergroup)
+WUMA.Commands.ChangeInheritance:SetFunction(function(caller, type, target, usergroup)
 	if (usergroup) then
-		WUMA.SetUsergroupInheritance(enum, target, usergroup)
+		WUMA.SetUsergroupInheritance(caller, type, target, usergroup)
 	else
-		WUMA.UnsetUsergroupInheritance(enum, target)
+		WUMA.UnsetUsergroupInheritance(caller, type, target)
 	end
 end)
 WUMA.Commands.ChangeInheritance:AddRequiredArgument(WUMACommand.STRING)
@@ -215,11 +295,6 @@ WUMA.Commands.RemovePersonalLoadout:SetFunction(function(caller, item)
 	WUMA.RemoveUserLoadoutWeapon(caller, caller, item)
 end)
 WUMA.Commands.RemovePersonalLoadout:AddRequiredArgument(WUMACommand.STRING)
-
-WUMA.Commands.ClearPersonalLoadout = WUMACommand:New{name = "clearpersonalloadout", help = "Clear personal loadout.", access = "personalloadout"}
-WUMA.Commands.ClearPersonalLoadout:SetFunction(function(caller)
-	WUMA.ClearUserLoadout(caller, caller)
-end)
 
 WUMA.Commands.SetPersonalPrimaryWeapon = WUMACommand:New{name = "setpersonalprimaryweapon", help = "Sets a users own primary weapon.", access = "personalloadout"}
 WUMA.Commands.SetPersonalPrimaryWeapon:SetFunction(function(caller, item)

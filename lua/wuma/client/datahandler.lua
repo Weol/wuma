@@ -1,399 +1,183 @@
+-------------------
+-- SUBSCRIPTIONS --
+-------------------
+local subscriptions = {}
+local subscription_data = {}
 
-WUMA = WUMA or {}
+local unique_ids = 1
+function WUMA.Subscribe(...)
+	local args = {...}
 
-local WUMADebug = WUMADebug
-local WUMALog = WUMALog
+	local callback = table.remove(args)
 
-WUMA.ServerGroups = WUMA.ServerGroups or {}
-WUMA.ServerUsers = WUMA.ServerUsers or {}
-WUMA.LookupUsers = WUMA.LookupUsers or {}
-WUMA.UserData = WUMA.UserData or {}
-WUMA.Restrictions = WUMA.Restrictions or {}
-WUMA.AdditionalEntities = WUMA.AdditionalEntities or {}
-WUMA.PersonalRestrictions = WUMA.PersonalRestrictions or {}
-WUMA.Limits = WUMA.Limits or {}
-WUMA.Loadouts = WUMA.Loadouts or {}
-WUMA.LoadoutWeapons = WUMA.LoadoutsWeapons or {}
-WUMA.Maps = WUMA.Maps or {}
-WUMA.ServerSettings = WUMA.ServerSettings or {}
-WUMA.ClientSettings = WUMA.ClientSettings or {}
-WUMA.CVarLimits = WUMA.CVarLimits or {}
-WUMA.Inheritance = WUMA.Inheritance or {}
-WUMA.RestrictionTypes = WUMA.RestrictionTypes or {}
+	assert(isfunction(callback))
 
---Hooks
-WUMA.USERGROUPSUPDATE = "WUMAUserGroupsUpdate"
-WUMA.LOOKUPUSERSUPDATE = "WUMALookupUsersUpdate"
-WUMA.SERVERUSERSUPDATE = "WUMAServerUsersUpdate"
-WUMA.USERDATAUPDATE = "WUMAUserDataUpdate"
-WUMA.MAPSUPDATE = "WUMAMapsUpdate"
-WUMA.SETTINGSUPDATE = "WUMASettingsUpdate"
-WUMA.INHERITANCEUPDATE = "WUMAInheritanceUpdate"
-WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE = "WUMAPersonalLoadoutRestrictionsUpdate"
-WUMA.CVARLIMITSUPDATE = "WUMALimitsUpdate"
-WUMA.PROGRESSUPDATE = "WUMAProgressUpdate"
-WUMA.RESTRICTIONUPDATE = "WUMARestrictionUpdate"
-WUMA.LIMITUPDATE = "WUMALimitUpdate"
-WUMA.LOADOUTUPDATE = "WUMALoadoutUpdate"
+	local key = table.concat(args, "_")
+	local id = "id_" .. unique_ids
+	unique_ids = unique_ids + 1
 
---CVars
-CreateClientConVar("wuma_autounsubscribe", "-1", true, false, "Time in seconds before unsubscribing from data. -1 = Never.")
-CreateClientConVar("wuma_autounsubscribe_user", "900", true, false, "Time in seconds before unsubscribing from data. -1 = Never.")
-CreateClientConVar("wuma_request_on_join", "0", true, false, "Wether or not to request data on join")
+	local subscribe = (subscriptions[key] == nil)
 
---Data update
-function WUMA.ProcessDataUpdate(id, data)
-	WUMADebug("Process Data Update: (%s)", id)
+	subscriptions[key] = subscriptions[key] or {}
+	subscriptions[key][id] = callback
 
-	hook.Call(WUMA.PROGRESSUPDATE, _, id, "Processing data")
-
-	if (id == Restriction:GetID()) then
-		WUMA.UpdateRestrictions(data)
+	if subscription_data[key] then
+		callback(subscription_data[key], {})
 	end
 
-	if (id == Limit:GetID()) then
-		WUMA.UpdateLimits(data)
+	if subscribe then
+		WUMARPC("Subscribe", args)
 	end
 
-	if (id == Loadout:GetID()) then
-		WUMA.UpdateLoadouts(data)
+	return function()
+		subscriptions[key][id] = nil
+		WUMARPC("Unsubscribe", args)
 	end
-
-	local private = string.find(id, ":::")
-	if private then
-		WUMA.UpdateUser(string.sub(id, private+3), string.sub(id, 1, private-1), data)
-	end
-
 end
 
---Data update
-local compressedBuffer = {}
-function WUMA.ProcessCompressedData(id, data, await, index)
+function WUMA.Unsubscribe(...)
+	local args = {...}
 
-	if await or compressedBuffer[id] then
-		hook.Call(WUMA.PROGRESSUPDATE, _, id, "Recieving data ("..index..")")
-	end
+	local key = table.concat(args, "_")
 
-	if compressedBuffer[id] then
-		compressedBuffer[id] = compressedBuffer[id] .. data
-		if not await then
-			data = compressedBuffer[id]
-			compressedBuffer[id] = nil
-		else
-			return
-		end
-	elseif await then
-		compressedBuffer[id] = data
-		return
-	end
+	subscriptions[key] = nil
+	subscription_data[key] = nil
 
-	WUMADebug("Processing compressed data. Size: %s", string.len(data))
-
-	hook.Call(WUMA.PROGRESSUPDATE, _, id, "Decompressing data")
-
-	local uncompressed_data = util.Decompress(data)
-
-	if not uncompressed_data then
-		WUMADebug("Failed to uncompress data! Size: %s", string.len(data))
-		hook.Call(WUMA.PROGRESSUPDATE, _, id, "Decompress failed! Flush data and try again")
-		return
-	end
-	WUMADebug("Data sucessfully decompressed. Size: %s", string.len(uncompressed_data))
-
-	local tbl = util.JSONToTable(uncompressed_data)
-
-	WUMA.ProcessDataUpdate(id, tbl)
+	WUMARPC("Unsubscribe", args)
 end
 
-function WUMA.UpdateRestrictions(update)
+function WUMA.FlushSubscriptions()
+	WUMARPC("FlushUserSubscriptions")
 
-	for id, tbl in pairs(update) do
-		if istable(tbl) then
-			tbl = Restriction:new(tbl)
-			WUMA.Restrictions[id] = tbl
-		else
-			WUMA.Restrictions[id] = nil
-		end
-
-		update[id] = tbl
-	end
-
-	hook.Call(WUMA.RESTRICTIONUPDATE, _, update)
+	subscriptions = {}
+	subscription_data = {}
 end
 
-function WUMA.UpdateLimits(update)
-
-	for id, tbl in pairs(update) do
-		if istable(tbl) then
-			tbl = Limit:new(tbl)
-			WUMA.Limits[id] = tbl
-		else
-			WUMA.Limits[id] = nil
-		end
-
-		update[id] = tbl
+function WUMA.OnRestrictionsUpdate(parent, updated, deleted)
+	local preprocessed = {}
+	for id, restriction in pairs(updated) do
+		preprocessed[id] = Restriction:New(restriction)
 	end
 
-	hook.Call(WUMA.LIMITUPDATE, _, update)
+	local key = "restrictions_" .. parent
+	subscription_data[key] = subscription_data[key] or {}
 
+	table.Merge(subscription_data[key], preprocessed)
+	for _, id in pairs(deleted) do
+		subscription_data[key][id] = nil
+	end
+
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], preprocessed, deleted)
+	end
 end
 
-function WUMA.UpdateLoadouts(update)
-
-	if (table.Count(update) < 1) then
-		hook.Call(WUMA.LOADOUTUPDATE, _, {})
-		return
+function WUMA.OnLimitsUpdate(parent, updated, deleted)
+	local preprocessed = {}
+	for id, limit in pairs(updated) do
+		preprocessed[id] = Limit:New(limit)
 	end
 
-	for usergroup, loadout in pairs(update) do
-		local weapons = {}
-		local deletions = {}
+	local key = "limits_" .. parent
+	subscription_data[key] = subscription_data[key] or {}
 
-		if istable(loadout) and (table.Count(loadout) > 0) then
-			for class, weapon in pairs(loadout.weapons) do
-				if isstring(weapon) then
-					deletions[usergroup.."_"..class] = weapon
-					WUMA.LoadoutWeapons[usergroup.."_"..class] = nil
-					WUMA.Loadouts[usergroup]:SetWeapon(class, nil)
-				end
-			end
-
-			local loadout = Loadout:new(loadout)
-
-			if not WUMA.Loadouts[usergroup] then
-				WUMA.Loadouts[usergroup] = loadout
-
-				for class, weapon in pairs(loadout:GetWeapons()) do
-					weapon.usergroup = usergroup
-					WUMA.LoadoutWeapons[usergroup.."_"..class] = weapon
-					weapons[usergroup.."_"..class] = weapon
-				end
-			else
-				for k, v in pairs(WUMA.Loadouts[usergroup]) do
-					if not istable(v) then
-						WUMA.Loadouts[usergroup][k] = loadout[k]
-					end
-				end
-
-				for k, v in pairs(loadout) do
-					if not istable(v) and not WUMA.Loadouts[usergroup][k] then
-						WUMA.Loadouts[usergroup][k] = loadout[k]
-					end
-				end
-
-				for class, weapon in pairs(loadout:GetWeapons()) do
-					weapon.usergroup = usergroup
-					WUMA.LoadoutWeapons[usergroup.."_"..class] = weapon
-					WUMA.Loadouts[usergroup]:SetWeapon(class, weapon)
-					weapons[usergroup.."_"..class] = weapon
-				end
-			end
-		elseif not istable(loadout) then
-			WUMA.Loadouts[usergroup] = nil
-			for class, v in pairs(WUMA.Loadouts[usergroup]:GetWeapons()) do
-				weapons[class] = WUMA.DELETE
-				WUMA.LoadoutWeapons[usergroup.."_"..class] = nil
-			end
-		end
-
-		if WUMA.Loadouts[usergroup] and (WUMA.Loadouts[usergroup]:GetWeaponCount() < 1) then
-			WUMA.Loadouts[usergroup] = nil
-		end
-
-		hook.Call(WUMA.LOADOUTUPDATE, _, table.Merge(weapons, deletions))
+	table.Merge(subscription_data[key], preprocessed)
+	for _, id in pairs(deleted) do
+		subscription_data[key][id] = nil
 	end
 
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], preprocessed, deleted)
+	end
 end
 
-function WUMA.UpdateUser(id, enum, data)
-	WUMA.UserData[id] = WUMA.UserData[id] or {}
-
-	if (enum == Restriction:GetID()) then
-		WUMA.UpdateUserRestrictions(id, data)
+function WUMA.OnLoadoutsUpdate(parent, updated, deleted)
+	local preprocessed = {}
+	for id, limit in pairs(updated) do
+		preprocessed[id] = LoadoutWeapon:New(limit)
 	end
 
-	if (enum == Limit:GetID()) then
-		WUMA.UpdateUserLimits(id, data)
+	local key = "lodouts_" .. parent
+	subscription_data[key] = subscription_data[key] or {}
+
+	table.Merge(subscription_data[key], preprocessed)
+	for _, id in pairs(deleted) do
+		subscription_data[key][id] = nil
 	end
 
-	if (enum == Loadout:GetID()) then
-		WUMA.UpdateUserLoadouts(id, data)
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], preprocessed, deleted)
 	end
-
-	if (enum == "PersonalLoadoutRestrictions") then
-		WUMA.UpdatePersonalLoadoutRestrictions(id, data)
-	end
-
 end
 
-function WUMA.UpdateUserRestrictions(user, update)
-	WUMA.UserData[user].Restrictions = WUMA.UserData[user].Restrictions or {}
+function WUMA.OnSettingsUpdate(parent, updated, deleted)
+	local key = "lodouts_" .. parent
 
-	for id, tbl in pairs(update) do
-		if istable(tbl) then
-			tbl = Restriction:new(tbl)
-			tbl.usergroup = user
-			tbl.parent = user
+	subscription_data[key] = subscription_data[key] or {}
 
-			WUMA.UserData[user].Restrictions[id] = tbl
-		else
-			WUMA.UserData[user].Restrictions[id] = nil
-		end
-
-		update[id] = tbl
+	table.Merge(subscription_data[key], updated)
+	for _, id in pairs(deleted) do
+		subscription_data[key][id] = nil
 	end
 
-	hook.Call(WUMA.USERDATAUPDATE, _, user, Restriction:GetID(), update)
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], updated, deleted)
+	end
 end
 
-function WUMA.UpdateUserLimits(user, update)
-	WUMA.UserData[user].Limits = WUMA.UserData[user].Limits or {}
+function WUMA.OnUsergroupUpdate(updated, deleted)
+	local key = "usergroups"
 
-	for id, tbl in pairs(update) do
-		if istable(tbl) then
-			tbl = Limit:new(tbl)
-			tbl.parent = user
-			tbl.usergroup = user
+	subscription_data[key] = subscription_data[key] or {}
 
-			WUMA.UserData[user].Limits[id] = tbl
-		else
-			WUMA.UserData[user].Limits[id] = nil
-		end
-
-		update[id] = tbl
+	for _, usergroup in pairs(updated) do
+		subscription_data[key][usergroup] = usergroup
 	end
 
-	hook.Call(WUMA.USERDATAUPDATE, _, user, Limit:GetID(), update)
+	for _, usergroup in pairs(deleted) do
+		subscription_data[key][usergroup] = nil
+	end
 
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], updated, deleted)
+	end
 end
 
-function WUMA.UpdateUserLoadouts(user, loadout)
-	WUMA.UserData[user].LoadoutWeapons = WUMA.UserData[user].LoadoutWeapons or {}
-	local weapons = {}
-	local deletions = {}
+function WUMA.OnInheritanceUpdate(type, updated, deleted)
+	local key = "inheritance"
 
-	if istable(loadout) and (table.Count(loadout) > 0) then
-		for class, weapon in pairs(loadout.weapons) do
-			if isstring(weapon) then
-				deletions[class] = weapon
-				WUMA.UserData[user].LoadoutWeapons[class] = nil
-				if WUMA.UserData[user].Loadouts then WUMA.UserData[user].Loadouts:SetWeapon(class, nil) end
-			end
-		end
+	subscription_data[key] = subscription_data[key] or {}
 
-		local loadout = Loadout:new(loadout)
+	for usergroup, inheritFrom in pairs(updated) do
+		subscription_data[key][type] = subscription_data[key][type] or {}
+		subscription_data[key][type][usergroup] = inheritFrom
+	end
 
-		if not WUMA.UserData[user].Loadouts then
-			WUMA.UserData[user].Loadouts = loadout
-
-			for class, weapon in pairs(loadout:GetWeapons()) do
-				weapon.usergroup = user
-				WUMA.UserData[user].LoadoutWeapons[class] = weapon
-				weapons[class] = weapon
-			end
-		else
-			for k, v in pairs(WUMA.UserData[user].Loadouts) do
-				if not istable(v) then
-					WUMA.UserData[user].Loadouts[k] = loadout[k]
-				end
-			end
-
-			for k, v in pairs(loadout) do
-				if not istable(v) and not WUMA.UserData[user].Loadouts[k] then
-					WUMA.UserData[user].Loadouts[k] = loadout[k]
-				end
-			end
-
-			for class, weapon in pairs(loadout:GetWeapons()) do
-				weapon.usergroup = user
-				WUMA.UserData[user].LoadoutWeapons[class] = weapon
-				WUMA.UserData[user].Loadouts:SetWeapon(class, weapon)
-				weapons[class] = weapon
-			end
-		end
-	elseif not istable(loadout) then
-		WUMA.UserData[user].Loadouts = nil
-		for class, v in pairs(WUMA.UserData[user].Loadouts:GetWeapons()) do
-			weapons[class] = WUMA.DELETE
-			WUMA.UserData[user].LoadoutWeapons[class] = nil
+	if subscription_data[key][type] then
+		for _, usergroup in pairs(deleted) do
+			subscription_data[key][type][usergroup] = nil
 		end
 	end
 
-	if WUMA.UserData[user].Loadouts and (WUMA.UserData[user].Loadouts:GetWeaponCount() < 1) then
-		WUMA.UserData[user].Loadouts = nil
-	end
-
-	hook.Call(WUMA.USERDATAUPDATE, _, user, Loadout:GetID(), table.Merge(weapons, deletions))
-end
-
-function WUMA.UpdatePersonalLoadoutRestrictions(user, update)
-	for id, tbl in pairs(update) do
-		if istable(tbl) then
-			tbl = Restriction:new(tbl)
-			tbl.usergroup = user
-			tbl.parent = user
-
-			WUMA.PersonalRestrictions[id] = tbl
-		else
-			WUMA.PersonalRestrictions[id] = nil
-		end
-
-		update[id] = tbl
-	end
-
-	hook.Call(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, _, user, update)
-end
-
---Information update
-function WUMA.ProcessInformationUpdate(enum, data)
-	WUMADebug("Process Information Update:")
-
-	if WUMA.GetStream(enum) then
-		WUMA.GetStream(enum)(data)
-	else
-		WUMADebug("NET STREAM enum not found! (%s)", tostring(enum))
+	for id, f in pairs(subscriptions[key]) do
+		f(subscription_data[key], type, updated, deleted)
 	end
 end
 
-local DisregardSettingsChange = false
-function WUMA.UpdateSettings(settings, added, removed)
-	DisregardSettingsChange = true
+function WUMA.OnMapsUpdate(updated, deleted)
+	local key = "maps"
 
-	if (WUMA.GUI.Tabs.Settings) then
-		WUMA.GUI.Tabs.Settings:UpdateSettings(settings)
+	subscription_data[key] = subscription_data[key] or {}
+
+	for _, map in pairs(updated) do
+		subscription_data[key][map] = map
 	end
 
-	DisregardSettingsChange = false
-end
-WUMA.Settings:AddHook("WUMAGUISettings", WUMA.UpdateSettings)
-
-function WUMA.OnSettingsUpdate(setting, value)
-	if not DisregardSettingsChange then
-		value = util.TableToJSON({value})
-
-		local access = "changesettings"
-		local data = {setting, value}
-
-		WUMA.SendCommand(access, data, true)
+	for _, map in pairs(deleted) do
+		subscription_data[key][map] = nil
 	end
-end
 
-function WUMA.UpdateInheritance(inheritance)
-	if (WUMA.GUI.Tabs.Settings) then
-		WUMA.GUI.Tabs.Settings.DisregardInheritanceChange = true
-		WUMA.GUI.Tabs.Settings:UpdateInheritance(inheritance)
-		WUMA.GUI.Tabs.Settings.DisregardInheritanceChange = false
-	end
-end
-hook.Add(WUMA.INHERITANCEUPDATE, "WUMAGUIInheritance", function(settings) WUMA.UpdateInheritance(settings) end)
-
-function WUMA.OnInheritanceUpdate(enum, target, usergroup)
-	if not WUMA.GUI.Tabs.Settings.DisregardInheritanceChange then
-		local access = "changeinheritance"
-
-		if (string.lower(usergroup) == "nobody") then usergroup = nil end
-		local data = {enum, target, usergroup}
-
-		WUMA.SendCommand(access, data, true)
+	for id, f in pairs(subscriptions[key]) do
+		f(updated, deleted)
 	end
 end

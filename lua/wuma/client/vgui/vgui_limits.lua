@@ -64,7 +64,7 @@ function PANEL:Init()
 	end
 
 	--Items list
-	self.list_items = vgui.Create("WDataView", self)
+	self.list_items = vgui.Create("WListView", self)
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Item")
 	self.list_items:AddColumn("Limit")
@@ -96,7 +96,7 @@ function PANEL:Init()
 		if (tonumber(datav[3]) == nil) then
 			local id = Limit.GenerateID(Limit, datav.usergroup, datav.string)
 			local id_p = Limit.GenerateID(Limit, _, datav.string)
-			if not self:GetDataView():GetDataTable()[id] and not self:GetDataView():GetDataTable()[id_p] then return Color(255, 0, 0, 120); else return nil end
+			if not self:GetDataView():GetDataSource()[id] and not self:GetDataView():GetDataSource()[id_p] then return Color(255, 0, 0, 120); else return nil end
 		end
 	end
 	self:GetDataView():SetHighlightFunction(highlight)

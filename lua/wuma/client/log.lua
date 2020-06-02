@@ -1,39 +1,7 @@
 
-WUMA = WUMA or {}
+local enableDebug = false
 
-WUMA.Log = {}
-WUMA.Log.EnableDebug = false
-
-function WUMA.Log.ServerLog(msg, ...)
-	local args = { ... }
-	if args then
-		msg = WUMA.SafeFormat(msg, args)
-	end
-	msg = "[WUMA] " .. msg 
-	Msg(msg.."\n")
-end
-WUMALog = WUMA.Log.ServerLog --To save my fingers
-
-function WUMA.Log.ChatPrint(msg, ...)
-	local args = { ... }
-	if args then
-		msg = WUMA.SafeFormat(msg, args)
-	end
-	LocalPlayer():ChatPrint(msg)
-end
-WUMAChatPrint = WUMA.Log.ChatPrint --To save my fingers
-
-function WUMA.Log.DebugLog(msg, ...)
-	if not WUMA.Log.EnableDebug then return end
-	local args = { ... }
-	if args then
-		msg = WUMA.SafeFormat(msg, args)
-	end
-	Msg(msg.."\n")
-end
-WUMADebug = WUMA.Log.DebugLog
-
-function WUMA.SafeFormat(msg, args)
+local function safeFormat(msg, args)
 	if not args then return string.format(msg, "NO_ARGS") end
 	msg = tostring(msg)
 	if (table.Count(args) == 1) then
@@ -50,4 +18,22 @@ function WUMA.SafeFormat(msg, args)
 		msg = string.format(msg, unpack(args))
 	end
 	return msg
+end
+
+function WUMALog(msg, ...)
+	local args = { ... }
+	if args then
+		msg = safeFormat(msg, args)
+	end
+	msg = "[WUMA] " .. msg
+	Msg(msg.."\n")
+end
+
+function WUMADebug(msg, ...)
+	if not enableDebug then return end
+	local args = { ... }
+	if args then
+		msg = safeFormat(msg, args)
+	end
+	Msg(msg.."\n")
 end

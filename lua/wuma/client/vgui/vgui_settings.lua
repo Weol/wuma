@@ -49,11 +49,13 @@ function PANEL:Init()
 	self.chat_command = vgui.Create("DPanel", self.server_settings)
 	self.chat_command.Paint = function(panel, w, h) draw.DrawText("Loadout chat command", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
 	self.chat_command.textbox = vgui.Create("DTextEntry", self.chat_command)
+
 	local old_setvalue = self.chat_command.textbox.SetValue
 	self.chat_command.textbox.SetValue = function(panel, value)
 		panel.previousValue = value
 		old_setvalue(panel, value)
 	end
+
 	local old_losefocus = self.chat_command.textbox.OnLoseFocus
 	self.chat_command.textbox.OnLoseFocus = function(panel)
 		old_losefocus(panel)
@@ -66,122 +68,6 @@ function PANEL:Init()
 		end
 	end
 
-	self.adv_settings = vgui.Create("DPanel", self)
-
-	self.adv_settings.header = vgui.Create("DPanel", self.adv_settings)
-	self.adv_settings.header.Paint = function(panel, w, h)
-		draw.DrawText("Advanced server settings", "DermaDefaultBold", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT)
-		surface.SetDrawColor(Color(159, 163, 167, 255))
-		surface.DrawLine(0, h-1, w, h-1)
-	end
-
-	self.net_send_interval = vgui.Create("DPanel", self.adv_settings)
-	self.net_send_interval.Paint = function(panel, w, h) draw.DrawText("Net send interval", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
-	self.net_send_interval.wang = vgui.Create("DNumberWang", self.net_send_interval)
-	self.net_send_interval.wang.Up:SetVisible(false)
-	self.net_send_interval.wang.Down:SetVisible(false)
-	self.net_send_interval.wang:SetMinMax(0, 86400)
-	self.net_send_interval.wang:SetDecimals(2)
-	self.net_send_interval.wang.OnChange = function(panel) WUMA.OnSettingsUpdate("net_send_interval", panel:GetValue()) end
-
-	self.net_send_size = vgui.Create("DPanel", self.adv_settings)
-	self.net_send_size.Paint = function(panel, w, h) draw.DrawText("Net send size", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
-	self.net_send_size.wang = vgui.Create("DNumberWang", self.net_send_size)
-	self.net_send_size.wang.Up:SetVisible(false)
-	self.net_send_size.wang.Down:SetVisible(false)
-	self.net_send_size.wang:SetMinMax(1, 60)
-	self.net_send_size.wang:SetDecimals(2)
-	self.net_send_size.wang.OnChange = function(panel)
-		local value = panel:GetValue()
-		if (tonumber(value) > 60) then
-			timer.Simple(0.1, function() panel:SetValue(60) end)
-			value = 60
-		elseif (tonumber(value) < 1) then
-			timer.Simple(0.1, function() panel:SetValue(1) end)
-			value = 1
-		end
-		WUMA.OnSettingsUpdate("net_send_size", value)
-	end
-	local old_losefocus2 = self.net_send_size.wang.OnLoseFocus
-	self.net_send_size.wang.OnLoseFocus = function(panel)
-		old_losefocus2(panel)
-
-		local value = panel:GetValue()
-		if (tonumber(value) > 60) then
-			timer.Simple(0.1, function() panel:SetValue(60) end)
-		elseif (tonumber(value) < 1) then
-			timer.Simple(0.1, function() panel:SetValue(1) end)
-		end
-	end
-
-	self.data_save_delay = vgui.Create("DPanel", self.adv_settings)
-	self.data_save_delay.Paint = function(panel, w, h) draw.DrawText("Data save delay", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
-	self.data_save_delay.wang = vgui.Create("DNumberWang", self.data_save_delay)
-	self.data_save_delay.wang.Up:SetVisible(false)
-	self.data_save_delay.wang.Down:SetVisible(false)
-	self.data_save_delay.wang:SetMinMax(1, 86400)
-	self.data_save_delay.wang:SetDecimals(0)
-	self.data_save_delay.wang.OnChange = function(panel) WUMA.OnSettingsUpdate("data_save_delay", panel:GetValue()) end
-
-	self.client_settings = vgui.Create("DPanel", self)
-
-	self.client_settings.header = vgui.Create("DPanel", self.client_settings)
-	self.client_settings.header.Paint = function(panel, w, h)
-		draw.DrawText("Client settings", "DermaDefaultBold", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT)
-		surface.SetDrawColor(Color(159, 163, 167, 255))
-		surface.DrawLine(0, h-1, w, h-1)
-	end
-
-	self.checkbox_request = vgui.Create("DCheckBoxLabel", self.client_settings)
-	self.checkbox_request:SetText("Request all data on join")
-	self.checkbox_request:SetTextColor(Color(0, 0, 0))
-	self.checkbox_request:SetValue(false)
-	self.checkbox_request.OnChange = function(panel, bool) GetConVar("wuma_request_on_join"):SetBool(bool) end
-	self.checkbox_request:SetValue(GetConVar("wuma_request_on_join"):GetBool())
-
-	self.autounsubscribe = vgui.Create("DPanel", self.client_settings)
-	self.autounsubscribe.Paint = function(panel, w, h)
-		draw.DrawText("Auto-unsubscribe to data", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT)
-	end
-	self.autounsubscribe.combobox = vgui.Create("DComboBox", self.autounsubscribe)
-	self.autounsubscribe.combobox:AddChoice("Never", -1)
-	self.autounsubscribe.combobox:AddChoice("1 hour", 60*60)
-	self.autounsubscribe.combobox:AddChoice("30 minutes", 60*30)
-	self.autounsubscribe.combobox:AddChoice("15 minutes", 60*15)
-	self.autounsubscribe.combobox:AddChoice("5 minutes", 60*5)
-	self.autounsubscribe.combobox:AddChoice("1 minutes", 60)
-	self.autounsubscribe.combobox:AddChoice("Instantly", 0)
-	self.autounsubscribe.combobox:SetSortItems(false)
-	self.autounsubscribe.combobox.OnSelect = function(panel, index, value, data) GetConVar("wuma_autounsubscribe"):SetInt(data) end
-	self:SelectChoiceByData(self.autounsubscribe.combobox, GetConVar("wuma_autounsubscribe"):GetInt())
-
-	self.autounsubscribe_user = vgui.Create("DPanel", self.client_settings)
-	self.autounsubscribe_user.Paint = function(panel, w, h) draw.DrawText("Auto-unsubscribe to user data", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
-	self.autounsubscribe_user.combobox = vgui.Create("DComboBox", self.autounsubscribe_user)
-	self.autounsubscribe_user.combobox:AddChoice("Never", -1)
-	self.autounsubscribe_user.combobox:AddChoice("1 hour", 60*60)
-	self.autounsubscribe_user.combobox:AddChoice("30 minutes", 60*30)
-	self.autounsubscribe_user.combobox:AddChoice("15 minutes", 60*15)
-	self.autounsubscribe_user.combobox:AddChoice("5 minutes", 60*5)
-	self.autounsubscribe_user.combobox:AddChoice("1 minutes", 60)
-	self.autounsubscribe_user.combobox:AddChoice("Instantly", 0)
-	self.autounsubscribe_user.combobox:SetSortItems(false)
-	self.autounsubscribe_user.combobox.OnSelect = function(panel, index, value, data) GetConVar("wuma_autounsubscribe_user"):SetInt(data) end
-	self:SelectChoiceByData(self.autounsubscribe_user.combobox, GetConVar("wuma_autounsubscribe_user"):GetInt())
-
-	self.buttons = vgui.Create("DPanel", self.client_settings)
-
-	self.buttons.flush_data = vgui.Create("DButton", self.buttons)
-	self.buttons.flush_data.DoClick = function(panel) WUMA.FlushData() end
-	self.buttons.flush_data:SetText("Flush data")
-
-	self.buttons.flush_user_data = vgui.Create("DButton", self.buttons)
-	self.buttons.flush_user_data.DoClick = function(panel) WUMA.FlushUserData() end
-	self.buttons.flush_user_data:SetText("Flush user data")
-
-	self.buttons.fetch_data = vgui.Create("DButton", self.buttons)
-	self.buttons.fetch_data.DoClick = function(panel) WUMA.FetchData() end
-	self.buttons.fetch_data:SetText("Fetch data")
 
 	self.inheritance_settings = vgui.Create("DPanel", self)
 
@@ -289,7 +175,7 @@ end
 function PANEL:PerformLayout(w, h)
 
 	self.server_settings:SetPos(0, 0)
-	self.server_settings:SetSize(self:GetWide()/2-3, self:GetTall()/2-3)
+	self.server_settings:SetSize(self:GetWide()/2-3, self:GetTall()-2)
 
 	self.server_settings.header:SetTall(20)
 	self.server_settings.header:DockMargin(5, 0, 5, 0)
@@ -319,67 +205,8 @@ function PANEL:PerformLayout(w, h)
 	self.chat_command.textbox:SetWide(self.echo_changes:GetWide()/2)
 	self.chat_command.textbox:SetPos(self.echo_changes:GetWide()-self.echo_changes.combobox:GetWide(), 0)
 
-	self.adv_settings:SetPos(0, self:GetTall()/2+3)
-	self.adv_settings:SetSize(self:GetWide()/2-3, self:GetWide()/2-3)
-
-	self.adv_settings.header:SetTall(20)
-	self.adv_settings.header:DockMargin(5, 0, 5, 0)
-	self.adv_settings.header:Dock(TOP)
-
-	self.net_send_interval:SetTall(22)
-	self.net_send_interval:DockMargin(5, 5, 5, 0)
-	self.net_send_interval:Dock(TOP)
-	self.net_send_interval.wang:SetWide(self.net_send_interval:GetWide()/4)
-	self.net_send_interval.wang:SetPos(self.net_send_interval:GetWide()-self.net_send_interval.wang:GetWide(), 0)
-
-	self.net_send_size:SetTall(22)
-	self.net_send_size:DockMargin(5, 5, 5, 0)
-	self.net_send_size:Dock(TOP)
-	self.net_send_size.wang:SetWide(self.net_send_size:GetWide()/4)
-	self.net_send_size.wang:SetPos(self.net_send_size:GetWide()-self.net_send_size.wang:GetWide(), 0)
-
-	self.data_save_delay:SetTall(22)
-	self.data_save_delay:DockMargin(5, 5, 5, 0)
-	self.data_save_delay:Dock(TOP)
-	self.data_save_delay.wang:SetWide(self.data_save_delay:GetWide()/4)
-	self.data_save_delay.wang:SetPos(self.data_save_delay:GetWide()-self.data_save_delay.wang:GetWide(), 0)
-
-	self.client_settings:SetPos(self:GetWide()/2+3, 0)
-	self.client_settings:SetSize(self:GetWide()/2-3, self:GetTall()/2-3)
-
-	self.client_settings.header:SetTall(20)
-	self.client_settings.header:DockMargin(5, 0, 5, 0)
-	self.client_settings.header:Dock(TOP)
-
-	self.checkbox_request:DockMargin(5, 5, 5, 0)
-	self.checkbox_request:Dock(TOP)
-
-	self.autounsubscribe:SetTall(22)
-	self.autounsubscribe:DockMargin(5, 5, 5, 0)
-	self.autounsubscribe:Dock(TOP)
-	self.autounsubscribe.combobox:SetWide(self.autounsubscribe:GetWide()/5*2)
-	self.autounsubscribe.combobox:SetPos(self.autounsubscribe:GetWide()-self.autounsubscribe.combobox:GetWide(), 0)
-
-	self.autounsubscribe_user:SetTall(22)
-	self.autounsubscribe_user:DockMargin(5, 5, 5, 0)
-	self.autounsubscribe_user:Dock(TOP)
-	self.autounsubscribe_user.combobox:SetWide(self.autounsubscribe_user:GetWide()/5*2)
-	self.autounsubscribe_user.combobox:SetPos(self.autounsubscribe_user:GetWide()-self.autounsubscribe_user.combobox:GetWide(), 0)
-
-	self.buttons:SetTall(49)
-	self.buttons:DockMargin(5, 0, 5, 5)
-	self.buttons:Dock(BOTTOM)
-
-	self.buttons.fetch_data:Dock(TOP)
-
-	self.buttons.flush_data:SetWide(self.buttons.fetch_data:GetWide()/2-2)
-	self.buttons.flush_data:SetPos(0, self.buttons:GetTall()-self.buttons.flush_user_data:GetTall())
-
-	self.buttons.flush_user_data:SetWide(self.buttons.fetch_data:GetWide()/2-2)
-	self.buttons.flush_user_data:SetPos(self.buttons.flush_data:GetWide()+4, self.buttons:GetTall()-self.buttons.flush_user_data:GetTall())
-
-	self.inheritance_settings:SetPos(self:GetWide()/2+3, self:GetTall()/2+2)
-	self.inheritance_settings:SetSize(self:GetWide()/2-3, self:GetTall()/2-2)
+	self.inheritance_settings:SetPos(self:GetWide()/2+3, 0)
+	self.inheritance_settings:SetSize(self:GetWide()/2-3, self:GetTall()-2)
 
 	self.inheritance_settings.header:SetTall(20)
 	self.inheritance_settings.header:DockMargin(5, 0, 5, 0)

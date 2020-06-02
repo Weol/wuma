@@ -1,13 +1,14 @@
 
 local object, static = WUMA.ClassFactory.Builder("WUMARepository")
 
-object:AddProperty("name", "Name")
+object:AddProperty("table_name", "TableName")
+object:AddProperty("keys", "Keys")
 object:AddProperty("access", "Access")
-object:AddProperty("data", "Data", setmetatable({}, {__newindex = function(self, k, v) error("Cannot create new index on WUMA Repository") end}))
-object:AddProperty("hooks", "Hooks", {})
-object:AddProperty("persist_file", "PersistFile")
 
 object:AddMetaData("indexes", "Indexes")
+object:AddMetaData("loaded_keys", "LoadedKeys", {})
+object:AddMetaData("hooks", "Hooks", {})
+object:AddMetaData("data", "Data", setmetatable({}, {__newindex = function(self, k, v) error("Cannot create new index on WUMA Repository") end}))
 object:AddMetaData("network_string", "NetworkString")
 object:AddProperty("subscribers", "Subscribers", {})
 
@@ -16,36 +17,40 @@ function object:__construct(args)
 
 	local network_string = "WUMADataRepository_" .. self:GetName()
 	if SERVER then
-		if self:GetPersistFile() then
-			local data = util.JSONToTable(WUMA.Files.Read(self:GetPersistFile()))
-			setmetatable(data, {__newindex = function(self, k, v) error("Cannot create new index on WUMA Repository") end})
-			self:SetData(data)
+		local response = sql.Query(
+			[[
+				CREATE TABLE IF NOT EXISTS `%s` (
+					%s,
+					`value` TEXT NOT NULL,
+					PRIMARY KEY (%s)
+				)
+			]],
+			self:GetTableName(),
+			string.format(string.rep("`%s` VARCHAR(45) NOT NULL", #self:GetKeys(), ", "), unpack(self:GetKeys())),
+			string.format(string.rep("`%s`", #self:GetKeys(), ", "), unpack(self:GetKeys()))
+		)
+
+		if (response == false) then
+			error(sql.LastError())
 		end
+
+		local indexes = {}
+		for _, key in args.keys do
+			indexes[key] = {}
+		end
+		self:SetIndexes(indexes)
 
 		self:SetNetworkString(network_string)
 		util.AddNetworkString(network_string)
 
-		net.Receive(network_string, function(len, player)
+		net.Receive(network_string, function(_, player)
 			local subscribe = net.ReadBool()
-			local tokey = net.ReadBool()
+			local index = net.ReadTable()
 
-			if not tokey then
-				local index = net.ReadString()
-				local key = net.ReadString()
-
-				if subscribe then
-					self:Subscribe(player, index, key)
-				else
-					self:Unsubscribe(player, index, key)
-				end
+			if subscribe then
+				self:Subscribe(player, index)
 			else
-				local keys = net.ReadTable()
-
-				if subscribe then
-					self:SubscribeToKey(player, keys)
-				else
-					self:UnsubscribeToKey(player, keys)
-				end
+				self:Unsubscribe(player, index)
 			end
 		end)
 	else
@@ -94,7 +99,7 @@ local function createIndexTable()
 	})
 end
 
-function object:CreateIndex(name, func)
+function object:CreateIndex(name)
 	local indexes = self:GetIndexes()
 	local index = {func = func, index = {}, counts = {}}
 	indexes[name] = index
@@ -110,13 +115,6 @@ end
 if SERVER then
 	object:AddMetaData("queue_head", "QueueHead")
 	object:AddMetaData("queue_tail", "QueueTail")
-
-	function object:Persist()
-		local file = self:GetPersistFile()
-		if file then
-			WUMA.Files.Write(file, util.TableToJSON(self:GetData()))
-		end
-	end
 
 	function object:PopSendQueue()
 		local head = self:GetQueueHead()
@@ -167,33 +165,16 @@ if SERVER then
 		end
 	end
 
-	function object:Put(update, value)
+	function object:Put(key, value)
 		local data = self:GetData()
-
-		if not istable(update) then
-			local tbl = {}
-			tbl[update] = value
-			update = tbl
-		end
+		if (value == nil) then error("cannot put nil value into WUMA repository, use delete") end
 
 		local indexes = self:GetIndexes()
-		for k, v in pairs(update) do
-			if (v == nil) then error("cannot put nil value into WUMA repository, use delete") end
-
-			for name, index in pairs(indexes) do
-				local key = index.func(k, v)
-				local refs = index.index[key]
-				if not refs then
-					refs = createIndexTable()
-					index.index[key] = refs
-				end
-
-				rawset(refs, k, v)
-				index.counts[key] = index.counts[key] + 1
-			end
-
-			rawset(data, k, v)
+		for k, v in pairs(key) do
+			if not indexes[k] then error(string.format("cannot put a value with an undefined key (%s)", k)) end
 		end
+
+		rawset(data, k, v)
 
 		for player in self:GetSubscribers() do
 			CAMI.PlayerHasAccess(player, self:GetAccess(), function(authorized)

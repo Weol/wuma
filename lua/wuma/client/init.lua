@@ -2,8 +2,7 @@
 if SERVER then return end
 
 WUMA = WUMA or {}
-
-WUMA.HomePath = "wuma/client/"
+WUMA.Usergroups = WUMA.Usergroups or {}
 
 --Enums
 WUMA.DELETE = "WUMA_delete"
@@ -34,7 +33,7 @@ function WUMA.Initialize()
 
 	--Load vgui folder
 	WUMADebug("Loading VGUI folder")
-	WUMA.IncludeFolder(WUMA.HomePath.."vgui/")
+	WUMA.IncludeFolder("wuma/client/vgui/")
 
 	--All overides should be loaded after WUMA
 	hook.Call("OnWUMALoaded")
@@ -66,8 +65,16 @@ function WUMA.IsSteamID(steamid)
 	return string.match(steamid, [[STEAM_\d{1}:\d{1}:\d*]])
 end
 
+function WUMA.OnUsergroupRegistered(usergroup) --RPC from server
+	WUMA.Usergroups[usergroup] = usergroup
+end
+
+function WUMA.OnUsergroupUnregistered(usergroup) --RPC from server
+	WUMA.Usergroups[usergroup] = nil
+end
+
 local server_time_offset = 0
-function WUMA.CalculateServerTimeDifference(server_time)
+function WUMA.CalculateServerTimeDifference(server_time) --RPC from server
 	server_time_offset = server_time - os.time()
 end
 

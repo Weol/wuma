@@ -1,6 +1,11 @@
 
 local PANEL = {}
 
+AccessorFunc(PANEL, "SortFunction", "SortFunction")
+AccessorFunc(PANEL, "DisplayFunction", "DisplayFunction")
+AccessorFunc(PANEL, "RightClickFunction", "RightClickFunction")
+AccessorFunc(PANEL, "HighlightFunction", "HighlightFunction")
+
 function PANEL:Init()
 	self.PropertyViewer = vgui.Create("WPropertyView", self)
 	self.PropertyViewer:SetSize(120, 200)
@@ -9,11 +14,10 @@ function PANEL:Init()
 	self.Groups = {}
 	self.SortedData = {}
 	self.DataRegistry = {}
-	self.DataTable = function() return {} end
+	self.DataSource = function() return {} end
 end
 
 function PANEL:SortByColumn(ColumnID, Desc)
-
 	table.Copy(self.Sorted, self.Lines)
 
 	table.sort(self.Sorted, function(a, b)
@@ -31,37 +35,20 @@ function PANEL:SortByColumn(ColumnID, Desc)
 
 	self:SetDirty(true)
 	self:InvalidateLayout()
-
 end
 
 function PANEL:GetSelectedItems()
 	local selected = self:GetSelected()
-	
+
 	local tbl = {}
 	for _, v in pairs(selected) do
-		table.insert(tbl, self.DataTable()[v.id])
+		table.insert(tbl, self:GetDataSource()[v.id])
 	end
-	
+
 	return tbl
 end
 
-function PANEL:SetSortFunction(func)
-	self.SortFunction = func
-end
-
-function PANEL:SetDisplayFunction(func)
-	self.DisplayFunction = func
-end
- 
-function PANEL:SetRightClickFunction(func) 
-	self.RightClickFunction = func
-end
-
-function PANEL:SetHighlightFunction(func) 
-	self.HighlightFunction = func
-end
-
-function PANEL:CheckHighlight(line, data, datav) 
+function PANEL:CheckHighlight(line, data, datav)
 	local color = self.HighlightFunction(line, data, datav)
 	if color then
 		line.mark = true
@@ -80,7 +67,7 @@ function PANEL:CheckHighlight(line, data, datav)
 	end
 end
 
-function PANEL:CheckHighlights()	
+function PANEL:CheckHighlights()
 	if self.HighlightFunction then
 		for group, lns in pairs(self.DataRegistry) do
 			for id, line in pairs(lns) do
@@ -88,22 +75,22 @@ function PANEL:CheckHighlights()
 				for _, v in pairs(line.Columns) do
 					table.insert(data, v.Value)
 				end
-				
-				if self.DataTable()[id] then
-					self:CheckHighlight(line, data, self.DataTable()[id]) 
+
+				if self:GetDataSource()[id] then
+					self:CheckHighlight(line, data, self:GetDataSource()[id])
 				end
 			end
 		end
 	end
 end
- 
-function PANEL:OnRowRightClick() 
+
+function PANEL:OnRowRightClick()
 	if self.RightClickFunction then
 		local item = self:GetSelectedItems()[1]
-		
+
 		if item then
 			local tbl = self.RightClickFunction(item)
-			
+
 			self.PropertyViewer:SetProperties(tbl)
 
 			local x, y = self:CursorPos()
@@ -114,21 +101,21 @@ function PANEL:OnRowRightClick()
 end
 
 function PANEL:AddViewLine(id)
-	local item = self.DataTable()[id]
+	local item = self:GetDataSource()[id]
 
 	if item then
 		local data, datav = self.DisplayFunction(item)
 
 		local line = self:AddLine(unpack(data))
 		line.id = id
-		
-		if self.HighlightFunction then self:CheckHighlight(line, data, self.DataTable()[id]) end
-		
+
+		if self.HighlightFunction then self:CheckHighlight(line, data, self:GetDataSource()[id]) end
+
 		if datav then line.Data = datav end
-		
+
 		self.DataRegistry[self.Keys[id]] = self.DataRegistry[self.Keys[id]] or {}
 		self.DataRegistry[self.Keys[id]][id] = line
-		
+
 		self:OnViewChanged()
 	else
 		self.Keys[id] = nil
@@ -149,21 +136,21 @@ function PANEL:RemoveViewLine(id)
 	self:OnViewChanged()
 end
 
-function PANEL:OnViewChanged() 
+function PANEL:OnViewChanged()
 
 end
 
-function PANEL:OnDataUpdate() 
+function PANEL:OnDataUpdate()
 
 end
 
 function PANEL:Sort(key, item)
 	local group = self.SortFunction(item)
-	
+
 	self.Keys[key] = group
 	self.Groups[group] = self.Groups[group] or {}
 	self.Groups[group][key] = 1 --Its really the key we are saving
-	
+
 	return group
 end
 
@@ -172,14 +159,14 @@ function PANEL:Show(id)
 	self.CurrentGroup = id
 
 	for group, lns in pairs(self.DataRegistry) do
-		if not table.HasValue(id, group) then 
+		if not table.HasValue(id, group) then
 			for key, line in pairs(lns) do
 				self:RemoveViewLine(key)
 			end
 			self.DataRegistry[group] = nil
 		end
 	end
-	
+
 	for _, group in pairs(id) do
 		if not self.DataRegistry[group] then
 			self.DataRegistry[group] = {}
@@ -194,7 +181,7 @@ function PANEL:ClearView()
 	self.SortedData = {}
 	self.DataRegistry = {}
 	self:Clear()
-	
+
 	self:SortAll()
 end
 
@@ -202,34 +189,38 @@ function PANEL:SortAll()
 	self.Groups = {}
 	self.Keys = {}
 
- 	for k, v in pairs(self.DataTable()) do
+ 	for k, v in pairs(self:GetDataSource()) do
 		self:Sort(k, v)
 	end
 end
 
-function PANEL:SetDataTable(func)
-	self.DataTable = func
+function PANEL:SetDataSource(func)
+	self.DataSource = func
 	self.SortedData = {}
 	self.DataRegistry = {}
 	self:Clear()
-	
+
 	self:SortAll()
 end
 
-function PANEL:UpdateDataTable(update)
-	for key, value in pairs(update) do	
+function PANEL:GetDataSource()
+	return self.DataSource()
+end
+
+function PANEL:OnDataSourceUpdated(updated, deleted)
+	for key, value in pairs(update) do
 		if not isstring(value) then
 			self:Sort(key, value)
 
 			if self.DataRegistry[self.Keys[key]] and self.DataRegistry[self.Keys[key]][key] then
 				local line = self.DataRegistry[self.Keys[key]][key]
-				local data, datav = self.DisplayFunction(self.DataTable()[key])
-				
+				local data, datav = self.DisplayFunction(self:GetDataSource()[key])
+
 				for k, v in pairs(data) do
 					line:SetColumnText(k, v)
 				end
 				line.Data = datav or {}
-				
+
 				self:InvalidateLayout()
 			elseif self.DataRegistry[self.Keys[key]] then
 				self:AddViewLine(key)
@@ -244,8 +235,4 @@ function PANEL:UpdateDataTable(update)
 	self:OnDataUpdate()
 end
 
-function PANEL:GetDataTable()				
-	return self.DataTable()
-end
-
-vgui.Register("WDataView", PANEL, 'DListView');
+vgui.Register("WListView", PANEL, 'DListView');

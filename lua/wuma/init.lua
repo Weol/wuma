@@ -1,16 +1,12 @@
 
 WUMA = WUMA or {}
 
-WUMA.ConVars = WUMA.ConVars or {}
-WUMA.ConVars.Limits = WUMA.ConVars.Limits or {}
-WUMA.ConVars.Settings = WUMA.ConVars.Settings or {}
-
 WUMA.VERSION = "1.3.0"
 WUMA.AUTHOR = "Erik 'Weol' Rahka"
 
---Enums
-WUMA.DELETE = "WUMA_delete"
-WUMA.EMPTY = "WUMA_empty"
+WUMA.Settings = WUMA.Settings or {}
+
+WUMA.AdditionalLimits = WUMA.AdditionalLimits or {}
 
 function WUMA.Initialize()
 
@@ -23,6 +19,10 @@ function WUMA.Initialize()
 	--Create userfiles folder
 	WUMA.Files.CreateDir("wuma/users/")
 
+	--Include object factory before loading objects
+	include("wuma/shared/objects.lua")
+	AddCSLuaFile("wuma/shared/objects.lua")
+
 	--Load objects
 	WUMA.LoadFolder("wuma/objects/")
 	WUMA.LoadCLFolder("wuma/objects/")
@@ -31,11 +31,17 @@ function WUMA.Initialize()
 	include("wuma/shared/cami.lua")
 	AddCSLuaFile("wuma/shared/cami.lua")
 
+	--Shared init is dependent of stuff in here
+	include("wuma/shared/items.lua")
+	AddCSLuaFile("wuma/shared/items.lua")
+
+	--Include and run shared init
+	include("wuma/shared/init.lua")
+	AddCSLuaFile("wuma/shared/init.lua")
+
 	--Include core
-	include("wuma/sql.lua")
 	include("wuma/util.lua")
 	include("wuma/commands.lua")
-	include("wuma/datahandler.lua")
 	include("wuma/users.lua")
 	include("wuma/limits.lua")
 	include("wuma/restrictions.lua")
@@ -43,6 +49,8 @@ function WUMA.Initialize()
 	include("wuma/inheritance.lua")
 	include("wuma/hooks.lua")
 	include("wuma/duplicator.lua")
+	include("wuma/rpc.lua")
+	include("wuma/subscriptions.lua")
 	include("wuma/extentions/playerextention.lua")
 	include("wuma/extentions/entityextention.lua")
 
@@ -52,29 +60,88 @@ function WUMA.Initialize()
 	--Who am I writing these for?
 	WUMALog("Weol's User Management Addon version %s", WUMA.VERSION)
 
-	--Initialize lookup table
-	if not sql.TableExists(WUMA.SQL.WUMALookupTable) then
-		sql.Query(string.format("CREATE TABLE %s (steamid varchar(22) NOT NULL PRIMARY KEY, nick varchar(42), usergroup varchar(42), t int);", str))
-		sql.Query(string.format("CREATE INDEX WUMALOOKUPINDEX ON %s(nick);", WUMA.SQL.WUMALookupTable))
-	end
+	--Initialize database tables
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMALookup` (
+			`steamid` varchar(22) NOT NULL PRIMARY KEY,
+			`nick` varchar(42),
+			`usergroup` varchar(42),
+			`t` int
+		)
+	]])
 
-	--Load data
-	WUMA.LoadRestrictions()
-	WUMA.LoadLimits()
-	WUMA.LoadLoadouts()
-	WUMA.LoadInheritance()
+	WUMASQL([[CREATE INDEX IF NOT EXISTS `WUMALOOKUPINDEX` ON WUMALookup(`nick`)]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMARestrictions` (
+			`type` VARCHAR(45) NOT NULL,
+			`parent` VARCHAR(45) NOT NULL,
+			`item` VARCHAR(45) NOT NULL,
+			`is_anti` INT(1) NULL,
+			PRIMARY KEY (`type`, `parent`, `item`)
+		)
+	]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMALimits` (
+			`parent` VARCHAR(45) NOT NULL,
+			`item` VARCHAR(45) NOT NULL,
+			`limit` INT NOT NULL,
+			`is_exclusive` INT(1) NULL,
+			PRIMARY KEY (`parent`, `item`)
+		)
+	]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMALoadouts` (
+			`parent` INT NOT NULL,
+			`class` VARCHAR(45) NOT NULL,
+			`primary_ammo` INT NULL,
+			`secondary_ammo` INT NULL,
+			`ignore_restrictions` INT(1) NULL,
+			PRIMARY KEY (`parent`, `class`)
+		)
+	]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMAScopes` (
+			`parent` VARCHAR(45) NOT NULL,
+			`type` VARCHAR(45) NULL,
+			`data` VARCHAR(45) NULL,
+			PRIMARY KEY (`parent`)
+		)
+	]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMASettings` (
+			`parent` VARCHAR(45) NOT NULL,
+			`key` VARCHAR(45) NULL,
+			`value` VARCHAR(45) NULL,
+			PRIMARY KEY (`parent`, `key`)
+		)
+	]])
+
+	WUMASQL([[
+		CREATE TABLE IF NOT EXISTS `WUMAInheritance` (
+			`type` VARCHAR(45) NOT NULL,
+			`usergroup` VARCHAR(45) NULL,
+			`inheritFrom` VARCHAR(45) NULL,
+			PRIMARY KEY (`type`, `usergroup`)
+		)
+	]])
 
 	--Load shared files
 	WUMALog("Loading shared files")
-	WUMA.LoadCLFolder("wuma/shared/")
-	WUMA.LoadFolder("wuma/shared/")
+
+	include("wuma/shared/net.lua")
+	AddCSLuaFile("wuma/shared/net.lua")
 
 	--Load client files
 	WUMALog("Loading client files")
 	WUMA.LoadCLFolder("wuma/client/")
 
 	--Allow the poor scopes to think
-	Scope:StartThink()
+	--Scope:StartThink()
 
 	--Add hook so playerextention loads when the first player joins
 	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()
@@ -87,28 +154,40 @@ function WUMA.Initialize()
 	hook.Call("OnWUMALoaded")
 end
 
+function WUMA.SetSetting(parent, key, value)
+	if WUMA.Settings[parent] then
+		WUMA.Settings[parent][key] = value
+	end
+
+	WUMASQL([[INSERT INTO `WUMASettings` (`parent`, `key`, `value`) VALUES ("%s", "%s", "%s")]], parent, key, value)
+
+	hook.Call("WUMASettingChanged", nil, parent, key, value)
+end
+
+function WUMA.GetSetting(parent, key)
+	if WUMA.Settings[parent] then
+		return WUMA.Settings[parent][key]
+	end
+end
+
 --Override CreateConvar in order to find out if any addons are creating sbox_max limits
 local oldCreateConVar = CreateConVar
 function CreateConVar(...)
 	local args = {...}
 	if (string.Left(args[1], 8) == "sbox_max") then
-		table.insert(WUMA.ConVars.Limits, string.sub(args[1], 9))
+		WUMA.AdditionalLimits[string.sub(args[1], 9)] = true
 	end
 	return oldCreateConVar(...)
 end
 
 function WUMA.CreateConVar(...)
 	local convar = CreateConVar(...)
-	WUMA.ConVars.Settings[convar:GetName()] = convar:GetString()
+	local setting = string.sub(convar:GetName(), 6)
+
+	WUMA.Settings[setting] = convar:GetString()
 
 	cvars.AddChangeCallback(convar:GetName(), function(convar, old, new)
-		WUMA.ConVars.Settings[convar] = new
-
-		local tbl = {}
-		tbl[convar] = new
-		WUMA.GetAuthorizedUsers(function(users)
-			WUMA.SendInformation(users,WUMA.GetStream("settings"),tbl)
-		end)
+		WUMA.Settings[setting] = new
 	end)
 
 	return convar

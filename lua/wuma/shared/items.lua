@@ -1,8 +1,4 @@
 
-WUMA = WUMA or {}
-local WUMADebug = WUMADebug
-local WUMALog = WUMALog
-
 local function additionalEntitiesFromDuplicatorEntityClasses()
 	if (duplicator and duplicator.EntityClasses) then
 		local blacklist = {
@@ -63,21 +59,16 @@ local additionalEntitiesFunctions = {
 }
 
 function WUMA.GetAdditionalEntities()
-	if (CLIENT) then
-		return WUMA.AdditionalEntities or {}
-	else
-		local additional = {}
-		for _, func in pairs(additionalEntitiesFunctions) do
-			local success, info = pcall(function()
-				local add = func()
-				if add then
-					table.Add(additional, add)
-				end
-			end)
-		end
-		return additional
+	local additional = {}
+	for _, func in pairs(additionalEntitiesFunctions) do
+		local success, info = pcall(function()
+			local add = func()
+			if add then
+				table.Add(additional, add)
+			end
+		end)
 	end
-	return {}
+	return additional
 end
 
 local entities_cache

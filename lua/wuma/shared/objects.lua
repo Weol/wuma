@@ -12,34 +12,32 @@ local factory = {}
 function factory:AddProperty(name, accessor, default, setter_function, getter_function)
 	if setter_function ~= false then
 		setter_function = function(self, value) self[name] = value end
-		builder.metatable["Set" .. accessor] = setter_function
+		self.metatable["Set" .. accessor] = setter_function
 	end
 
 	if getter_function ~= false then
 		getter_function = function(self) return self[name] end
-		builder.metatable["Get" .. accessor] = getter_function
+		self.metatable["Get" .. accessor] = getter_function
 	end
 
-	self.properties[name] = default
+	self.properties[name] = function() return default end
 end
 
 function factory:AddMetaData(name, accessor, default, setter_function, getter_function)
 	if setter_function ~= false then
-		setter_function = function(self, value) self[name] = value end
-		builder.metatable["Set" .. accessor] = setter_function
+		setter_function = function(self, value) getmetatable(self)[name] = value end
+		self.metatable["Set" .. accessor] = setter_function
 	end
 
 	if getter_function ~= false then
-		getter_function = function(self) return self[name] end
-		builder.metatable["Get" .. accessor] = getter_function
+		getter_function = function(self) return getmetatable(self)[name] end
+		self.metatable["Get" .. accessor] = getter_function
 	end
 
-	self.metadata[name] = default
+	self.metadata[name] = function() return default end
 end
 
-factory.__index = factory
-
-WUMA.ClassFactory.Builder(classname)
+function WUMA.ClassFactory.Builder(classname)
 	local builder = {}
 	builder.metatable = {}
 	builder.static_functions = {}
@@ -49,40 +47,62 @@ WUMA.ClassFactory.Builder(classname)
 	builder.metatable._id = classname
 
 	setmetatable(builder, {
-		__newindex = function(k, v)
+		__newindex = function(_, k, v)
 			rawset(builder.metatable, k, v)
-		end
+		end,
+		__index = factory
 	})
 
 	return builder, builder.static_functions
 end
 
-WUMA.ClassFactory.Create(builder)
+function WUMA.ClassFactory.Create(builder)
 	local metatable = builder.metatable
 	local static_functions = builder.static_functions
 
 	static_functions._id = builder.metatable._id
 
-	static_functions.New = function(self, args)
+	static_functions.New = function(_, args)
 		args = args or {}
-		local obj = setmetatable({}, metatable)
+
+		local metadata = setmetatable({}, metatable)
+		local obj = setmetatable({}, metadata)
+
+		getmetatable(metadata).__index = metatable
+		getmetatable(obj).__index = metadata
 
 		for k, v in pairs(builder.properties) do
-			obj[k] = args[k] or v
+			if args[k] then
+				obj[k] = args[k]
+			else
+				if istable(v()) then
+					obj[k] = table.Copy(v())
+				else
+					obj[k] = v()
+				end
+			end
 		end
 
 		for k, v in pairs(builder.metadata) do
-			obj[k] = args[k] or v
+			if args[k] then
+				metadata[k] = args[k]
+			else
+				if istable(v()) then
+					metadata[k] = table.Copy(v())
+				else
+					metadata[k] = v()
+				end
+			end
 		end
 
-		obj._uniqueid = generateUniqueId()
+		metadata._uniqueid = generateUniqueId()
 
 		if builder.__construct then builder.__construct(obj, args) end
 
 		return obj
 	end
 
-	metatable.GetStatic = function(self) return static_functions end
+	metatable.GetStatic = function() return static_functions end
 
 	metatable.Export = function(self)
 		local tbl = {}

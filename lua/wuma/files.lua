@@ -45,7 +45,6 @@ end
 function WUMA.Files.Write(path, text)
 	path = string.lower(path)
 	file.Write(path, text)
-	file.asd()
 end
 
 function WUMA.Files.Read(path)

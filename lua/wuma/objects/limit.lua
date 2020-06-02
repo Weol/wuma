@@ -1,232 +1,37 @@
 
-Limit = {}
+local object, static = WUMA.ClassFactory.Builder("Limit")
 
-local object = {}
-local static = {}
+object:AddProperty("parent", "Parent")
+object:AddProperty("item", "Item")
+object:AddProperty("limit", "Limit")
+object:AddProperty("is_exclusive", "IsExclusive")
 
-Limit._id = "WUMA_Limit"
-object._id = "WUMA_Limit"
+object:AddMetaData("disabled", "IsDisabled")
+object:AddMetaData("entities", "Entities", {})
+object:AddMetaData("counts", "Counts", {})
 
-function Limit:new(tbl)
-	tbl = tbl or {}
-	local mt = table.Copy(object)
-	mt.m = {}
+function object:__construct(args)
+	if (tonumber(args.item) ~= nil) then error("item cannot be numeric") end
 
-	local obj = setmetatable({}, mt)
+	if (args.limit == args.item) then error("limit and item cannot be the same") end
 
-	obj.m._uniqueid = WUMA.GenerateUniqueID()
-
-	obj.string = tbl.string or nil
-	obj.limit = tbl.limit or 0
-	obj.usergroup = tbl.usergroup or nil
-	obj.exclusive = tbl.exclusive or nil
-
-	obj._id = Limit._id
-
-	obj.m.origin = tbl.origin or nil
-	obj.m.parent = tbl.parent or nil
-	if isstring(obj.m.parent) then obj.m.parentid = obj.m.parent elseif obj.m.parent then obj.m.parentid = obj.m.parent:SteamID() end
-	obj.m.count = tbl.count or 0
-	obj.m.entities = tbl.entities or {}
-	obj.m.callonempty = tbl.callonempty or {}
-
-	--No numeric adv. limits
-	if (tonumber(obj.string) ~= nil) then obj.string = ":"..obj.string..":" end
-
-	--Make sure limit and string cannot be the same
-	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
-
-	--Parse limit
-	if (tonumber(obj.limit) ~= nil) then obj.limit = tonumber(obj.limit) end
-
-	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permanent" end
-
-	return obj
-end
-
-function static:GetID()
-	return Limit._id
-end
-
-function static:GenerateID(usergroup, str)
-	if usergroup then
-		return string.format("%s_%s", usergroup, str)
-	else
-		return str
+	if not isnumber(args.limit) then
+		if (tonumber(args.limit) ~= nil) then
+			self:SetLimit(tonumber(args))
+		end
 	end
 end
 
-function static:GenerateHit(str, ply)
-	ply:SendLua(string.format([[
-		 WUMA.NotifyLimitHit("%s")
-	]], str))
+function static:GenerateID(parent, item)
+	return string.format("%s_%s", parent, item)
 end
 
 function object:__tostring()
-	return string.format("Limit [%s][%s/%s]", self:GetString(), tostring(self:GetCount()), tostring(self:Get()))
+	return string.format("Limit [%s]", self:GetItem())
 end
 
-function object:__call(ply)
-
-end
-
-function object:__eq(that)
-	if istable(that) and that._id and that._id == self._id then
-		return (self:Get() == that:Get())
-	elseif not(tonumber(that) == nil) then
-		return (self:Get() == that)
-	end
-	return false
-end
-
-function object:__lt(that)
-	if istable(that) and that._id and that._id == self._id then
-		return (self:Get() < that:Get())
-	elseif not(tonumber(that) == nil) then
-		return (self:Get() < that)
-	end
-	return false
-end
-
-function object:__le(that)
-	if istable(that) and that._id and that._id == self._id then
-		return (self:Get() <= that:Get())
-	elseif not(tonumber(that) == nil) then
-		return (self:Get() <= that)
-	end
-	return false
-end
-
-function object:Clone()
-	local copy = table.Copy(self)
-	local origin
-
-	if self.origin then
-		origin = self.origin
-	else
-		origin = self
-	end
-
-	copy.origin = origin
-	local obj = Limit:new(copy)
-
-	return obj
-end
-
-function object:GetUniqueID()
-	return self.m._uniqueid or false
-end
-
-function object:Delete()
-	--So that no entities point here
-	for id, entity in pairs(self.m.entities) do
-		entity:RemoveWUMAParent(entity)
-	end
-
-	if self.scope then
-		self.scope:Delete()
-	end
-end
-
-function object:Shred()
-	if self:IsPersonal() then
-		WUMA.RemoveUserLimit(_, self:GetParentID(), self:GetString())
-	else
-		WUMA.RemoveLimit(_, self:GetUserGroup(), self:GetString())
-	end
-end
-
-function object:IsPersonal()
-	if self.usergroup then return nil else return true end
-end
-
-function object:GetBarebones()
-	local tbl = {}
-	for k, v in pairs(self) do
-		if v or (v == 0) then
-			tbl[k] = v
-		end
-	end
-	return tbl
-end
-
-function object:CallOnEmpty(id, f)
-	if SERVER then
-		self.m.callonempty[id] = f
-	end
-end
-
-function object:NotifyEmpty()
-	if SERVER then
-		for _, f in pairs(self.m.callonempty) do f(self) end
-	end
-end
-
-function object:Get()
-	if self.m.limit then return self.m.limit end
-	return self.limit
-end
-
-function object:Set(c)
-	self.limit = c
-end
-
-function object:GetID(short)
-	if (not self:GetUserGroup()) or short then
-		return self.string
-	else
-		return string.format("%s_%s", self:GetUserGroup(), self:GetString())
-	end
-end
-
-function object:GetStatic()
-	return Limit
-end
-
-function object:GetCount()
-	return self.m.count
-end
-
-function object:SetCount(c)
-	if (c < 0) then c = 0 end
-	self.m.count = c
-end
-
-function object:GetParent()
-	return self.m.parent
-end
-
-function object:SetParent(user)
-	self.m.parent = user
-	if isstring(self.m.parent) then self.m.parentid = self.m.parent elseif self.m.parent then self.m.parentid = self.m.parent:SteamID() end
-end
-
-function object:GetUserGroup()
-	return self.usergroup
-end
-
-function object:GetOrigin()
-	return self.m.origin
-end
-
-function object:GetString()
-	return self.string
-end
-
-function object:SetString(str)
-	self.string = str
-end
-
-function object:IsExclusive()
-	return self.exclusive
-end
-
-function object:SetExclusive(bool)
-	self.exclusive = str
-end
-
-function object:GetParentID()
-	return self.m.parentid
+function object:GetID()
+	return string.format("%s_%s", self:GetParent(), self:GetItem())
 end
 
 function object:GetScope()
@@ -249,46 +54,16 @@ function object:DeleteScope()
 	self.scope = nil
 end
 
-function object:Disable()
-	self.m.disabled = true
-end
-
-function object:Enable()
-	self.m.disabled = false
-end
-
-function object:IsDisabled()
-	if self.m and self.m.disabled then return true end
-	return false
-end
-
-function object:SetAncestor(ancestor)
-	self.m.ancestor = ancestor
-end
-
-function object:GetAncestor()
-	return self.m.ancestor
-end
-
-function object:InheritEntities(limit)
-	self.m.entities = limit.m.entities
-	self:SetCount(limit:GetCount())
-
-	for id, entity in pairs(self.m.entities) do
-		entity:AddWUMAParent(self)
-	end
-end
-
-function object:Check(int)
+function object:Check(player, int)
 	if self:IsDisabled() then return end
 
-	local limit = int or self:Get()
+	local limit = int or self:GetLimit()
 
 	if istable(limit) then
 		if not limit:IsExclusive() then
-			return limit:Check()
+			return limit:Check(player)
 		else
-			return self:Check(limit:Get())
+			return self:Check(player, limit:Get())
 		end
 	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
 		return self:Check(self:GetParent():GetLimit(limit))
@@ -296,49 +71,51 @@ function object:Check(int)
 		return
 	end
 
+	local count = self:GetCounts()[player:SteamID()]
 	if (limit < 0) then return true end
-	if (limit <= self:GetCount()) then
-		self:Hit()
+	if (limit <= count) then
+		self:GetParent():SendLua(string.format([[WUMA.NotifyLimitHit("%s")]], self:GetItem()))
 		return false
 	end
 
 	return true
 end
 
-function object:Hit()
-	local str = self.print or self.string
+function object:Purge()
+	for id, entry in pairs(self:GetEntities()) do
+		local player, entity = unpack(entry)
+		entity:RemoveWUMAParent(entity)
+	end
 
-	self:GetParent():SendLua(string.format([[
-			WUMA.NotifyLimitHit("%s")
-		]], str))
+	self:SetCounts({})
+	self:SetEntities({})
 end
 
-function object:DeleteEntity(id)
-	self.m.entities[id] = nil
-	self:Subtract()
+function object:DeleteEntity(entity)
+	local player, entity = unpack(entity:GetEntities()[entity:GetCreationID()])
+
+	local counts = self:GetCounts()
+	counts[player:SteamID()] = (counts[player:SteamID()] or 0) - 1
+
+	if (counts[player:SteamID()] <= 0) then
+		counts[player:SteamID()] = nil
+	end
 end
 
-function object:Subtract(c)
-	c = tonumber(c) or 1
-	self:SetCount(self:GetCount() - c)
-	if (self:GetCount() == 0) then self:NotifyEmpty() end
-end
+function object:AddEntity(player, entity)
+	local entities = entity:GetEntities()
+	if (entities[entity:GetCreationID()]) then return end
 
-function object:Add(entity)
-	if (self.m.entities[entity:GetCreationID()]) then return end
+	local counts = self:GetCounts()
+	counts[player:SteamID()] = (counts[player:SteamID()] or 0) + 1
 
-	self:SetCount(self:GetCount() + 1)
-
-	local limit = self:Get()
-	if isstring(limit) and self:GetParent():HasLimit(limit) then
-		self:GetParent():GetLimit(limit):Add(entity)
+	local limit = self:GetLimit()
+	if istable(limit) then
+		limit:AddEntity(player, entity)
 	end
 
 	entity:AddWUMAParent(self)
-	self.m.entities[entity:GetCreationID()] = entity
+	entities[entity:GetCreationID()] = {player,  entity}
 end
 
-object.__index = object
-static.__index = static
-
-setmetatable(Limit, static)
+Limit = WUMA.ClassFactory.Create(object)

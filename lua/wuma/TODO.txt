@@ -1,5 +1,4 @@
+When creating the old format parser remember:
+    Make all models lowercase (effects, ragdolls, and props)
 
-These used to be in the clientside settings table, fix them somehow
-wuma_limit_count=table.Count(WUMA.Limits),
-wuma_restriction_count=table.Count(WUMA.Restrictions),
-wuma_loadout_count=table.Count(WUMA.Loadouts)
+Lagre last_pickup og last_use hos selve player classen
