@@ -1,37 +1,57 @@
 -------------------
 -- SUBSCRIPTIONS --
 -------------------
-local subscriptions = {}
+local subscribe_callbacks = {}
+local unsubscribe_callbacks = {}
 local subscription_data = {}
+local subscription_init = {}
 
 local unique_ids = 1
-function WUMA.Subscribe(...)
-	local args = {...}
-
-	local callback = table.remove(args)
+function WUMA.Subscribe(args)
+	local callback = args.callback
+	local on_unsubscribe = args.unsubscribe
 
 	assert(isfunction(callback))
+	assert(not on_unsubscribe or isfunction(callback))
 
-	local key = table.concat(args, "_")
-	local id = "id_" .. unique_ids
-	unique_ids = unique_ids + 1
+	local key = table.concat(args.args, "_")
 
-	local subscribe = (subscriptions[key] == nil)
+	local id = args.id
+	if not id then
+		id = "auto_generated_id_" .. unique_ids
+		unique_ids = unique_ids + 1
+	end
 
-	subscriptions[key] = subscriptions[key] or {}
-	subscriptions[key][id] = callback
+	if subscribe_callbacks[key] and subscribe_callbacks[key][id] then
+		return --A subscription with this unique id already exists
+	end
 
-	if subscription_data[key] then
-		callback(subscription_data[key], {})
+	local asd = callback
+	callback = function(...)
+		WUMADebug("Subscription of \"%s\":", key)
+		WUMADebug({...})
+		asd(...)
+	end
+
+	local subscribe = (subscribe_callbacks[key] == nil)
+
+	subscribe_callbacks[key] = subscribe_callbacks[key] or {}
+	subscribe_callbacks[key][id] = callback
+
+	if on_unsubscribe then
+		unsubscribe_callbacks[key] = unsubscribe_callbacks[key] or {}
+		unsubscribe_callbacks[key][id] = on_unsubscribe
+	end
+
+	if subscription_init[key] then
+		subscription_init[key](callback)
 	end
 
 	if subscribe then
-		WUMARPC("Subscribe", args)
-	end
+		table.insert(args.args, callback)
+		WUMA.RPC.Subscribe:Invoke(unpack(args.args))
 
-	return function()
-		subscriptions[key][id] = nil
-		WUMARPC("Unsubscribe", args)
+		hook.Call("WUMAOnSubscribed", nil, unpack(args.args))
 	end
 end
 
@@ -40,17 +60,25 @@ function WUMA.Unsubscribe(...)
 
 	local key = table.concat(args, "_")
 
-	subscriptions[key] = nil
+	subscribe_callbacks[key] = nil
+	unsubscribe_callbacks[key] = nil
 	subscription_data[key] = nil
+	subscription_init[key] = nil
 
-	WUMARPC("Unsubscribe", args)
+	for _, callback in pairs(unsubscribe_callbacks[key]) do
+		callback()
+	end
+
+	WUMA.RPC.Unsubscribe:Invoke(unpack(args))
 end
 
 function WUMA.FlushSubscriptions()
-	WUMARPC("FlushUserSubscriptions")
+	WUMA.RPC.FlushSubscriptions:Invoke()
 
-	subscriptions = {}
+	subscribe_callbacks = {}
+	unsubscribe_callbacks = {}
 	subscription_data = {}
+	subscription_init = {}
 end
 
 function WUMA.OnRestrictionsUpdate(parent, updated, deleted)
@@ -67,8 +95,12 @@ function WUMA.OnRestrictionsUpdate(parent, updated, deleted)
 		subscription_data[key][id] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
-		f(subscription_data[key], preprocessed, deleted)
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], parent, preprocessed, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
+		f(subscription_data[key], parent, preprocessed, deleted)
 	end
 end
 
@@ -86,8 +118,12 @@ function WUMA.OnLimitsUpdate(parent, updated, deleted)
 		subscription_data[key][id] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
-		f(subscription_data[key], preprocessed, deleted)
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], parent, preprocessed, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
+		f(subscription_data[key], parent, preprocessed, deleted)
 	end
 end
 
@@ -105,13 +141,17 @@ function WUMA.OnLoadoutsUpdate(parent, updated, deleted)
 		subscription_data[key][id] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
-		f(subscription_data[key], preprocessed, deleted)
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], parent, preprocessed, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
+		f(subscription_data[key], parent, preprocessed, deleted)
 	end
 end
 
 function WUMA.OnSettingsUpdate(parent, updated, deleted)
-	local key = "lodouts_" .. parent
+	local key = "settings_" .. parent
 
 	subscription_data[key] = subscription_data[key] or {}
 
@@ -120,8 +160,12 @@ function WUMA.OnSettingsUpdate(parent, updated, deleted)
 		subscription_data[key][id] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
-		f(subscription_data[key], updated, deleted)
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], parent, updated, deleted)
+	end
+
+	for unsubscribe_callbacks, f in pairs(subscribe_callbacks[key]) do
+		f(subscription_data[key], parent, updated, deleted)
 	end
 end
 
@@ -138,13 +182,24 @@ function WUMA.OnUsergroupUpdate(updated, deleted)
 		subscription_data[key][usergroup] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], updated, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
 		f(subscription_data[key], updated, deleted)
 	end
 end
 
 function WUMA.OnInheritanceUpdate(type, updated, deleted)
 	local key = "inheritance"
+
+	if not type then
+		for type, updated in pairs(updated) do
+			WUMA.OnInheritanceUpdate(type, updated, deleted)
+		end
+		return
+	end
 
 	subscription_data[key] = subscription_data[key] or {}
 
@@ -159,7 +214,13 @@ function WUMA.OnInheritanceUpdate(type, updated, deleted)
 		end
 	end
 
-	for id, f in pairs(subscriptions[key]) do
+	subscription_init[key] = function(callback)
+		for type, data in pairs(subscription_data[key]) do
+			callback(subscription_data[key], type, data, deleted)
+		end
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
 		f(subscription_data[key], type, updated, deleted)
 	end
 end
@@ -177,7 +238,11 @@ function WUMA.OnMapsUpdate(updated, deleted)
 		subscription_data[key][map] = nil
 	end
 
-	for id, f in pairs(subscriptions[key]) do
-		f(updated, deleted)
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], updated, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key]) do
+		f(subscription_data[key], updated, deleted)
 	end
 end

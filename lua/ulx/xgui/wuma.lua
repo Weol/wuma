@@ -24,7 +24,7 @@ local function OnWUMAInitialized(panel)
 
 		pcall(function()
 			if (tbl[2]:GetValue() == "WUMA") then
-				WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTabs.TabName)
+				WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTab.TabName)
 			end
 		end)
 

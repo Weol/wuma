@@ -137,7 +137,7 @@ function PANEL:Init()
 	local sort = function(data)
 		return self:GetSelectedUser()
 	end
-	self.limits:GetDataView():SetSortFunction(sort)
+	self.limits:GetDataView():SetClassifyFunction(sort)
 
 	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLimitUpdate", function(user, type, update)
 		if (user == self:GetSelectedUser()) and (type == Limit:GetID()) then
@@ -194,7 +194,7 @@ function PANEL:Init()
 	local sort = function(data)
 		return self:GetSelectedUser()
 	end
-	self.loadouts:GetDataView():SetSortFunction(sort)
+	self.loadouts:GetDataView():SetClassifyFunction(sort)
 
 	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLoadoutUpdate", function(user, type, update)
 		if (user == self:GetSelectedUser()) and (type == Loadout:GetID()) then
@@ -248,7 +248,7 @@ function PANEL:Init()
 		end
 		return "kek"
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetClassifyFunction(sort)
 
 	local function updateUserList()
 		self:GetDataView():SetDataSource(function() return WUMA.LookupUsers end)

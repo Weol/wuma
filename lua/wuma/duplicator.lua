@@ -26,7 +26,7 @@ if AdvDupe then
 end
 
 if AdvDupe2 then
-	hook.Add("AdvDupe_FinishPasting", "WUMAAdvDupeFinishedPasting", function(data)
+	hook.Add("AdvDupe_FinishPasting", "WUMA_DUPLICATOR_AdvDupe_FinishPasting", function(data)
 		local user = data[1].Player
 		if user then
 			for _, entity in pairs(data[1].CreatedEntities) do

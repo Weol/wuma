@@ -1,39 +1,53 @@
 
-if SERVER then return end
-
 WUMA = WUMA or {}
-WUMA.Usergroups = WUMA.Usergroups or {}
 
---Enums
-WUMA.DELETE = "WUMA_delete"
-WUMA.EMPTY = "WUMA_empty"
-WUMA.ERROR = "WUMA_error"
+--Create server convars so we can access them on client side
+CreateConVar("wuma_exclude_limits", "1", FCVAR_REPLICATED, "Exclude wuma limits from normal gamemode limits")
+CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", FCVAR_REPLICATED, "Chat command to open the loadout selector")
+CreateConVar("wuma_log_level", "1", FCVAR_REPLICATED, "0=None, 1=Normal, 2=Debug")
+CreateConVar("wuma_echo_changes", "2", FCVAR_REPLICATED, "0 = Nobody, 1 = Access, 2 = Everybody, 3 = Relevant")
+CreateConVar("wuma_echo_to_chat", "1", FCVAR_REPLICATED, "Enable / disable echo in chat.")
 
 function WUMA.Initialize()
 
 	include("log.lua")
 	include("datahandler.lua")
-	include("gui.lua")
+
+	--Include object factory before loading objects
+	include("wuma/shared/objects.lua")
+	AddCSLuaFile("wuma/shared/objects.lua")
 
 	WUMADebug("Loading objects")
-	include("wuma/shared/objects.lua")
-	include("wuma/objects/object.lua")
-	include("wuma/objects/userobject.lua")
-	include("wuma/objects/access.lua")
-	include("wuma/objects/stream.lua")
-	include("wuma/objects/scope.lua")
-	include("wuma/objects/loadout.lua")
-	include("wuma/objects/loadout_weapon.lua")
-	include("wuma/objects/restriction.lua")
-	include("wuma/objects/limit.lua")
+	WUMA.IncludeFolder("wuma/objects/")
 
-	--Load shared folder
-	WUMADebug("Loading shared folder")
-	WUMA.IncludeFolder("wuma/shared/")
+	--Include CAMI before files that depend on it
+	include("wuma/shared/cami.lua")
+	AddCSLuaFile("wuma/shared/cami.lua")
+
+	--Include net functions before files that depennd on it
+	include("wuma/shared/net.lua")
+	AddCSLuaFile("wuma/shared/net.lua")
+
+	--Include RPC functions
+	include("wuma/shared/rpc.lua")
+	AddCSLuaFile("wuma/shared/rpc.lua")
+
+	--Include subscription functions
+	include("wuma/shared/subscriptions.lua")
+	AddCSLuaFile("wuma/shared/subscriptions.lua")
+
+	--restriction_types.lua is dependent of stuff in here
+	include("wuma/shared/items.lua")
+	AddCSLuaFile("wuma/shared/items.lua")
+
+	include("wuma/shared/restriction_types.lua")
+	AddCSLuaFile("wuma/shared/restriction_types.lua")
 
 	--Load vgui folder
 	WUMADebug("Loading VGUI folder")
 	WUMA.IncludeFolder("wuma/client/vgui/")
+
+	include("gui.lua")
 
 	--All overides should be loaded after WUMA
 	hook.Call("OnWUMALoaded")

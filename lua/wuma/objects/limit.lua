@@ -41,7 +41,7 @@ end
 function object:SetScope(scope)
 	if not self:GetOrigin() then
 		self.scope = scope
-		if not scope.m then self.scope = Scope:new(scope) end
+		if not scope.m then self.scope = Scope:New(scope) end
 
 		self.scope:SetParent(self)
 

@@ -1,40 +1,13 @@
 
 local PANEL = {}
 
-AccessorFunc(PANEL, "SortFunction", "SortFunction")
-AccessorFunc(PANEL, "DisplayFunction", "DisplayFunction")
-AccessorFunc(PANEL, "RightClickFunction", "RightClickFunction")
-AccessorFunc(PANEL, "HighlightFunction", "HighlightFunction")
+AccessorFunc(PANEL, "ClassifyFunction", "ClassifyFunction")
 
 function PANEL:Init()
-	self.PropertyViewer = vgui.Create("WPropertyView", self)
-	self.PropertyViewer:SetSize(120, 200)
-
 	self.Keys = {}
 	self.Groups = {}
-	self.SortedData = {}
 	self.DataRegistry = {}
-	self.DataSource = function() return {} end
-end
-
-function PANEL:SortByColumn(ColumnID, Desc)
-	table.Copy(self.Sorted, self.Lines)
-
-	table.sort(self.Sorted, function(a, b)
-
-		if (Desc) then
-			a, b = b, a
-		end
-
-		local aval = a:GetSortValue(ColumnID) || a:GetColumnText(ColumnID)
-		local bval = b:GetSortValue(ColumnID) || b:GetColumnText(ColumnID)
-
-		return aval < bval
-
-	end)
-
-	self:SetDirty(true)
-	self:InvalidateLayout()
+	self.DataSources = {}
 end
 
 function PANEL:GetSelectedItems()
@@ -42,98 +15,59 @@ function PANEL:GetSelectedItems()
 
 	local tbl = {}
 	for _, v in pairs(selected) do
-		table.insert(tbl, self:GetDataSource()[v.id])
+		table.insert(tbl, v.value)
 	end
 
 	return tbl
 end
 
-function PANEL:CheckHighlight(line, data, datav)
-	local color = self.HighlightFunction(line, data, datav)
-	if color then
-		line.mark = true
-		if not line.old_paint then
-			line.old_paint = line.Paint
-			line.Paint = function(panel, w, h)
-				line.old_paint(panel, w, h)
-				if panel.mark then
-					surface.SetDrawColor(color)
-					surface.DrawRect(0, 0, w, h)
+function PANEL:AddViewLine(key)
+	if self.Keys[key] then
+		local item = self.Keys[key]
+
+		local line = self:AddLine(unpack(item.display))
+		line.key = key
+		line.group = item.group
+		line.value = item.value
+
+		if item.highlight then
+			line.mark = true
+			if not line.old_paint then
+				line.old_paint = line.Paint
+				line.Paint = function(panel, w, h)
+					line.old_paint(panel, w, h)
+					if panel.mark then
+						surface.SetDrawColor(item.highlight)
+						surface.DrawRect(0, 0, w, h)
+					end
 				end
 			end
+		else
+			line.mark = nil
 		end
-	elseif (line.mark) then
-		line.mark = nil
-	end
-end
 
-function PANEL:CheckHighlights()
-	if self.HighlightFunction then
-		for group, lns in pairs(self.DataRegistry) do
-			for id, line in pairs(lns) do
-				local data = {}
-				for _, v in pairs(line.Columns) do
-					table.insert(data, v.Value)
-				end
+		if item.sort then line.Data = item.sort end
 
-				if self:GetDataSource()[id] then
-					self:CheckHighlight(line, data, self:GetDataSource()[id])
-				end
-			end
-		end
-	end
-end
-
-function PANEL:OnRowRightClick()
-	if self.RightClickFunction then
-		local item = self:GetSelectedItems()[1]
-
-		if item then
-			local tbl = self.RightClickFunction(item)
-
-			self.PropertyViewer:SetProperties(tbl)
-
-			local x, y = self:CursorPos()
-			if (y+self.PropertyViewer:GetTall() > self:GetTall()) then y = (y-self.PropertyViewer:GetTall()) end
-			self.PropertyViewer:Show(x, y)
-		end
-	end
-end
-
-function PANEL:AddViewLine(id)
-	local item = self:GetDataSource()[id]
-
-	if item then
-		local data, datav = self.DisplayFunction(item)
-
-		local line = self:AddLine(unpack(data))
-		line.id = id
-
-		if self.HighlightFunction then self:CheckHighlight(line, data, self:GetDataSource()[id]) end
-
-		if datav then line.Data = datav end
-
-		self.DataRegistry[self.Keys[id]] = self.DataRegistry[self.Keys[id]] or {}
-		self.DataRegistry[self.Keys[id]][id] = line
+		self.DataRegistry[item.group] = self.DataRegistry[item.group] or {}
+		self.DataRegistry[item.group][key] = line
 
 		self:OnViewChanged()
-	else
-		self.Keys[id] = nil
-		if self.Groups[self.Keys[id]] then
-			self.Groups[self.Keys[id]][key] = nil
-			if (table.Count(self.Groups[self.Keys[id]]) < 1) then
-				self.Groups[self.Keys[id]] = nil
-			end
-		end
 	end
 end
 
-function PANEL:RemoveViewLine(id)
-	local line = self.DataRegistry[self.Keys[id]][id]
-	self:RemoveLine(line:GetID())
-	self.DataRegistry[self.Keys[id]][id] = nil
+function PANEL:RemoveViewLine(key)
+	if not self.Keys[key] then return end
 
-	self:OnViewChanged()
+	local group = self.Keys[key].group
+
+	local line = self.DataRegistry[group] and self.DataRegistry[group][key]
+
+	if line then
+		self:RemoveLine(line:GetID())
+		self.DataRegistry[group][key] = nil
+
+		self:OnViewChanged()
+	end
 end
 
 function PANEL:OnViewChanged()
@@ -144,30 +78,19 @@ function PANEL:OnDataUpdate()
 
 end
 
-function PANEL:Sort(key, item)
-	local group = self.SortFunction(item)
+function PANEL:Show(key)
+	if not istable(key) then key = {key} end
 
-	self.Keys[key] = group
-	self.Groups[group] = self.Groups[group] or {}
-	self.Groups[group][key] = 1 --Its really the key we are saving
-
-	return group
-end
-
-function PANEL:Show(id)
-	if not istable(id) then id = {id} end
-	self.CurrentGroup = id
-
-	for group, lns in pairs(self.DataRegistry) do
-		if not table.HasValue(id, group) then
-			for key, line in pairs(lns) do
+	for group, lines in pairs(self.DataRegistry) do
+		if not table.HasValue(key, group) then
+			for key, _ in pairs(lines) do
 				self:RemoveViewLine(key)
 			end
-			self.DataRegistry[group] = nil
+			self.DataRegistry[group]  = nil
 		end
 	end
 
-	for _, group in pairs(id) do
+	for _, group in pairs(key) do
 		if not self.DataRegistry[group] then
 			self.DataRegistry[group] = {}
 			for key, _ in pairs(self.Groups[group] or {}) do
@@ -177,61 +100,76 @@ function PANEL:Show(id)
 	end
 end
 
-function PANEL:ClearView()
-	self.SortedData = {}
-	self.DataRegistry = {}
-	self:Clear()
+function PANEL:Sort(key, value)
+	local group, display, sort, highlight = self.ClassifyFunction(value)
 
-	self:SortAll()
+	self.Groups[group] = self.Groups[group] or {}
+	self.Groups[group][key] = true
+
+	self.Keys[key] = {
+		value = value,
+		group = group,
+		display = display,
+		sort = sort,
+		highlight = highlight,
+	}
+
+	return group, display, sort
 end
 
 function PANEL:SortAll()
 	self.Groups = {}
 	self.Keys = {}
 
- 	for k, v in pairs(self:GetDataSource()) do
-		self:Sort(k, v)
-	end
-end
-
-function PANEL:SetDataSource(func)
-	self.DataSource = func
-	self.SortedData = {}
-	self.DataRegistry = {}
-	self:Clear()
-
-	self:SortAll()
-end
-
-function PANEL:GetDataSource()
-	return self.DataSource()
-end
-
-function PANEL:OnDataSourceUpdated(updated, deleted)
-	for key, value in pairs(update) do
-		if not isstring(value) then
-			self:Sort(key, value)
-
-			if self.DataRegistry[self.Keys[key]] and self.DataRegistry[self.Keys[key]][key] then
-				local line = self.DataRegistry[self.Keys[key]][key]
-				local data, datav = self.DisplayFunction(self:GetDataSource()[key])
-
-				for k, v in pairs(data) do
-					line:SetColumnText(k, v)
-				end
-				line.Data = datav or {}
-
-				self:InvalidateLayout()
-			elseif self.DataRegistry[self.Keys[key]] then
-				self:AddViewLine(key)
-			end
-		else
-			if self.DataRegistry[self.Keys[key]] and self.DataRegistry[self.Keys[key]][key] then
-				self:RemoveViewLine(key)
-			end
+	for id, source in pairs(self:GetDataSources()) do
+		for k, v in pairs(source) do
+			self:Sort(id .. "_" .. k, v)
 		end
 	end
-	self:CheckHighlights()
+end
+
+function PANEL:AddDataSource(id, source)
+	if self.DataSources[id] ~= source then
+		local keys = table.GetKeys(source)
+
+		self.DataSources[id] = source
+
+		self:UpdateDataSource(id, source, keys)
+	end
+end
+
+function PANEL:GetDataSources()
+	return self.DataSources
+end
+
+function PANEL:UpdateDataSource(id, updated, deleted)
+	for key, value in pairs(updated) do
+		key = id .. "_" .. key
+
+		local group, display, sort = self:Sort(key, value)
+
+		if self.DataRegistry[group] and self.DataRegistry[group][key] then
+			local line = self.DataRegistry[group][key]
+
+			for k, v in pairs(display) do
+				line:SetColumnText(k, v)
+			end
+			line.Data = sort or {}
+
+			self:InvalidateLayout()
+		elseif self.DataRegistry[group] then
+			self:AddViewLine(key)
+		end
+	end
+
+	for _, key in pairs(deleted) do
+		key = id .. "_" .. key
+
+		if self.Keys[key] and self.DataRegistry[self.Keys[key].group] and self.DataRegistry[self.Keys[key].group][key] then
+			self:RemoveViewLine(key)
+		end
+	end
+
 	self:OnDataUpdate()
 end
 

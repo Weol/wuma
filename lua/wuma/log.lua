@@ -1,6 +1,6 @@
 
 
-local log_level = WUMA.CreateConVar("wuma_log_level", "1", FCVAR_ARCHIVE, "0=None, 1=Normal, 2=Debug")
+local log_level = CreateConVar("wuma_log_level", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "0=None, 1=Normal, 2=Debug", 0, 2)
 
 local function safeFormat(msg, args)
 	if not args then return string.format(msg, "NO_ARGS") end

@@ -31,17 +31,19 @@ function WUMA.Initialize()
 	include("wuma/shared/cami.lua")
 	AddCSLuaFile("wuma/shared/cami.lua")
 
-	--Shared init is dependent of stuff in here
+	--Include net functions before files that depennd on it
+	include("wuma/shared/net.lua")
+	AddCSLuaFile("wuma/shared/net.lua")
+
+	--restriction_types.lua is dependent of stuff in here
 	include("wuma/shared/items.lua")
 	AddCSLuaFile("wuma/shared/items.lua")
 
-	--Include and run shared init
-	include("wuma/shared/init.lua")
-	AddCSLuaFile("wuma/shared/init.lua")
+	include("wuma/shared/restriction_types.lua")
+	AddCSLuaFile("wuma/shared/restriction_types.lua")
 
 	--Include core
 	include("wuma/util.lua")
-	include("wuma/commands.lua")
 	include("wuma/users.lua")
 	include("wuma/limits.lua")
 	include("wuma/restrictions.lua")
@@ -49,10 +51,16 @@ function WUMA.Initialize()
 	include("wuma/inheritance.lua")
 	include("wuma/hooks.lua")
 	include("wuma/duplicator.lua")
-	include("wuma/rpc.lua")
-	include("wuma/subscriptions.lua")
 	include("wuma/extentions/playerextention.lua")
 	include("wuma/extentions/entityextention.lua")
+
+	--Include RPC functions
+	include("wuma/shared/rpc.lua")
+	AddCSLuaFile("wuma/shared/rpc.lua")
+
+	--Include subscription functions
+	include("wuma/shared/subscriptions.lua")
+	AddCSLuaFile("wuma/shared/subscriptions.lua")
 
 	--Register WUMA access with CAMI
 	CAMI.RegisterPrivilege{Name="wuma gui", MinAccess="superadmin", Description="Access to WUMA GUI"}
@@ -74,9 +82,9 @@ function WUMA.Initialize()
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMARestrictions` (
-			`type` VARCHAR(45) NOT NULL,
-			`parent` VARCHAR(45) NOT NULL,
-			`item` VARCHAR(45) NOT NULL,
+			`type` TEXT NOT NULL,
+			`parent` TEXT NOT NULL,
+			`item` TEXT NOT NULL,
 			`is_anti` INT(1) NULL,
 			PRIMARY KEY (`type`, `parent`, `item`)
 		)
@@ -84,9 +92,9 @@ function WUMA.Initialize()
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMALimits` (
-			`parent` VARCHAR(45) NOT NULL,
-			`item` VARCHAR(45) NOT NULL,
-			`limit` INT NOT NULL,
+			`parent` TEXT NOT NULL,
+			`item` TEXT NOT NULL,
+			`limit` TEXT NOT NULL,
 			`is_exclusive` INT(1) NULL,
 			PRIMARY KEY (`parent`, `item`)
 		)
@@ -94,8 +102,8 @@ function WUMA.Initialize()
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMALoadouts` (
-			`parent` INT NOT NULL,
-			`class` VARCHAR(45) NOT NULL,
+			`parent` TEXT NOT NULL,
+			`class` TEXT NOT NULL,
 			`primary_ammo` INT NULL,
 			`secondary_ammo` INT NULL,
 			`ignore_restrictions` INT(1) NULL,
@@ -105,36 +113,33 @@ function WUMA.Initialize()
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMAScopes` (
-			`parent` VARCHAR(45) NOT NULL,
-			`type` VARCHAR(45) NULL,
-			`data` VARCHAR(45) NULL,
+			`parent` TEXT NOT NULL,
+			`type` TEXT NULL,
+			`data` TEXT NULL,
 			PRIMARY KEY (`parent`)
 		)
 	]])
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMASettings` (
-			`parent` VARCHAR(45) NOT NULL,
-			`key` VARCHAR(45) NULL,
-			`value` VARCHAR(45) NULL,
+			`parent` TEXT NOT NULL,
+			`key` TEXT NULL,
+			`value` TEXT NULL,
 			PRIMARY KEY (`parent`, `key`)
 		)
 	]])
 
 	WUMASQL([[
 		CREATE TABLE IF NOT EXISTS `WUMAInheritance` (
-			`type` VARCHAR(45) NOT NULL,
-			`usergroup` VARCHAR(45) NULL,
-			`inheritFrom` VARCHAR(45) NULL,
+			`type` TEXT NOT NULL,
+			`usergroup` TEXT NULL,
+			`inheritFrom` TEXT NULL,
 			PRIMARY KEY (`type`, `usergroup`)
 		)
 	]])
 
-	--Load shared files
-	WUMALog("Loading shared files")
-
-	include("wuma/shared/net.lua")
-	AddCSLuaFile("wuma/shared/net.lua")
+	--Load inheritance from database
+	WUMA.LoadInheritance()
 
 	--Load client files
 	WUMALog("Loading client files")
@@ -144,10 +149,10 @@ function WUMA.Initialize()
 	--Scope:StartThink()
 
 	--Add hook so playerextention loads when the first player joins
-	hook.Add("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit", function()
+	hook.Add("PlayerAuthed", "WUMA_INIT_PlayerAuthed", function()
 		include("wuma/extentions/playerextention.lua")
 		if E2Lib then include("wuma/expression2.lua") end
-		hook.Remove("PlayerAuthed", "WUMAPlayerAuthedPlayerExtentionInit")
+		hook.Remove("PlayerAuthed", "WUMA_INIT_PlayerAuthed")
 	end)
 
 	--All overides should be loaded after WUMA
@@ -159,16 +164,43 @@ function WUMA.SetSetting(parent, key, value)
 		WUMA.Settings[parent][key] = value
 	end
 
-	WUMASQL([[INSERT INTO `WUMASettings` (`parent`, `key`, `value`) VALUES ("%s", "%s", "%s")]], parent, key, value)
+	if value then
+		WUMASQL([[REPLACE INTO `WUMASettings` (`parent`, `key`, `value`) VALUES ("%s", "%s", "%s")]], parent, key, value)
+	else
+		WUMASQL([[DELETE FROM `WUMASettings` WHERE `parent` == "%s" AND `key` == "%s"]], parent, key)
+	end
 
-	hook.Call("WUMASettingChanged", nil, parent, key, value)
+	hook.Call("WUMAOnSettingChanged", nil, parent, key, value)
 end
 
 function WUMA.GetSetting(parent, key)
-	if WUMA.Settings[parent] then
-		return WUMA.Settings[parent][key]
-	end
+	local settings = WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s" AND `key` == "%s"]], parent, key)
+	return settings[1]
 end
+
+function WUMA.ReadSettings(parent)
+	return WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s"]], parent)
+end
+
+local function userDisconnect(user)
+	WUMA.Settings[user:SteamID()] = nil
+end
+hook.Add("PlayerDisconnected", "WUMA_INIT_PlayerDisconnected", userDisconnect)
+
+local function playerInitialSpawn(player)
+	WUMA.Settings[player:SteamID()] = WUMA.ReadSettings(player:SteamID()) or {}
+end
+hook.Add("PlayerInitialSpawn", "WUMA_INIT_PlayerInitialSpawn", playerInitialSpawn)
+
+local function usergroupRegistered(usergroup)
+	WUMA.Settings[usergroup] = WUMA.ReadSettings(usergroup) or {}
+end
+hook.Add("CAMI.OnUsergroupRegistered", "WUMA_INIT_CAMI.OnUsergroupRegistered", usergroupRegistered)
+
+local function usergroupUnregistered(usergroup)
+	WUMA.Settings[usergroup] = nil
+end
+hook.Add("CAMI.OnUsergroupUnregistered", "WUMA_INIT_CAMI.OnUsergroupUnregistered", usergroupUnregistered)
 
 --Override CreateConvar in order to find out if any addons are creating sbox_max limits
 local oldCreateConVar = CreateConVar
@@ -178,19 +210,6 @@ function CreateConVar(...)
 		WUMA.AdditionalLimits[string.sub(args[1], 9)] = true
 	end
 	return oldCreateConVar(...)
-end
-
-function WUMA.CreateConVar(...)
-	local convar = CreateConVar(...)
-	local setting = string.sub(convar:GetName(), 6)
-
-	WUMA.Settings[setting] = convar:GetString()
-
-	cvars.AddChangeCallback(convar:GetName(), function(convar, old, new)
-		WUMA.Settings[setting] = new
-	end)
-
-	return convar
 end
 
 function WUMA.LoadFolder(dir)

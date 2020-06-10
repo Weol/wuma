@@ -1,7 +1,11 @@
 
 local PANEL = {}
 
+AccessorFunc(PANEL, "settings", "Settings")
+
 function PANEL:Init()
+
+	self:SetSettings({})
 
 	--Restriction types list
 	self.list_types = vgui.Create("DListView", self)
@@ -14,7 +18,7 @@ function PANEL:Init()
 	self.list_usergroups = vgui.Create("DListView", self)
 	self.list_usergroups:SetMultiSelect(true)
 	self.list_usergroups:AddColumn("Usergroups")
-	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupChange(lineid, line) end
+	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupChanged(lineid, line) end
 
 	--Search bar
 	self.textbox_search = vgui.Create("WTextbox", self)
@@ -42,40 +46,28 @@ function PANEL:Init()
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Item")
 	self.list_items:AddColumn("Scope")
-	self.list_items.OnRowSelected = function(_, id, line) self:OnItemSelected(id, line) end
+	self.list_items:SetClassifyFunction(function(...) return self:ClassifyRestriction(...) end)
 
 	--Whitelist checkbox
-	self.checkbox_whitelist = vgui.Create("DCheckBoxLabel", self)
+	self.checkbox_whitelist = vgui.Create("WCheckBoxLabel", self)
 	self.checkbox_whitelist:SetText("This list is a whitelist")
 	self.checkbox_whitelist:SetTextColor(Color(0, 0, 0))
-	self.checkbox_whitelist:SetValue(false)
-	self.checkbox_whitelist:SetVisible(false)
-	self.checkbox_whitelist.OnChange = function() self:OnWhitelistCheckboxChanged(self.checkbox_whitelist:GetChecked()) end
+	self.checkbox_whitelist:SetValue(-1)
+	self.checkbox_whitelist.OnChange = function(_, val) self:OnWhitelistCheckboxChanged(val) end
 
 	--All checkbox
-	self.checkbox_restrictall = vgui.Create("DCheckBoxLabel", self)
+	self.checkbox_restrictall = vgui.Create("WCheckBoxLabel", self)
 	self.checkbox_restrictall:SetTextColor(Color(0, 0, 0))
-	self.checkbox_restrictall:SetValue(false)
-	self.checkbox_restrictall:SetVisible(false)
-	self.checkbox_restrictall.OnChange = function() self:OnRestrictAllCheckboxChanged(self.checkbox_restrictall:GetChecked()) end
+	self.checkbox_restrictall:SetValue(-1)
+	self.checkbox_restrictall.OnChange = function(_, val) self:OnRestrictAllCheckboxChanged(val) end
 
 	for _, type in pairs(WUMA.RestrictionTypes) do
-		self.list_types:AddLine(type:GetPrint2())
+		self.list_types:AddLine(type:GetPrint())
 	end
 	self.list_types:SelectFirstItem()
-
-	WUMA.Subscribe("usergroups", function(usergroups, added, deleted)
-		list_usergroups:Clear()
-		for _, usergroup in pairs(usergroups) do
-			self.list_usergroups:AddLine(usergroup)
-		end
-		self.list_usergroups:SelectFirstItem()
-	end)
-
 end
 
 function PANEL:PerformLayout()
-
 	self.list_types:SetPos(5, 5)
 	self.list_types:SizeToContents()
 	self.list_types:SetWide(100)
@@ -96,33 +88,43 @@ function PANEL:PerformLayout()
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y-self.list_suggestions.y-5)
 
 	self.list_items:SetPos(self.list_types.x+5+self.list_types:GetWide(), 5)
-	self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5, self:GetTall()-10)
+	self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5, self:GetTall()-self.checkbox_whitelist:GetTall() - 20)
 
 	self.checkbox_whitelist:SetPos(self.list_items.x + 5, self.list_items.y+self.list_items:GetTall()+5)
 
-	self.checkbox_restrictall:SetPos(self.checkbox_whitelist.x + self.checkbox_whitelist:GetWide() + 5, (self:GetTall() - 5 )-self.checkbox_restrictall:GetTall())
+	self.checkbox_restrictall:SetPos(self.checkbox_whitelist.x + self.checkbox_whitelist:GetWide() + 10, self.checkbox_whitelist.y)
+end
 
+function PANEL:ClassifyRestriction(restriction)
+	local group = restriction:GetType() .. "_" .. restriction:GetParent()
+
+	return group, {restriction:GetParent(), restriction:GetItem(), restriction:GetScope()}
 end
 
 function PANEL:ReloadSuggestions(type)
 	if self.list_suggestions then
-		local items = RestrictionTypes[type]:GetItems()
+		local items = WUMA.RestrictionTypes[type]:GetItems()
 
-		if not items then
+		if table.IsEmpty(items) then
 			self.list_suggestions:SetDisabled(true)
 			self.list_suggestions:Clear()
 		else
 			self.list_suggestions:SetDisabled(false)
 
-			self:PopulateList("list_suggestions", items(), true)
+			self.list_suggestions:Clear()
+			for k, v in pairs(items) do
+				self.list_suggestions:AddLine(v)
+			end
+			self.list_suggestions:SelectFirstItem()
 		end
 	end
 end
 
 function PANEL:GetSelectedType()
-	if not self.list_types:GetSelected()[1] then return false end
-	for k, v in pairs(Restriction:GetTypes()) do
-		if (v.print == self.list_types:GetSelected()[1]:GetValue(1)) then
+	if not self.list_types:GetSelected()[1] then return end
+
+	for k, restriction_type in pairs(WUMA.RestrictionTypes) do
+		if (restriction_type:GetPrint() == self.list_types:GetSelected()[1]:GetValue(1)) then
 			return k
 		end
 	end
@@ -130,13 +132,13 @@ end
 
 function PANEL:GetSelectedSuggestions()
 	if not self.list_suggestions:GetSelectedLine() then
-		local typ = self:GetSelectedType()
-		if not Restriction:GetTypes()[typ].items then
+		if (self.textbox_search:GetValue() ~= "") then
 			return {self.textbox_search:GetValue()}
 		else
 			return {}
 		end
 	end
+
 	local tbl = {}
 	for _, v in pairs(self.list_suggestions:GetSelected()) do
 		table.insert(tbl, v:GetColumnText(1))
@@ -146,48 +148,46 @@ function PANEL:GetSelectedSuggestions()
 end
 
 function PANEL:GetSelectedUsergroups()
-	if not self.list_usergroups:GetSelected() then return false end
+	if not self.list_usergroups:GetSelected() then return {} end
 
 	local tbl = {}
 	for _, v in pairs(self.list_usergroups:GetSelected()) do
-		table.insert(tbl, v:GetColumnText(1))
+		tbl[v:GetColumnText(1)] = v:GetColumnText(1)
 	end
 
 	return tbl
 end
 
-function PANEL:GetSelectedScope()
-	if not self or not self.list_scopes or not self.list_scopes:GetSelected() or (table.Count(self.list_scopes:GetSelected()) < 1) then return nil end
-
-	local selected = self.list_scopes:GetSelected()[1]:GetValue(1)
-	local scope = nil
-
-	if (selected == "Permanent") then return nil end
-
-	for k, v in pairs(Scope:GetTypes()) do
-		if (v.print == selected) then
-			local data = false
-			if v.parts then
-				if not self[v.parts[1]]:GetArgument() then return nil end
-
-				data = self[v.parts[1]]:GetArgument()
-
-				if v.processdata then data = v.processdata(data) end
-			end
-
-			scope = {type=k, data=data}
-			break
-		end
+function PANEL:NotifyRestrictionsChanged(restrictions, parent, updated, deleted)
+	if (restrictions ~= self.list_items:GetDataSources()[parent]) then
+		self.list_items:AddDataSource(parent, restrictions)
+	else
+		self.list_items:UpdateDataSource(parent, updated, deleted)
 	end
+end
 
-	return util.TableToJSON(scope)
+function PANEL:NotifyUsergroupsChanged(usergroups)
+	self.list_usergroups:Clear()
+	for _, usergroup in pairs(usergroups) do
+		self.list_usergroups:AddLine(usergroup)
+	end
+	self.list_usergroups:SelectFirstItem()
+end
+
+function PANEL:NotifySettingsChanged(parent, new_settings)
+	local settings = self:GetSettings()
+	if table.IsEmpty(new_settings) then
+		settings[parent] = nil
+	else
+		settings[parent] = new_settings
+	end
+	self:ReloadSettings()
 end
 
 function PANEL:OnSearch(text)
+	self:ReloadSuggestions(self:GetSelectedType())
 
 	if (text ~= "") then
-		self:ReloadSuggestions(self:GetSelectedType())
-
 		for k, line in pairs(self.list_suggestions:GetLines()) do
 			local item = line:GetValue(1)
 			if not string.match(string.lower(item), string.lower(text)) then
@@ -195,164 +195,162 @@ function PANEL:OnSearch(text)
 			end
 		end
 
-		self.list_suggestions:SetDisabled((table.Count(self.list_suggestions:GetLines()) == 0))
-	elseif (text == "") then
-		self:ReloadSuggestions(self:GetSelectedType())
+		self.list_suggestions:SetDisabled(table.IsEmpty(self.list_suggestions:GetLines()))
 	end
+end
+
+function PANEL:OnItemChange()
 
 end
 
-function PANEL:OnItemChange(lineid, line)
+function PANEL:ReloadSettings()
+	local usergroups = self:GetSelectedUsergroups()
+	local type = self:GetSelectedType()
 
+	self.DisregardSettingsChange = true
+
+	local settings = self:GetSettings()
+	for _, usergroup in pairs(usergroups) do
+		self.checkbox_restrictall:SetValue(-1)
+		self.checkbox_whitelist:SetValue(-1)
+
+		if settings[usergroup] then
+			local restrict_type = settings[usergroup]["restrict_type_" .. type]
+			local iswhitelist = settings[usergroup]["iswhitelist_type_" .. type]
+
+			if restrict_type and (self.checkbox_restrictall:GetValue() == 1) then
+				self.checkbox_restrictall:SetValue(0)
+			elseif restrict_type then
+				self.checkbox_restrictall:SetValue(1)
+			end
+
+			if iswhitelist and (self.checkbox_whitelist:GetValue() == 1) then
+				self.checkbox_whitelist:SetValue(0)
+			elseif iswhitelist then
+				self.checkbox_whitelist:SetValue(1)
+			end
+		end
+	end
+	self.DisregardSettingsChange = false
 end
 
-function PANEL:OnTypeChange(lineid, line)
-
-	local self = self:GetParent()
-
-	if (self.list_types.previous_line == lineid) then return end
-
-	if not self.textbox_search then return end
+function PANEL:OnTypeChange(lineid, _)
+	if (self.list_types.previous_line == lineid) or not self:GetSelectedType() then return end
 
 	self:ReloadSuggestions(self:GetSelectedType())
 
-	self.textbox_search.default = Restriction:GetTypes()[self:GetSelectedType()].search
+	self.textbox_search:SetDefault(WUMA.RestrictionTypes[self:GetSelectedType()]:GetSearch())
 	self.textbox_search:SetText("")
 	self.textbox_search:OnLoseFocus()
 
 	self.list_suggestions.VBar:SetScroll(0)
 	self.list_suggestions:SelectFirstItem()
 
-	local tbl = {}
+	self.checkbox_restrictall:SetText("Restrict all " .. string.lower(WUMA.RestrictionTypes[self:GetSelectedType()]:GetPrint2()))
+
+	local groups = {}
 	for _, group in pairs(self:GetSelectedUsergroups()) do
-		table.insert(tbl, group..":::"..self:GetSelectedType())
+		table.insert(groups, self:GetSelectedType() .. "_" .. group)
 	end
-	self:GetDataView():Show(tbl)
+	self.list_items:Show(groups)
 
 	self.list_types.previous_line = lineid
-
 end
 
-function PANEL:OnUsergroupChange()
-	local self = self:GetParent()
+function PANEL:OnUsergroupChanged()
+	if not self:GetSelectedType() then return end
 
-	local tbl = {}
+	local groups = {}
 	for _, group in pairs(self:GetSelectedUsergroups()) do
-		table.insert(tbl, group..":::"..self:GetSelectedType())
-	end
+		table.insert(groups, self:GetSelectedType() .. "_" .. group)
 
-	self:GetDataView():Show(tbl)
+		self:OnUsergroupSelected(group)
+	end
+	self.list_items:Show(groups)
 end
 
-function PANEL:OnScopeChange(lineid, line)
-
-	if (self:GetParent().list_scopes.previous_line == lineid) then return end
-
-	local self = self:GetParent()
-	local scope = self.list_scopes
-
-	for _, parts in pairs(Scope:GetTypes("parts")) do
-		for _, part_name in pairs(parts) do
-			if self[part_name] then
-				self[part_name]:SetVisible(false)
-			end
-		end
-	end
-
-	for _, tbl in pairs(Scope:GetTypes()) do
-		if tbl.parts and (tbl.print == scope:GetSelected()[1]:GetValue(1)) then
-			for _, part_name in pairs(tbl.parts) do
-				if self[part_name] then
-					local part = self[part_name]
-					part:SetVisible(true)
-				end
-			end
-		end
-	end
-
-	scope.previous_line = lineid
+--luacheck: push no unused args
+function PANEL:OnUsergroupSelected(usergroup)
+	--For override
 end
+--luacheck: pop
+
+function PANEL:OnWhitelistCheckboxChanged(checked)
+	if (checked == 0) or self.DisregardSettingsChange then
+		return
+	else
+		checked = (checked == 1)
+	end
+
+	local usergroups = self:GetSelectedUsergroups()
+	local type = self:GetSelectedType()
+
+	self:OnWhitelistChanged(usergroups, type, checked)
+end
+
+--luacheck: push no unused args
+function PANEL:OnWhitelistChanged(usergroups, type, is_whitelist)
+	--For override
+end
+--luacheck: pop
 
 function PANEL:OnRestrictAllCheckboxChanged(checked)
-	self = self:GetParent()
-
-	local access = self.Command.Delete
-	if checked then
-		access = self.Command.Add
+	if (checked == 0) or self.DisregardSettingsChange then
+		return
+	else
+		checked = (checked == 1)
 	end
 
-	if not self:GetSelectedUsergroups() then return end
-	if not self:GetSelectedType() then return end
-
 	local usergroups = self:GetSelectedUsergroups()
-	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
-
 	local type = self:GetSelectedType()
 
-	local data = {usergroups, type, 0, self:GetAntiSelected(), self:GetSelectedScope()}
-
-	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
-
-	WUMA.SendCommand(access, data)
+	self:OnRestrictAllChanged(usergroups, type, checked)
 end
+
+--luacheck: push no unused args
+function PANEL:OnRestrictAllChanged(usergroups, type, restrict_all)
+	--For override
+end
+--luacheck: pop
 
 function PANEL:OnAddClick()
-	self = self:GetParent()
-	if not self:GetSelectedType() then return end
-	if (table.Count(self:GetSelectedUsergroups()) < 1) then return end
+	local selected_type = self:GetSelectedType()
+	if not selected_type then return end
 
 	local usergroups = self:GetSelectedUsergroups()
-	if table.Count(usergroups) == 1 then usergroups = usergroups[1] end
 
 	local suggestions = self:GetSelectedSuggestions()
-	if (table.Count(suggestions) == 1) then
-		suggestions = suggestions[1]
-	elseif (table.Count(suggestions) == 0) then
-		suggestions = self.textbox_search:GetValue()
-	end
 
-	local type = self:GetSelectedType()
-
-	local access = self.Command.Add
-	local data = {usergroups, type, suggestions, self:GetAntiSelected(), self:GetSelectedScope()}
-
-	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
-
-	WUMA.SendCommand(access, data)
+	self:OnAddRestriction(usergroups, selected_type, suggestions, false)
 end
+
+--luacheck: push no unused args
+function PANEL:OnAddRestriction(usergroups, selected_type, suggestions, is_anti)
+	--For override
+end
+--luacheck: pop
 
 function PANEL:OnDeleteClick()
-	self = self:GetParent()
+	local selected_type = self:GetSelectedType()
+	if not selected_type then return end
 
-	local items = self:GetDataView():GetSelectedItems()
-	if (table.Count(items) < 1) then return end
+	local selected_items = self.list_items:GetSelectedItems()
+	if table.IsEmpty(selected_items) then return end
 
-	local type = self:GetSelectedType()
-
-	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
-
-	for _, v in pairs(items) do
-		WUMA.SendCommand(self.Command.Delete, {v:GetUserGroup(), type, v:GetString()})
+	local parents, types, items = {}, {}, {}
+	for _, item in pairs(selected_items) do
+		parents[item:GetParent()] = true
+		types[item:GetType()] = true
+		items[item:GetItem()] = true
 	end
+
+	self:OnDeleteRestriction(table.GetKeys(parents), table.GetKeys(types), table.GetKeys(items))
 end
 
-function PANEL:OnEditClick()
-	self = self:GetParent()
-
-	local items = self:GetDataView():GetSelectedItems()
-	if items and (table.Count(items) ~= 1) then return end
-
-	local access = self.Command.Edit
-	local data = {items[1]:GetUserGroup(), items[1]:GetType(), items[1]:GetString(), self:GetAntiSelected(), self:GetSelectedScope()}
-
-	WUMA.SetProgress(self.Command.DataID, "Editing data", 0.2)
-
-	WUMA.SendCommand(access, data, true)
+--luacheck: push no unused args
+function PANEL:OnDeleteRestriction(usergroups, types, items)
+	--For override
 end
-
-function PANEL:OnSettingsClick()
-	self:GetParent():ToggleAdditionalOptionsVisiblility()
-	self:GetParent():InvalidateLayout()
-end
+--luacheck: pop
 
 vgui.Register("WUMA_Restrictions", PANEL, 'DPanel');

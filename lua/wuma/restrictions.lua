@@ -1,10 +1,9 @@
 
 WUMA.Restrictions = WUMA.Restrictions or {}
-WUMA.UserRestrictions = WUMA.UserRestrictions or {}
 
 local function insertRestriction(restriction)
 	WUMASQL(
-		[[INSERT INTO `WUMARestrictions` (`type`, `parent`, `item`, `is_anti`) VALUES ("%s", "%s", "%s", %s);]],
+		[[REPLACE INTO `WUMARestrictions` (`type`, `parent`, `item`, `is_anti`) VALUES ("%s", "%s", "%s", %s);]],
 		restriction:GetType(),
 		restriction:GetParent(),
 		restriction:GetItem(),
@@ -22,12 +21,12 @@ local function deleteRestriction(parent, type, item)
 end
 
 function WUMA.AddRestriction(caller, parent, type, item, is_anti, scope)
-	local preprocessor = type:GetPreProcessor()
+	local preprocessor = WUMA.RestrictionTypes[type]:GetPreProcessor()
 	if preprocessor then
 		item = preprocessor(item)
 	end
 
-	local restriction = Restriction:new{type=type:GetName(), item=item, parent=parent, is_anti=is_anti, scope=scope}
+	local restriction = Restriction:New{type=type, item=item, parent=parent, is_anti=is_anti, scope=scope}
 
 	if WUMA.Restrictions[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
 		WUMA.Restrictions[parent] = WUMA.Restrictions[parent] or {}
@@ -36,11 +35,11 @@ function WUMA.AddRestriction(caller, parent, type, item, is_anti, scope)
 
 	insertRestriction(restriction)
 
-	hook.Call("WUMARestrictionAdded", nil, caller, restriction)
+	hook.Call("WUMAOnRestrictionAdded", nil, caller, restriction)
 end
 
 function WUMA.RemoveRestriction(caller, parent, type, item)
-	local preprocessor = type:GetPreProcessor()
+	local preprocessor = WUMA.RestrictionTypes[type]:GetPreProcessor()
 	if preprocessor then
 		item = preprocessor(item)
 	end
@@ -54,7 +53,31 @@ function WUMA.RemoveRestriction(caller, parent, type, item)
 
 	deleteRestriction(parent, type, item)
 
-	hook.Call("WUMARestrictionRemoved", nil, caller, parent, type, item)
+	hook.Call("WUMAOnRestrictionRemoved", nil, caller, parent, type, item)
+end
+
+function WUMA.SetTypeRestriction(caller, parent, restriction_type, restrict)
+	local key = "restrict_type_" .. restriction_type
+
+	WUMA.SetSetting(parent, key, restrict)
+
+	if restrict then
+		hook.Call("WUMAOnTypeRestricted", nil, caller, parent, restriction_type)
+	else
+		hook.Call("WUMAOnTypeUnrestricted", nil, caller, parent, restriction_type)
+	end
+end
+
+function WUMA.SetTypeIsWhitelist(caller, parent, restriction_type, iswhitelist)
+	local key = "iswhitelist_type_" .. restriction_type
+
+	WUMA.SetSetting(parent, key, iswhitelist)
+
+	if iswhitelist then
+		hook.Call("WUMATypeIsWhitelist", nil, caller, parent, restriction_type)
+	else
+		hook.Call("WUMATypeIsNotWhitelist", nil, caller, parent, restriction_type)
+	end
 end
 
 function WUMA.ReadRestrictions(parent)
@@ -62,12 +85,22 @@ function WUMA.ReadRestrictions(parent)
 	if restrictions then
 		local preprocessed = {}
 		for _, args in pairs(restrictions) do
+			args.is_anti = (args.is_anti ~= "NULL") and tobool(args.is_anti)
 			local restriction = Restriction:New(args)
 			preprocessed[restriction:GetType() .. "_" .. restriction:GetItem()] = restriction
 		end
 		return preprocessed
 	end
 end
+
+local function userDisconnected(user)
+	WUMA.Restrictions[user:SteamID()] = nil
+
+	if not WUMA.IsUsergroupConnected(user:GetUserGroup()) then
+		WUMA.Restrictions[user:GetUserGroup()] = nil
+	end
+end
+hook.Add("PlayerDisconnected", "WUMA_RESTRICTIONS_PlayerDisconnected", userDisconnected)
 
 local function playerInitialSpawn(player)
 	if not WUMA.Restrictions[player:GetUserGroup()] then
@@ -78,4 +111,4 @@ local function playerInitialSpawn(player)
 		WUMA.Restrictions[player:SteamID()] = WUMA.ReadRestrictions(player:SteamID())
 	end
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawnRestrictions", playerInitialSpawn)
+hook.Add("PlayerInitialSpawn", "WUMA_RESTRICTIONS_PlayerInitialSpawn", playerInitialSpawn)

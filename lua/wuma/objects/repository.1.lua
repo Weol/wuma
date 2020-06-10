@@ -26,7 +26,7 @@ function object:__construct(args)
 				)
 			]],
 			self:GetTableName(),
-			string.format(string.rep("`%s` VARCHAR(45) NOT NULL", #self:GetKeys(), ", "), unpack(self:GetKeys())),
+			string.format(string.rep("`%s` TEXT NOT NULL", #self:GetKeys(), ", "), unpack(self:GetKeys())),
 			string.format(string.rep("`%s`", #self:GetKeys(), ", "), unpack(self:GetKeys()))
 		)
 

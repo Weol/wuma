@@ -1,8 +1,6 @@
 
 WUMA = WUMA or {}
 
-local WUMADebug = WUMADebug
-local WUMALog = WUMALog
 WUMA.Files = WUMA.Files or {}
 
 function WUMA.Files.Initialize()

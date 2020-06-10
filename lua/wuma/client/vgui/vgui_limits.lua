@@ -145,7 +145,7 @@ function PANEL:Init()
 	local sort = function(data)
 		return data:GetUserGroup()
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetClassifyFunction(sort)
 
 	local right_click = function(item)
 		local tbl = {}

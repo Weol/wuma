@@ -97,7 +97,9 @@ function WUMA.ClassFactory.Create(builder)
 
 		metadata._uniqueid = generateUniqueId()
 
-		if builder.__construct then builder.__construct(obj, args) end
+		if obj.__construct then
+			obj:__construct(args)
+		end
 
 		return obj
 	end
@@ -115,7 +117,7 @@ function WUMA.ClassFactory.Create(builder)
 	end
 
 	metatable.Clone = function(self)
-		return static_functions:new(self:Export())
+		return static_functions:New(self:Export())
 	end
 
 	metatable.GetUniqueID = function(self)

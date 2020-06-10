@@ -1,5 +1,5 @@
 
-local enableDebug = false
+local enableDebug = true
 
 local function safeFormat(msg, args)
 	if not args then return string.format(msg, "NO_ARGS") end
@@ -30,10 +30,16 @@ function WUMALog(msg, ...)
 end
 
 function WUMADebug(msg, ...)
-	if not enableDebug then return end
+	if (not enableDebug) then return end
+	if (istable(msg)) then
+		PrintTable(msg)
+		return false
+	end
 	local args = { ... }
 	if args then
 		msg = safeFormat(msg, args)
 	end
+	msg = "[WUMA] " .. msg
 	Msg(msg.."\n")
+	return false
 end

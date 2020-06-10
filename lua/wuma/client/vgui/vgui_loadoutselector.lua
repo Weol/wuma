@@ -5,14 +5,8 @@ PANEL.HelpText = [[You can set your own loadout in this window. Any weapons you 
 
 function PANEL:Init()
 
-	self.weapons = WUMA.GetWeapons()
-
-	self.Command = {}
-	self.Command.Add = "addpersonalloadout"
-	self.Command.Delete = "removepersonalloadout"
-	self.Command.Edit = "addpersonalloadout"
-	self.Command.Primary = "setpersonalprimaryweapon"
-	self.Command.DataID = Loadout:GetID()..":::"..LocalPlayer():SteamID()
+	self.weapons = {}
+	self.restricted_weapons = {}
 
 	--HelpText Label
 	self.helptext_label = vgui.Create("DLabel", self)
@@ -23,22 +17,22 @@ function PANEL:Init()
 	--Search bar
 	self.textbox_search = vgui.Create("WTextbox", self)
 	self.textbox_search:SetDefault("Search..")
-	self.textbox_search.OnChange = self.OnSearch
+	self.textbox_search.OnChange = function() self:OnSearchWeapons() end
 
 	--Primary button
 	self.button_primary = vgui.Create("DButton", self)
 	self.button_primary:SetText("Set Primary")
-	self.button_primary.DoClick = self.OnPrimaryClick
+	self.button_primary.DoClick = function() self:OnButtonPrimaryClick() end
 
 	--Delete button
 	self.button_delete = vgui.Create("DButton", self)
 	self.button_delete:SetText("Delete")
-	self.button_delete.DoClick = self.OnDeleteClick
+	self.button_delete.DoClick = function() self:OnButtonDeleteClick() end
 
 	--Add button
 	self.button_add = vgui.Create("DButton", self)
 	self.button_add:SetText("Add")
-	self.button_add.DoClick = self.OnAddClick
+	self.button_add.DoClick = function() self:OnButtonAddClick() end
 
 	--Suggestion list
 	self.list_suggestions = vgui.Create("DListView", self)
@@ -49,49 +43,9 @@ function PANEL:Init()
 	--Items list
 	self.list_items = vgui.Create("WListView", self)
 	self.list_items:AddColumn("Weapon")
-	self.list_items.OnRowSelected = self.OnItemChange
+	self.list_items.OnRowSelected = function(_, lineid, line) self:OnItemChange(lineid, line) end
 
-	local highlight = function(line, data, datav)
-		if datav:GetParent():GetPrimary() and datav:GetParent():GetPrimary() == datav:GetClass() then return Color(0, 255, 0, 120) else return nil end
-	end
-	self.list_items:SetHighlightFunction(highlight)
-
-	--Progress bar
-	self.progress = vgui.Create("WProgressBar", self)
-	self.progress:SetVisible(false)
-	self.list_items.OnDataUpdate = function()
-		hook.Call(WUMA.PROGRESSUPDATE, _, self.Command.DataID, nil)
-	end
-
-	local display = function(data)
-		local primary = data.primary or -1
-		if (tonumber(primary) < 0) then primary = "def" end
-
-		local secondary = data.secondary or -1
-		if (tonumber(secondary) < 0) then secondary = "def" end
-
-		return {data.print or data.class}, {_}
-	end
-	self:GetDataView():SetDisplayFunction(display)
-
-	local sort = function(data)
-		return self:GetSelectedUsergroups()
-	end
-	self:GetDataView():SetSortFunction(sort)
-
-	local right_click = function(item)
-		local tbl = {}
-		tbl[1] = {"Item", item.class}
-		tbl[2] = {"Primary", item.primary}
-		tbl[3] = {"Secondary", item.secondary}
-
-		return tbl
-	end
-
-	self:GetDataView():SetRightClickFunction(right_click)
-
-	self:ReloadSuggestions()
-
+	self.list_suggestions:SetClassifyFunction(function(...) return self:ClassifyItem(...) end)
 end
 
 function PANEL:PerformLayout()
@@ -111,16 +65,7 @@ function PANEL:PerformLayout()
 	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y-self.list_suggestions.y-5)
 
-	self.progress:SetPos(5, 5)
-	self.progress:SetWide(self:GetWide()-20-self.textbox_search:GetWide())
-	if (self.progress:IsVisible()) then
-		self.progress:SetTall(16)
-	else
-		self.progress:SetTall(0)
-		self.progress.y = 0
-	end
-
-	self.list_items:SetPos(5, self.progress.y + self.progress:GetTall() + 5)
+	self.list_items:SetPos(5, 5)
 	self.list_items:SetSize(self:GetWide()-20-self.textbox_search:GetWide(), self:GetTall()-100)
 
 	self.helptext_label:SetWide(self.list_items:GetWide())
@@ -147,35 +92,42 @@ function PANEL:PerformLayout()
 
 end
 
-function PANEL:GetDataView()
-	return self.list_items
+function PANEL:ClassifyItem(item)
+	return item:GetParent(), {item:GetClass()}
 end
 
-function PANEL:PopulateList(key, tbl, clear, select)
-	local listview = self[key]
+function PANEL:SetWeapons(weapons)
+	self.weapons = weapons
 
-	if clear then
-		listview:Clear()
+	self.list_suggestions:Clear()
+
+	for _, weapon in pairs(weapons) do
+		if not self.restricted_weapons[weapon] then
+			self.list_suggestions:AddLine(weapon)
+		end
 	end
-
-	for k, v in pairs(tbl) do
-		listview:AddLine(v)
-	end
-
-	if select then
-		listview:SelectFirstItem()
-	end
-end
-
-function PANEL:ReloadSuggestions()
-	if not self.list_suggestions then return end
-
-	self:PopulateList("list_suggestions", self.weapons, true)
 
 	self.list_suggestions.VBar:SetScroll(0)
 end
 
-function PANEL:GetSelectedSuggestions()
+function PANEL:GetWeapons()
+	return self.weapons
+end
+
+function PANEL:SetRestrictedWeapons(restricted_weapons)
+	self.restricted_weapons = {}
+	for key, restriction in pairs(restricted_weapons) do
+		self.restricted_weapons[restriction:GetItem()] = true
+	end
+
+	self:SetWeapons(self:GetWeapons())
+end
+
+function PANEL:GetClassetRestrictedWeapons()
+	return self.restricted_weapons
+end
+
+function PANEL:GetSelectedWeapons()
 	local tbl = {}
 	for _, v in pairs(self.list_suggestions:GetSelected()) do
 		table.insert(tbl, v:GetColumnText(1))
@@ -183,91 +135,58 @@ function PANEL:GetSelectedSuggestions()
 	return tbl
 end
 
-function PANEL:GetSelectedUsergroups()
-	return LocalPlayer():SteamID()
-end
-
-function PANEL:GetPrimaryAmmo()
-	if not self.slider_primary then return nil end
-
-	return self.slider_primary:GetValue()
-end
-
-function PANEL:GetSecondaryAmmo()
-	if not self.slider_secondary then return nil end
-
-	return self.slider_secondary:GetValue()
-end
-
-function PANEL:OnSearch()
-
-	local self = self:GetParent()
+function PANEL:OnSearchWeapons()
 	local text = self.textbox_search:GetValue()
 
-	self:ReloadSuggestions()
-
-	for k, line in pairs(self.list_suggestions:GetLines()) do
-		local item = line:GetValue(1)
-		if not string.match(item, text) then
-			self.list_suggestions:RemoveLine(k)
+	self.list_suggestions:Clear()
+	if (text == "") then
+		for _, weapon in pairs(self:GetWeapons()) do
+			self.list_suggestions:AddLine(weapon)
+		end
+	else
+		for _, weapon in pairs(self:GetWeapons()) do
+			if string.match(weapon, text) then
+				self.list_suggestions:AddLine(weapon)
+			end
 		end
 	end
 
+	self.list_suggestions.VBar:SetScroll(0)
 end
 
 function PANEL:OnItemChange(lineid, line)
 
 end
 
-function PANEL:OnPrimaryClick()
-	self = self:GetParent()
+function PANEL:OnButtonPrimaryClick()
+	local items = self.list_items:GetSelectedItems()
 
-	local items = self:GetDataView():GetSelectedItems()
-	if (table.Count(items) ~= 1) then return end
+	if table.IsEmpty(items) then return end
 
-	local str = {items[1].class}
+	local class = items[1]:GetClass()
 
-	local access = self.Command.Primary
-	local data = {str}
-
-	WUMA.SendCommand(access, data)
+	WUMA.Commands.SetPersonalPrimaryWeapon:Invoke(class)
 end
 
-function PANEL:OnAddClick()
-	self = self:GetParent()
-	if not self:GetSelectedSuggestions() then return end
+function PANEL:OnButtonAddClick()
+	local suggestions = self:GetSelectedWeapons()
 
-	local suggestions = self:GetSelectedSuggestions()
-	if table.Count(suggestions) == 1 then suggestions = suggestions[1] end
+	if table.IsEmpty(suggestions) then return end
 
-	local access = self.Command.Add
-	local data = {suggestions, self:GetPrimaryAmmo() or -1, self:GetSecondaryAmmo() or -1}
-
-	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
-
-	WUMA.SendCommand(access, data)
+	WUMA.Commands.AddPersonalLoadout:Invoke(suggestions)
 end
 
-function PANEL:OnDeleteClick()
-	self = self:GetParent()
+function PANEL:OnButtonDeleteClick()
+	local items = self.list_items:GetSelectedItems()
 
-	local items = self:GetDataView():GetSelectedItems()
-	if (table.Count(items) < 1) then return end
+	if table.IsEmpty(items) then return end
 
-	local strings = {}
-
-	for _, v in pairs(items) do
-		if not table.HasValue(strings, v.class) then
-			table.insert(strings, v.class)
-		end
+	local classes = {}
+	for _, item in pairs(items) do
+		classes[item:GetClass()] = item:GetClass()
 	end
 
-	local access = self.Command.Delete
-	local data = {strings}
-
-	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
-
-	WUMA.SendCommand(access, data)
+	WUMA.Commands.RemovePersonalLoadout:Invoke(classes)
 end
 
 vgui.Register("WUMA_PersonalLoadout", PANEL, 'DPanel');

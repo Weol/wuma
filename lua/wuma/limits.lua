@@ -4,11 +4,11 @@ WUMA.UserLimitStrings = WUMA.UserLimitStrings or {}
 WUMA.UserLimits = WUMA.UserLimits or {}
 WUMA.Limits = WUMA.Limits or {}
 
-WUMA.ExcludeLimits = WUMA.CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
+WUMA.ExcludeLimits = CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits", 0, 1)
 
 local function insertLimit(limit)
 	WUMASQL(
-		[[INSERT INTO `WUMALimits` (`parent`, `item`, `limit`, `is_exclusive`) VALUES ("%s", "%s", "%s", %s);]],
+		[[REPLACE INTO `WUMALimits` (`parent`, `item`, `limit`, `is_exclusive`) VALUES ("%s", "%s", "%s", %s);]],
 		limit:GetParent(),
 		limit:GetItem(),
 		limit:GetLimit(),
@@ -32,7 +32,7 @@ function WUMA.AddLimit(caller, parent, item, limit, is_exclusive, scope)
 		item = string.lower(item)
 	end
 
-	local limit = Limit:new{string=item, parent=parent, limit=limit, is_exclusive=is_exclusive, scope=scope}
+	local limit = Limit:New{string=item, parent=parent, limit=limit, is_exclusive=is_exclusive, scope=scope}
 
 	if WUMA.Limits[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
 		WUMA.Limits[parent] = WUMA.Limits[parent] or {}
@@ -41,7 +41,7 @@ function WUMA.AddLimit(caller, parent, item, limit, is_exclusive, scope)
 
 	insertLimit(limit)
 
-	hook.Call("WUMALimitAdded", nil, caller, limit)
+	hook.Call("WUMAOnLimitAdded", nil, caller, limit)
 end
 
 function WUMA.RemoveLimit(caller, parent, item)
@@ -60,7 +60,7 @@ function WUMA.RemoveLimit(caller, parent, item)
 
 	deleteLimit(parent, item)
 
-	hook.Call("WUMALimitRemoved", nil, caller, parent, item)
+	hook.Call("WUMAOnLimitRemoved", nil, caller, parent, item)
 end
 
 function WUMA.ReadLimits(parent)
@@ -68,12 +68,24 @@ function WUMA.ReadLimits(parent)
 	if limits then
 		local preprocessed = {}
 		for _, args in pairs(limits) do
+			args.is_exclusive = (args.is_exclusive ~= "NULL") and tobool(args.is_exclusive)
+			args.limit = (tonumber(args.limit) ~= nil) and tonumber(args.limit) or args.limit
 			local limit = Limit:New(args)
 			preprocessed[limit:GetItem()] = limit
 		end
 		return preprocessed
 	end
 end
+
+
+local function userDisconnected(user)
+	WUMA.Limits[user:SteamID()] = nil
+
+	if not WUMA.IsUsergroupConnected(user:GetUserGroup()) then
+		WUMA.Limits[user:GetUserGroup()] = nil
+	end
+end
+hook.Add("PlayerDisconnected", "WUMA_LIMITS_PlayerDisconnected", userDisconnected)
 
 local function playerInitialSpawn(player)
 	if not WUMA.Limits[player:GetUserGroup()] then
@@ -84,7 +96,7 @@ local function playerInitialSpawn(player)
 		WUMA.Limits[player:SteamID()] = WUMA.ReadLimits(player:SteamID())
 	end
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawnLimits", playerInitialSpawn)
+hook.Add("PlayerInitialSpawn", "WUMA_LIMITS_PlayerInitialSpawn", playerInitialSpawn)
 
 function WUMA.GetTotalLimits(user_id, str)
 	local exclude = WUMA.ExcludeLimits:GetBool()

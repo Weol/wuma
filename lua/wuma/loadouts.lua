@@ -1,7 +1,12 @@
 
 WUMA.Loadouts = WUMA.Loadouts or {}
 
-WUMA.PersonalLoadoutCommand = WUMA.CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", FCVAR_ARCHIVE, "Chat command to open the loadout selector")
+WUMA.PersonalLoadoutCommand = CreateConVar("wuma_personal_loadout_chatcommand", "!loadout", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Chat command to open the loadout selector")
+cvars.AddChangeCallback("wuma_personal_loadout_chatcommand", function(convar, old, new)
+	if (new == "") then
+		convar:SetString(old)
+	end
+end)
 
 --Second argument is a WUMA LoadoutWeapon, not an actual gmod swep
 function WUMA.GiveWeapon(player, givenBy, weapon)
@@ -64,7 +69,7 @@ end
 
 local function insertWeapon(weapon)
 	WUMASQL(
-		[[INSERT INTO `WUMALoadouts` (`parent`, `class`, `primary_ammo`, `secondary_ammo`, `ignore_restrictions`) VALUES ("%s", "%s", "%s", "%s", %s);]],
+		[[REPLACE INTO `WUMALoadouts` (`parent`, `class`, `primary_ammo`, `secondary_ammo`, `ignore_restrictions`) VALUES ("%s", "%s", "%s", "%s", %s);]],
 		weapon:GetParent(),
 		weapon:GetClass(),
 		weapon:GetPrimaryAmmo(),
@@ -84,13 +89,13 @@ end
 function WUMA.SetLoadoutPrimaryWeapon(caller, parent, class)
 	WUMA.SetSetting(parent, "loadout_primary_weapon", class)
 
-	hook.Call("WUMALoadoutPrimaryWeaponChanged", nil, caller, parent, class)
+	hook.Call("WUMAOnLoadoutPrimaryWeaponChanged", nil, caller, parent, class)
 end
 
 function WUMA.SetEnforceLoadout(caller, parent, enforce)
 	WUMA.SetSetting(parent, "loadout_enforce", enforce)
 
-	hook.Call("WUMALoadoutEnforceChanged", nil, caller, parent, enforce)
+	hook.Call("WUMAOnLoadoutEnforceChanged", nil, caller, parent, enforce)
 end
 
 function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_ammo, ignore_restrictions, scope)
@@ -108,7 +113,7 @@ function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_am
 
 	insertWeapon(weapon)
 
-	hook.Call("WUMALoadoutAdded", nil, caller, weapon)
+	hook.Call("WUMAOnLoadoutAdded", nil, caller, weapon)
 end
 
 function WUMA.RemoveLoadoutWeapon(caller, parent, class)
@@ -126,7 +131,7 @@ function WUMA.RemoveLoadoutWeapon(caller, parent, class)
 
 	deleteWeapon(parent, class)
 
-	hook.Call("WUMALoadoutRemoved", nil, caller, parent, class)
+	hook.Call("WUMAOnLoadoutRemoved", nil, caller, parent, class)
 end
 
 function WUMA.ReadLoadouts(parent)
@@ -134,12 +139,24 @@ function WUMA.ReadLoadouts(parent)
 	if loadouts then
 		local preprocessed = {}
 		for _, args in pairs(loadouts) do
-			local loadout = Loadout:New(args)
+			args.ignore_restrictions = (args.ignore_restrictions ~= "NULL") and tobool(args.ignore_restrictions)
+			args.primary_ammo = tonumber(args.primary_ammo)
+			args.secondary_ammo = tonumber(args.secondary_ammo)
+			local loadout = LoadoutWeapon:New(args)
 			preprocessed[loadout:GetClass()] = loadout
 		end
 		return preprocessed
 	end
 end
+
+local function userDisconnected(user)
+	WUMA.Loadouts[user:SteamID()] = nil
+
+	if not WUMA.IsUsergroupConnected(user:GetUserGroup()) then
+		WUMA.Loadouts[user:GetUserGroup()] = nil
+	end
+end
+hook.Add("PlayerDisconnected", "WUMA_LOADOUTS_PlayerDisconnected", userDisconnected)
 
 local function playerInitialSpawn(player)
 	if not WUMA.Loadouts[player:GetUserGroup()] then
@@ -150,9 +167,9 @@ local function playerInitialSpawn(player)
 		WUMA.Loadouts[player:SteamID()] = WUMA.ReadLoadouts(player:SteamID())
 	end
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawnLimits", playerInitialSpawn)
+hook.Add("PlayerInitialSpawn", "WUMA_LOADOUTS_PlayerInitialSpawn", playerInitialSpawn)
 
 local function playerUsergroupChanged(player)
 	--player:Loadout()
 end
-hook.Add("CAMI.PlayerUsergroupChanged", "WUMAPlayerUsergroupChanged", playerUsergroupChanged)
+hook.Add("CAMI.PlayerUsergroupChanged", "WUMA_LOADOUTS_CAMI.PlayerUsergroupChanged", playerUsergroupChanged)

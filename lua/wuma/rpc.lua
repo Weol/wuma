@@ -1,2 +1,0 @@
-
-WUMA.RPC = WUMA.RPC or {}

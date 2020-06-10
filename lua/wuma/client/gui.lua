@@ -1,6 +1,5 @@
 
-WUMA.GUI = {}
-WUMA.GUI.Tabs = {}
+WUMA.GUI = WUMA.GUI or {}
 
 if not WUMA.HasCreatedFonts then
 	surface.CreateFont("WUMATextSmall", {
@@ -13,10 +12,6 @@ if not WUMA.HasCreatedFonts then
 	})
 end
 WUMA.HasCreatedFonts = true
-
-WUMA.Subscriptions = {}
-WUMA.Subscriptions.user = {}
-WUMA.Subscriptions.timers = {}
 
 function WUMA.GUI.Initialize()
 
@@ -32,43 +27,47 @@ function WUMA.GUI.Initialize()
 	WUMA.GUI.PropertySheet:SetPos(0, 0)
 	WUMA.GUI.PropertySheet:SetShowExitButton(true)
 
-	--Request panels
-	WUMA.GUI.SettingsTabs = vgui.Create("WUMA_Settings", WUMA.GUI.PropertySheet) --Settings
-	WUMA.GUI.RestrictionsTabs = vgui.Create("WUMA_Restrictions", WUMA.GUI.PropertySheet) --Restriction
-	WUMA.GUI.LimitsTabs = vgui.Create("WUMA_Limits", WUMA.GUI.PropertySheet) --Limit
-	WUMA.GUI.LoadoutsTabs = vgui.Create("WUMA_Loadouts", WUMA.GUI.PropertySheet) --Loadouts
-	WUMA.GUI.UsersTabs = vgui.Create("WUMA_Users", WUMA.GUI.PropertySheet) --Users
+	function WUMA.GUI.PropertySheet:OnCloseButtonPressed()
+		WUMA.GUI.Toggle()
+	end
 
-	WUMA.GUI.PropertySheet.OnTabChange = WUMA.OnTabChange
+	--Create panels
+	WUMA.GUI.SettingsTab = vgui.Create("WUMA_Settings", WUMA.GUI.PropertySheet)
+
+	--Restrictions
+	WUMA.GUI.RestrictionsTab = vgui.Create("WUMA_Restrictions", WUMA.GUI.PropertySheet)
+
+	--WUMA.GUI.LimitsTab = vgui.Create("WUMA_Limits", WUMA.GUI.PropertySheet)
+	--WUMA.GUI.LoadoutsTab = vgui.Create("WUMA_Loadouts", WUMA.GUI.PropertySheet)
+	--WUMA.GUI.UsersTab = vgui.Create("WUMA_Users", WUMA.GUI.PropertySheet)
+
+	WUMA.GUI.PropertySheet.OnTabChange = function(_, tab_name) WUMA.OnTabChange(tab_name) end
 
 	--Adding panels to PropertySheet
-	WUMA.GUI.PropertySheet:AddSheet("Settings", WUMA.GUI.SettingsTabs, "icon16/shield.png") --Settings
-	WUMA.GUI.PropertySheet:AddSheet("Restrictions", WUMA.GUI.RestrictionsTabs, WUMA.GUI.RestrictionsTabs.TabIcon) --Restriction
-	WUMA.GUI.PropertySheet:AddSheet("Limits", WUMA.GUI.LimitsTabs, WUMA.GUI.LimitsTabs.TabIcon) --Limit
-	WUMA.GUI.PropertySheet:AddSheet("Loadouts", WUMA.GUI.LoadoutsTabs, WUMA.GUI.LoadoutsTabs.TabIcon) --Loadout
-	WUMA.GUI.PropertySheet:AddSheet("Users", WUMA.GUI.UsersTabs, WUMA.GUI.UsersTabs.TabIcon) --Player
+	WUMA.GUI.PropertySheet:AddSheet("Settings", WUMA.GUI.SettingsTab, "icon16/shield.png")
+	WUMA.GUI.PropertySheet:AddSheet("Restrictions", WUMA.GUI.RestrictionsTab, WUMA.GUI.RestrictionsTab.TabIcon)
+	--WUMA.GUI.PropertySheet:AddSheet("Limits", WUMA.GUI.LimitsTab, WUMA.GUI.LimitsTab.TabIcon)
+	--WUMA.GUI.PropertySheet:AddSheet("Loadouts", WUMA.GUI.LoadoutsTab, WUMA.GUI.LoadoutsTab.TabIcon)
+	--WUMA.GUI.PropertySheet:AddSheet("Users", WUMA.GUI.UsersTab, WUMA.GUI.UsersTab.TabIcon)
 
-	--Setting datatables
-	WUMA.GUI.RestrictionsTabs:GetDataView():SetDataSource(function() return WUMA.Restrictions end)
-	WUMA.GUI.LimitsTabs:GetDataView():SetDataSource(function() return WUMA.Limits end)
-	WUMA.GUI.LoadoutsTabs:GetDataView():SetDataSource(function() return WUMA.LoadoutWeapons end)
-	WUMA.GUI.UsersTabs:GetDataView():SetDataSource(function() return WUMA.LookupUsers end)
+	--WUMA.GUI.UsersTab.OnExtraChange = function(_, type, steamid) WUMA.OnUserTabChange(type, steamid) end
 
-	--Adding data update hooks
-	hook.Add(WUMA.RESTRICTIONUPDATE, "WUMARestrictionDataUpdate", function(update) WUMA.GUI.RestrictionsTabs:GetDataView():UpdateDataTable(update) end) --Restriction
-	hook.Add(WUMA.LIMITUPDATE, "WUMALimitDataUpdate", function(update) WUMA.GUI.LimitsTabs:GetDataView():UpdateDataTable(update) end) --Limits
-	hook.Add(WUMA.LOADOUTUPDATE, "WUMALoadoutDataUpdate", function(update) WUMA.GUI.LoadoutsTabs:GetDataView():UpdateDataTable(update) end) --Loadouts
-
-	WUMA.GUI.UsersTabs.OnExtraChange = WUMA.OnUserTabChange
-
-	hook.Call("OnWUMAInitialized", _, WUMA.GUI.PropertySheet)
+	hook.Call("OnWUMAInitialized", nil, WUMA.GUI.PropertySheet)
 
 end
-hook.Add("InitPostEntity", "WUMAGuiInitialize", function() timer.Simple(2, WUMA.GUI.Initialize) end)
+hook.Add("InitPostEntity", "WUMA_GUI_InitPostEntity", function() timer.Simple(2, WUMA.GUI.Initialize) end)
+
+function WUMA.GUI.Toggle()
+	if WUMA.GUI.Base:IsVisible() then
+		WUMA.GUI.Hide()
+	else
+		WUMA.GUI.Show()
+	end
+end
 
 function WUMA.GUI.Show()
 	if not table.IsEmpty(WUMA.GUI.Base:GetChildren()) then
-		WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTabs.TabName)
+		WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTab.TabName)
 
 		WUMA.GUI.Base:SetVisible(true)
 		WUMA.GUI.Base:MakePopup()
@@ -81,64 +80,119 @@ function WUMA.GUI.Hide()
 	end
 end
 
-function WUMA.GUI.Toggle()
-	if WUMA.GUI.Base:IsVisible() then
-		WUMA.GUI.Hide()
-	else
-		WUMA.GUI.Show()
+local initialized_tabs = {}
+function WUMA.OnTabChange(tabname)
+	if (tabname == "Settings" and not initialized_tabs[tabname]) then
+		WUMA.GUI.InitializeSettingsTab()
+		--initialized_tabs[tabname] = true
+	elseif (tabname == "Restrictions" and not initialized_tabs[tabname]) then
+		WUMA.GUI.InitializeRestrictionsTab()
+		--initialized_tabs[tabname] = true
 	end
 end
 
-function WUMA.OnTabChange(_, tabname)
-
-	if not WUMA.Subscriptions.info then
-		WUMA.RequestFromServer("settings")
-		WUMA.RequestFromServer("inheritance")
-		WUMA.RequestFromServer("groups")
-		WUMA.RequestFromServer("users")
-		WUMA.RequestFromServer("maps")
-
-		WUMA.Subscriptions.info = true
-	end
-
-	if (tabname == WUMA.GUI.RestrictionsTabs.TabName and not WUMA.Subscriptions.restrictions) then
-		WUMA.FetchData(Restriction:GetID())
-	elseif (tabname == WUMA.GUI.LimitsTabs.TabName and not WUMA.Subscriptions.limits) then
-		WUMA.FetchData(Limit:GetID())
-	elseif (tabname == WUMA.GUI.LoadoutsTabs.TabName and not WUMA.Subscriptions.loadouts) then
-		WUMA.FetchData(Loadout:GetID())
-	elseif (tabname == WUMA.GUI.UsersTabs.TabName and not WUMA.Subscriptions.users) then
-		WUMA.RequestFromServer("lookup", 50)
-
-		WUMA.Subscriptions.users = true
-	end
-
-	WUMA.GUI.ActiveTab = tabname
+function WUMA.OnUserTabChange(type, steamid)
 
 end
 
-function WUMA.OnUserTabChange(_, typ, steamid)
-	if (typ ~= "default") and not WUMA.Subscriptions.user[steamid] then
-		WUMA.Subscriptions.user[steamid] = {}
+function WUMA.GUI.InitializeSettingsTab()
+	function WUMA.GUI.SettingsTab:OnInheritanceChanged(type, usergroup, inheritFrom)
+		WUMA.RPC.ChangeInheritance:Invoke(type, usergroup, inheritFrom)
 	end
 
-	if (typ == "default") then
-		local timeout = GetConVar("wuma_autounsubscribe_user"):GetInt()
+	function WUMA.GUI.SettingsTab:OnExludeLimitsChanged(exclude)
+		WUMA.RPC.ChangeSettings:Invoke("exclude_limits", exclude)
+	end
 
-		if timeout and (timeout >= 0) and WUMA.Subscriptions.user[steamid] then
-			for k, _ in pairs(WUMA.Subscriptions.user[steamid]) do
-				timer.Create(k..":::"..steamid, timeout, 1, function() WUMA.FlushUserData(steamid, k) end)
+	function WUMA.GUI.SettingsTab:OnPersonalLoadoutCommandChanged(command)
+		WUMA.RPC.ChangeSettings:Invoke("personal_loadout_chatcommand", command)
+	end
+
+	function WUMA.GUI.SettingsTab:OnEchoChangesComboboxChanged(echo)
+		WUMA.RPC.ChangeSettings:Invoke("echo_changes", echo)
+	end
+
+	function WUMA.GUI.SettingsTab:OnEchoToChatChanged(echo)
+		WUMA.RPC.ChangeSettings:Invoke("echo_to_chat", echo)
+	end
+
+	function WUMA.GUI.SettingsTab:OnLogLevelChanged(log_level)
+		WUMA.RPC.ChangeSettings:Invoke("log_level", log_level)
+	end
+
+	cvars.AddChangeCallback("wuma_exclude_limits", function(_, _, new)
+		WUMA.RPC.ChangeSettings:NotifyExludeLimitsChanged(new)
+	end)
+
+	cvars.AddChangeCallback("wuma_personal_loadout_chatcommand", function(_, _, new)
+		WUMA.GUI.SettingsTab:NotifyPersonalLoadoutCommandChanged(new)
+	end)
+
+	cvars.AddChangeCallback("wuma_echo_changes", function(_, _, new)
+		WUMA.GUI.SettingsTab:NotifyEchoChangesChanged(new)
+	end)
+
+	cvars.AddChangeCallback("wuma_echo_to_chat", function(_, _, new)
+		WUMA.GUI.SettingsTab:NotifyEchoToChatChanged(new)
+	end)
+
+	cvars.AddChangeCallback("wuma_log_level", function(_, _, new)
+		WUMA.GUI.SettingsTab:NotifyLogLevelChanged(new)
+	end)
+
+	WUMA.Subscribe{args = {"inheritance"}, callback = function(inheritance)
+		WUMA.GUI.SettingsTab:NotifyInheritanceChanged(inheritance)
+	end}
+
+	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
+		WUMA.GUI.SettingsTab:NotifyUsergroupsChanged(usergroups)
+	end}
+end
+
+function WUMA.GUI.InitializeRestrictionsTab()
+	function WUMA.GUI.RestrictionsTab:OnWhitelistChanged(usergroups, type, is_whitelist)
+		WUMA.RPC.SetRestrictionsWhitelist:Transaction(usergroups, type, is_whitelist)
+	end
+
+	function WUMA.GUI.RestrictionsTab:OnRestrictAllChanged(usergroups, type, restrict_all)
+		WUMA.RPC.RestrictType:Transaction(usergroups, type, restrict_all)
+	end
+
+	function WUMA.GUI.RestrictionsTab:OnAddRestriction(usergroups, selected_type, suggestions, is_anti)
+		WUMA.RPC.Restrict:Transaction(usergroups, selected_type, suggestions, is_anti)
+	end
+
+	function WUMA.GUI.RestrictionsTab:OnDeleteRestriction(usergroups, types, items)
+		WUMA.RPC.Unrestrict:Transaction(usergroups, types, items)
+	end
+
+	function WUMA.GUI.RestrictionsTab:OnUsergroupSelected(usergroup)
+		WUMA.Subscribe{
+			args = {
+				"restrictions",
+				usergroup,
+			},
+			id = self,
+			callback = function(restrictions, parent, updated, deleted)
+				self:NotifyRestrictionsChanged(restrictions, parent, updated, deleted)
 			end
-		end
-	else
-		WUMA.FetchUserData(typ, steamid)
-	end
-end
+		}
 
-WUMA.GUI.HookIDs = 1
-function WUMA.GUI.AddHook(h, name, func)
-	hook.Add(h, name..WUMA.GUI.HookIDs, func)
-	WUMA.GUI.HookIDs = WUMA.GUI.HookIDs + 1
+		WUMA.Subscribe{
+			args = {
+				"settings",
+				usergroup,
+			},
+			id = self,
+			callback = function(settings, parent, _, _)
+				self:NotifySettingsChanged(parent, settings)
+			end
+		}
+	end
+
+	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
+		WUMA.GUI.RestrictionsTab:NotifyUsergroupsChanged(usergroups)
+	end}
 end
 
 function WUMA.GUI.CreateLoadoutSelector()
@@ -166,31 +220,8 @@ function WUMA.GUI.CreateLoadoutSelector()
 	loadout:SetWide(frame:GetWide())
 	loadout:SetTall(frame:GetTall()-35)
 
-	WUMA.Subscribe("loadouts", LocalPlayer():SteamID(), function(updated, deleted)
-		loadout:GetDataView():UpdateData(updated)
-		loadout:GetDataView():DeleteData(deleted)
-	end)
-
-	WUMA.Subscribe("restrictions", LocalPlayer():SteamID(), function(updated, deleted)
-		loadout:GetDataView():UpdateData(updated)
-		loadout:GetDataView():DeleteData(deleted)
-	end)
-
-	hook.Add(WUMA.PERSONALLOADOUTRESTRICTIONSUPDATE, "WUMAPersonalLoadoutRestrictionsUpdate", function(user, update)
-		local weapons = WUMA.GetWeapons()
-
-		for key, class in pairs(weapons) do
-			if (WUMA.PersonalRestrictions["swep_" .. class]) then weapons[key] = nil end
-		end
-
-		loadout.weapons = weapons
-		loadout:ReloadSuggestions()
-	end)
-
 	loadout:GetDataView():Show(LocalPlayer():SteamID())
 
 	frame:MakePopup()
 	frame:SetVisible(true)
-
-	WUMA.kek = loadout
 end

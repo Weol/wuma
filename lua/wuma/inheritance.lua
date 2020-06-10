@@ -4,8 +4,9 @@ WUMA.Inheritance = WUMA.Inheritance or {}
 function WUMA.LoadInheritance()
 	local inheritances = WUMASQL([[SELECT * FROM `WUMAInheritance`]])
 	if inheritances then
-		for _, row in inheritances do
-
+		for _, row in pairs(inheritances) do
+			WUMA.Inheritance[row.type] = WUMA.Inheritance[row.type] or {}
+			WUMA.Inheritance[row.type][row.usergroup] = row.inheritFrom
 		end
 	end
 end
@@ -15,13 +16,13 @@ function WUMA.SetUsergroupInheritance(caller, type, usergroup, inheritFrom)
 	WUMA.Inheritance[type][usergroup] = inheritFrom
 
 	WUMASQL(
-		[[INSERT INTO `WUMAInheritance` (`type`, `usergroup`, `inheritFrom`) VALUES ("%s", "%s", "%s")]],
+		[[REPLACE INTO `WUMAInheritance` (`type`, `usergroup`, `inheritFrom`) VALUES ("%s", "%s", "%s")]],
 		type,
 		usergroup,
 		inheritFrom
 	)
 
-	hook.Call("WUMAInheritanceChanged", nil, caller, type, usergroup, inheritFrom)
+	hook.Call("WUMAOnInheritanceChanged", nil, caller, type, usergroup, inheritFrom)
 end
 
 function WUMA.UnsetUsergroupInheritance(caller, type, usergroup)
@@ -34,10 +35,6 @@ function WUMA.UnsetUsergroupInheritance(caller, type, usergroup)
 			usergroup
 		)
 
-		hook.Call("WUMAInheritanceChanged", nil, caller, type, usergroup, nil)
+		hook.Call("WUMAOnInheritanceChanged", nil, caller, type, usergroup, nil)
 	end
-end
-
-function WUMA.GetUsergroupAncestor(type, usergroup)
-	return WUMA.Inheritance[string.format("%s_%s", type, usergroup)]
 end

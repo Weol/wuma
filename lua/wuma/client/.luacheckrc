@@ -1,5 +1,6 @@
 ignore = {
     "213",
+    "212/self",
     "4..", --Shadowing
     "631", --Too long lines
 }
@@ -43,20 +44,76 @@ stds.wuma = {
                 "OnInheritanceUpdate",
                 "OnMapsUpdate",
                 "FlushSubscriptions",
+                "HasCreatedFonts",
+                "OnTabChange",
+                "Unsubscribe",
+                "RestrictionTypes",
+                RestrictionTypes = {
+                    field = {
+                        "entity",
+                        "prop",
+                        "npc",
+                        "vehicle",
+                        "swep",
+                        "pickup",
+                        "effect",
+                        "tool",
+                        "ragdoll",
+                        "property",
+                        "physgrab",
+                        "use",
+                    }
+                },
+                RPC = {
+                    fields = {
+                        "Subscribe",
+                        "Unsubscribe",
+                        "Restrict",
+                        "RestrictUser",
+                        "Unrestrict",
+                        "UnrestrictUser",
+                        "RestrictType",
+                        "RestrictUserType",
+                        "SetRestrictionsWhitelist",
+                        "SetUserRestrictionsWhitelist",
+                        "SetLimit",
+                        "SetUserLimit",
+                        "UnsetLimit",
+                        "UnsetUserLimit",
+                        "AddLoadout",
+                        "AddUserLoadout",
+                        "RemoveLoadout",
+                        "RemoveUserLoadout",
+                        "SetPrimaryWeapon",
+                        "SetUserPrimaryWeapon",
+                        "SetEnforceLoadout",
+                        "SetUserEnforceLoadout",
+                        "ChangeSettings",
+                        "ChangeInheritance",
+                        "AddPersonalLoadout",
+                        "RemovePersonalLoadout",
+                        "SetPersonalPrimaryWeapon",
+                    }
+                },
                 GUI = {
                     fields = {
                         "Initialize",
                         "Base",
+                        "ActiveTab",
                         "PropertySheet",
-                        "SettingsTabs",
-                        "RestrictionsTabs",
-                        "LimitsTabs",
-                        "LoadoutsTabs",
-                        "UsersTabs",
+                        "SettingsTab",
+                        "RestrictionsTab",
+                        "LimitsTab",
+                        "LoadoutsTab",
+                        "UsersTab",
                         "Show",
                         "Hide",
                         "Toggle",
                         "CreateLoadoutSelector",
+                        "InitializeSettingsTab",
+                        "OnUserTabChange",
+                        "InitializeRestrictionsTab",
+                        "OnUserTabChange",
                     }
                 }
             }
@@ -1664,8 +1721,10 @@ stds.gmod = {
         "CLIENT",
         "HUD_PRINTCONSOLE",
         "isplayer",
-        "NOTIFY_ERROR"
-        "TOP"
+        "NOTIFY_ERROR",
+        "TOP",
+        "BOTTOM",
+        "TEXT_ALIGN_LEFT",
     }
 }
 

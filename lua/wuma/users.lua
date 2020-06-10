@@ -31,14 +31,6 @@ function WUMA.IsSteamID(steamid)
 	return (steamid == string.match(steamid, [[STEAM_%d:%d:%d*]]))
 end
 
-function WUMA.GetUserGroups()
-	local groups = {"superadmin", "admin", "user"}
-	for group, tbl in pairs(CAMI.GetUsergroups()) do
-		if not table.HasValue(groups, group) then table.insert(groups, group) end
-	end
-	return groups
-end
-
 local function showWUMAMenuCommand(user)
 	CAMI.PlayerHasAccess(user, "wuma gui", function(bool)
 		if bool then
@@ -67,14 +59,14 @@ local function playerChatCommand(user, text)
 		return ""
 	end
 end
-hook.Add("PlayerSay", "WUMAChatCommand", playerChatCommand)
+hook.Add("PlayerSay", "WUMA_USERS_PlayerSay", playerChatCommand)
 
 local function userDisconnect(user)
 	WUMA.AddLookup(user)
 end
-hook.Add("PlayerDisconnected", "WUMAPlayerDisconnected", userDisconnect)
+hook.Add("PlayerDisconnected", "WUMA_USERS_PlayerDisconnected", userDisconnect)
 
 local function playerInitialSpawn(player)
 	WUMARPC(player, "WUMA.CalculateServerTimeDifference", os.time())
 end
-hook.Add("PlayerInitialSpawn", "WUMAPlayerInitialSpawn", playerInitialSpawn)
+hook.Add("PlayerInitialSpawn", "WUMA_USERS_PlayerInitialSpawn", playerInitialSpawn)

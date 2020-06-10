@@ -6,7 +6,9 @@ WUMA.RestrictionTypes.entity = RestrictionType:New{
     print = "Entity",
 	print2 = "Entities",
 	search = "Search..",
-	items = function() return list.Get("SpawnableEntities") end
+	items = function()
+		return table.GetKeys(list.Get("SpawnableEntities"))
+	end
 }
 
 WUMA.RestrictionTypes.prop = RestrictionType:New{
@@ -22,7 +24,7 @@ WUMA.RestrictionTypes.npc = RestrictionType:New{
     print = "NPC",
 	print2 = "NPCs",
 	search = "Search..",
-	items = function() return list.Get("NPC") end
+	items = function() return table.GetKeys(list.Get("NPC")) end
 }
 
 WUMA.RestrictionTypes.vehicle = RestrictionType:New{
@@ -30,7 +32,7 @@ WUMA.RestrictionTypes.vehicle = RestrictionType:New{
     print = "Vehicle",
 	print2 = "Vehicles",
 	search = "Search..",
-	items = list.Get("Vehicles")
+	items = function() return table.GetKeys(list.Get("Vehicles")) end
 }
 
 WUMA.RestrictionTypes.swep = RestrictionType:New{
@@ -38,7 +40,7 @@ WUMA.RestrictionTypes.swep = RestrictionType:New{
     print = "Weapon",
 	print2 = "Weapons",
 	search = "Search..",
-	items = function() return list.Get("Weapon") end
+	items = function() return table.GetKeys(list.Get("Weapon")) end
 }
 
 WUMA.RestrictionTypes.pickup = RestrictionType:New{
@@ -46,7 +48,7 @@ WUMA.RestrictionTypes.pickup = RestrictionType:New{
     print = "Pickup",
 	print2 = "Pickups",
 	search = "Search..",
-	items = function() return list.Get("Weapon") end
+	items = function() return table.GetKeys(list.Get("Weapon")) end
 }
 
 WUMA.RestrictionTypes.effect = RestrictionType:New{
@@ -62,7 +64,7 @@ WUMA.RestrictionTypes.tool = RestrictionType:New{
     print = "Tool",
 	print2 = "Tools",
 	search = "Search..",
-	items = function() return weapons.GetStored('gmod_tool').Tool end
+	items = function() return table.GetKeys(weapons.GetStored('gmod_tool').Tool) end
 }
 
 WUMA.RestrictionTypes.ragdoll = RestrictionType:New{
@@ -92,5 +94,11 @@ WUMA.RestrictionTypes.use = RestrictionType:New{
     print = "Use",
 	print2 = "Uses",
 	search = "Search..",
-	items = function() return list.Get("SpawnableEntities") end
+	items = function()
+		local merged = {}
+		table.Merge(merged, list.Get("NPC"))
+		table.Merge(merged, list.Get("Vehicles"))
+		table.Merge(merged, list.Get("SpawnableEntities"))
+		return table.GetKeys(merged)
+	end
 }

@@ -45,7 +45,7 @@ end
 function object:SetScope(scope)
 	if not self:GetOrigin() then
 		self.scope = scope
-		if not scope.m then self.scope = Scope:new(scope) end
+		if not scope.m then self.scope = Scope:New(scope) end
 
 		self.scope:SetParent(self)
 
@@ -69,11 +69,12 @@ local object, static = WUMA.ClassFactory.Builder("RestrictionType")
 object:AddProperty("name", "Name")
 object:AddProperty("print", "Print")
 object:AddProperty("print2", "Print2")
+object:AddProperty("search", "Search")
 object:AddProperty("items", "Items")
 object:AddProperty("preprocessor", "PreProcessor")
 
 function object:GetItems()
-	return self.items()
+	return self.items and self.items() or {}
 end
 
 RestrictionType = WUMA.ClassFactory.Create(object)

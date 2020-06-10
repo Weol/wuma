@@ -161,7 +161,7 @@ function PANEL:Init()
 	local sort = function(data)
 		return data.usergroup
 	end
-	self:GetDataView():SetSortFunction(sort)
+	self:GetDataView():SetClassifyFunction(sort)
 
 	self:PopulateList("list_usergroups", WUMA.ServerGroups, true, true)
 	self:PopulateList("list_scopes", table.Add({"Permanent"}, Scope:GetTypes("print")), true)
