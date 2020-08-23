@@ -1,6 +1,19 @@
 
 local ENT = FindMetaTable("Player")
 
+if CLIENT then
+	local exclude_limits = CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
+
+	function ENT:GetCount(str)
+		if exclude_limits:GetBool() then
+			return self:GetNWInt("Count." .. str, 0) - self:GetNWInt("Count.TotalLimits." .. str, 0)
+		else
+			return self:GetNWInt("Count." .. str, 0)
+		end
+	end
+	return
+end
+
 local exclude_limits = WUMA.ExcludeLimits
 
 local ignore = {
@@ -74,9 +87,6 @@ end
 ENT.old_GetCount = ENT.old_GetCount or ENT.GetCount
 function ENT:GetCount(str, minus, id)
 	minus = minus or 0
-
-	--Lets not do anything if we are running at client, let the sandbox function handle that
-	if CLIENT then return self.old_GetCount(self, str, minus) end
 
 	if not self:IsValid() then
 		return
