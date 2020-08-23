@@ -27,6 +27,11 @@ function WUMA.Initialize()
 	include("wuma/objects/restriction.lua")
 	include("wuma/objects/limit.lua")
 
+	hook.Add("PostGamemodeLoaded", "WUMAPostGamemodeLoadedPlayerExtentionInit", function()
+		include("wuma/extentions/playerextention.lua")
+		hook.Remove("PostGamemodeLoaded", "WUMAPostGamemodeLoadedPlayerExtentionInit")
+	end)
+
 	--Load shared folder
 	WUMADebug("Loading shared folder")
 	WUMA.IncludeFolder("wuma/shared/")

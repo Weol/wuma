@@ -286,14 +286,24 @@ function WUMA.ChangeTotalLimits(user_id, string, delta)
 		WUMA.UserLimitStrings[user_id] = {}
 	end
 
+	local ply = player.GetBySteamID(user_id)
+
 	local value = WUMA.UserLimitStrings[user_id][string] or 0
 	if (value + delta < 1) then
 		WUMA.UserLimitStrings[user_id][string] = nil
 		if (table.Count(WUMA.UserLimitStrings[user_id]) == 0) then
 			WUMA.UserLimitStrings[user_id] = nil
 		end
+
+		if ply then
+			ply:SetNWInt("Count.TotalLimits." .. string, 0)
+		end
 	else
 		WUMA.UserLimitStrings[user_id][string] = value + delta
+
+		if ply then
+			ply:SetNWInt("Count.TotalLimits." .. string, value + delta)
+		end
 	end
 end
 

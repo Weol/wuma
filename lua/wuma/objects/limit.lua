@@ -189,6 +189,11 @@ end
 
 function object:SetCount(c)
 	if (c < 0) then c = 0 end
+
+	if self:GetParent() and IsValid(self:GetParent()) then
+		self:GetParent():SetNWInt("Count." .. self:GetString(), c)
+	end
+
 	self.m.count = c
 end
 

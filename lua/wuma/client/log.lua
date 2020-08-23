@@ -9,7 +9,7 @@ function WUMA.Log.ServerLog(msg, ...)
 	if args then
 		msg = WUMA.SafeFormat(msg, args)
 	end
-	msg = "[WUMA] " .. msg 
+	msg = "[WUMA] " .. msg
 	Msg(msg.."\n")
 end
 WUMALog = WUMA.Log.ServerLog --To save my fingers
