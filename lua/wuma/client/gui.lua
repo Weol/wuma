@@ -23,8 +23,6 @@ WUMA.Subscriptions.timers = {}
 
 function WUMA.GUI.Initialize()
 
-	MsgN("####################\n####################\n####################\n####################\n####################\n####################\n####################\n####################\n")
-
 	--Requests
 	if GetConVar("wuma_request_on_join"):GetBool() then
 		WUMA.RequestFromServer("settings")
