@@ -76,7 +76,7 @@ WUMA.RestrictionTypes.e2func = {
 }
 ]]--
 
-PrintTable(E2Functions)
+--PrintTable(E2Functions)
 
 old_compiler = old_compiler or E2Lib.Compiler.GetFunction
 E2Lib.Compiler.GetFunction = function(self, instr, Name, Args)

@@ -48,6 +48,10 @@ stds.wuma = {
                 "OnTabChange",
                 "Unsubscribe",
                 "RestrictionTypes",
+                "GetAllLimits",
+                "GetWeapons",
+                "GenerateUniqueID",
+                "OnLookupUpdate",
                 RestrictionTypes = {
                     field = {
                         "entity",
@@ -93,6 +97,12 @@ stds.wuma = {
                         "AddPersonalLoadout",
                         "RemovePersonalLoadout",
                         "SetPersonalPrimaryWeapon",
+                        "CopyPlayerLoadout",
+                        "SetLoadoutIgnoreRestrictions",
+                        "FlushSubscriptions",
+                        "SetUserLoadoutIgnoreRestrictions",
+                        "UserCopyPlayerLoadout",
+                        "Lookup",
                     }
                 },
                 GUI = {
@@ -114,6 +124,12 @@ stds.wuma = {
                         "OnUserTabChange",
                         "InitializeRestrictionsTab",
                         "OnUserTabChange",
+                        "InitializeLimitsTab",
+                        "InitializeLoadoutTab",
+                        "InitializeUsersTab",
+                        "InitializeUserRestrictionsTab",
+                        "InitializeUserLimitsTab",
+                        "InitializeUserLoadoutsTab",
                     }
                 }
             }
@@ -1725,6 +1741,7 @@ stds.gmod = {
         "TOP",
         "BOTTOM",
         "TEXT_ALIGN_LEFT",
+        "DLabel",
     }
 }
 

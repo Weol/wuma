@@ -103,7 +103,7 @@ hook.Add("WUMAOnRestrictionRemoved", "WUMA_SUBSCRIPTIONS_WUMARestrictionRemoved"
 WUMA.Subscribable.limits = function(player, parent)
     local limits = WUMA.Limits[parent] or WUMA.ReadLimits(parent)
     if limits then
-        WUMARPC(player, "WUMA.OnLimitsUpdate", limits, {})
+        WUMARPC(player, "WUMA.OnLimitsUpdate", parent, limits, {})
     end
 end
 
@@ -131,7 +131,7 @@ hook.Add("WUMAOnLimitRemoved", "WUMA_SUBSCRIPTIONS_WUMALimitRemoved", limitRemov
 WUMA.Subscribable.loadouts = function(player, parent)
     local loadouts = WUMA.Loadouts[parent] or WUMA.ReadLoadouts(parent)
     if loadouts then
-        WUMARPC(player, "WUMA.OnLoadoutsUpdate", loadouts, {})
+        WUMARPC(player, "WUMA.OnLoadoutsUpdate", parent, loadouts, {})
     end
 end
 
@@ -231,3 +231,28 @@ hook.Add("WUMAOnInheritanceChanged", "WUMA_SUBSCRIPTIONS_WUMAInheritanceChanged"
 WUMA.Subscribable.maps = function(player)
     WUMARPC(player, "WUMA.OnMapsUpdate", {file.Find("maps/*.bsp", "GAME")}, {})
 end
+
+------------------
+-- ONLINE USERS --
+------------------
+WUMA.Subscribable.lookup = function(caller)
+    local users = {}
+
+    for _, ply in pairs(player.GetAll()) do
+        users[ply:SteamID()] = {steamid = ply:SteamID(), nick = ply:Nick(), usergroup = ply:GetUserGroup(), t = os.time()}
+    end
+
+    WUMARPC(caller, "WUMA.OnLookupUpdate", users, {})
+end
+
+local function playerDisconnected(player)
+    local subscribers = WUMA.Subscriptions["lookup"]
+    WUMARPC(subscribers, "WUMA.OnLookupUpdate", {}, {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}})
+end
+hook.Add("PlayerDisconnected", "WUMA_LOOKUP_PlayerDisconnected", playerDisconnected)
+
+function playerInitialSpawn(player)
+    local subscribers = WUMA.Subscriptions["lookup"]
+    WUMARPC(subscribers, "WUMA.OnLookupUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}}, {})
+end
+hook.Add("PlayerInitialSpawn", "WUMA_LOOKUP_PlayerInitialSpawn", playerInitialSpawn)

@@ -6,7 +6,6 @@ object:AddProperty("item", "Item")
 object:AddProperty("limit", "Limit")
 object:AddProperty("is_exclusive", "IsExclusive")
 
-object:AddMetaData("disabled", "IsDisabled")
 object:AddMetaData("entities", "Entities", {})
 object:AddMetaData("counts", "Counts", {})
 
@@ -16,42 +15,15 @@ function object:__construct(args)
 	if (args.limit == args.item) then error("limit and item cannot be the same") end
 
 	if not isnumber(args.limit) then
-		if (tonumber(args.limit) ~= nil) then
-			self:SetLimit(tonumber(args))
+		local limit = string.Replace(args.limit, "'", "")
+		if (tonumber(limit) ~= nil) then
+			self:SetLimit(tonumber(limit))
 		end
 	end
 end
 
-function static:GenerateID(parent, item)
-	return string.format("%s_%s", parent, item)
-end
-
 function object:__tostring()
 	return string.format("Limit [%s]", self:GetItem())
-end
-
-function object:GetID()
-	return string.format("%s_%s", self:GetParent(), self:GetItem())
-end
-
-function object:GetScope()
-	return self.scope
-end
-
-function object:SetScope(scope)
-	if not self:GetOrigin() then
-		self.scope = scope
-		if not scope.m then self.scope = Scope:New(scope) end
-
-		self.scope:SetParent(self)
-
-		self.scope:AllowThink()
-	end
-end
-
-function object:DeleteScope()
-	self.scope:Delete()
-	self.scope = nil
 end
 
 function object:Check(player, int)
@@ -74,7 +46,7 @@ function object:Check(player, int)
 	local count = self:GetCounts()[player:SteamID()]
 	if (limit < 0) then return true end
 	if (limit <= count) then
-		self:GetParent():SendLua(string.format([[WUMA.NotifyLimitHit("%s")]], self:GetItem()))
+		player:SendLua(string.format([[WUMA.NotifyLimitHit("%s")]], self:GetItem()))
 		return false
 	end
 
@@ -83,7 +55,7 @@ end
 
 function object:Purge()
 	for id, entry in pairs(self:GetEntities()) do
-		local player, entity = unpack(entry)
+		local _, entity = unpack(entry)
 		entity:RemoveWUMAParent(entity)
 	end
 
@@ -92,7 +64,7 @@ function object:Purge()
 end
 
 function object:DeleteEntity(entity)
-	local player, entity = unpack(entity:GetEntities()[entity:GetCreationID()])
+	local player, _ = unpack(entity:GetEntities()[entity:GetCreationID()])
 
 	local counts = self:GetCounts()
 	counts[player:SteamID()] = (counts[player:SteamID()] or 0) - 1

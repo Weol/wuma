@@ -26,11 +26,13 @@ function WUMA.Subscribe(args)
 		return --A subscription with this unique id already exists
 	end
 
-	local asd = callback
-	callback = function(...)
-		WUMADebug("Subscription of \"%s\":", key)
-		WUMADebug({...})
-		asd(...)
+	if callback then
+		local asd = callback
+		callback = function(...)
+			WUMADebug("Subscription of \"%s\":", key)
+			WUMADebug({...})
+			asd(...)
+		end
 	end
 
 	local subscribe = (subscribe_callbacks[key] == nil)
@@ -48,7 +50,6 @@ function WUMA.Subscribe(args)
 	end
 
 	if subscribe then
-		table.insert(args.args, callback)
 		WUMA.RPC.Subscribe:Invoke(unpack(args.args))
 
 		hook.Call("WUMAOnSubscribed", nil, unpack(args.args))
@@ -133,7 +134,7 @@ function WUMA.OnLoadoutsUpdate(parent, updated, deleted)
 		preprocessed[id] = LoadoutWeapon:New(limit)
 	end
 
-	local key = "lodouts_" .. parent
+	local key = "loadouts_" .. parent
 	subscription_data[key] = subscription_data[key] or {}
 
 	table.Merge(subscription_data[key], preprocessed)
@@ -145,7 +146,7 @@ function WUMA.OnLoadoutsUpdate(parent, updated, deleted)
 		callback(subscription_data[key], parent, preprocessed, deleted)
 	end
 
-	for _, f in pairs(subscribe_callbacks[key]) do
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
 		f(subscription_data[key], parent, preprocessed, deleted)
 	end
 end
@@ -164,7 +165,7 @@ function WUMA.OnSettingsUpdate(parent, updated, deleted)
 		callback(subscription_data[key], parent, updated, deleted)
 	end
 
-	for unsubscribe_callbacks, f in pairs(subscribe_callbacks[key]) do
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
 		f(subscription_data[key], parent, updated, deleted)
 	end
 end
@@ -186,7 +187,7 @@ function WUMA.OnUsergroupUpdate(updated, deleted)
 		callback(subscription_data[key], updated, deleted)
 	end
 
-	for _, f in pairs(subscribe_callbacks[key]) do
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
 		f(subscription_data[key], updated, deleted)
 	end
 end
@@ -220,7 +221,7 @@ function WUMA.OnInheritanceUpdate(type, updated, deleted)
 		end
 	end
 
-	for _, f in pairs(subscribe_callbacks[key]) do
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
 		f(subscription_data[key], type, updated, deleted)
 	end
 end
@@ -242,7 +243,29 @@ function WUMA.OnMapsUpdate(updated, deleted)
 		callback(subscription_data[key], updated, deleted)
 	end
 
-	for _, f in pairs(subscribe_callbacks[key]) do
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
+		f(subscription_data[key], updated, deleted)
+	end
+end
+
+function WUMA.OnLookupUpdate(updated, deleted)
+	local key = "lookup"
+
+	subscription_data[key] = subscription_data[key] or {}
+
+	for steamid, user in pairs(updated) do
+		subscription_data[key][steamid] = user
+	end
+
+	for steamid, user  in pairs(deleted) do
+		subscription_data[key][steamid] = nil
+	end
+
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], updated, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
 		f(subscription_data[key], updated, deleted)
 	end
 end

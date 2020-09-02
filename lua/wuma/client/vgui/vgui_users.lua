@@ -1,152 +1,107 @@
 
 local PANEL = {}
 
-PANEL.TabName = "Users"
-PANEL.TabIcon = "icon16/drive_user.png"
+AccessorFunc(PANEL, "restrictions", "RestrictionsPanel")
+AccessorFunc(PANEL, "limits", "LimitsPanel")
+AccessorFunc(PANEL, "loadouts", "LoadoutsPanel")
+AccessorFunc(PANEL, "Users", "Users")
+AccessorFunc(PANEL, "CachedCalls", "CachedCalls")
 
 function PANEL:Init()
+
+	self.CachedCalls = {}
+	self.Users = {}
 
 	--Search bar
 	self.textbox_search = vgui.Create("WTextbox", self)
 	self.textbox_search:SetDefault("Search..")
-	self.textbox_search.OnTextChanged = self.OnSearch
+	self.textbox_search.OnEnter = function() self:OnLookup(self.textbox_search:GetValue()) end
+
+	local old_OnLoseFocus = self.textbox_search.OnLoseFocus
+	self.textbox_search.OnLoseFocus = function(entry)
+		self:OnLookup(self.textbox_search:GetValue())
+		return old_OnLoseFocus(entry)
+	end
 
 	--Search button
 	self.button_search = vgui.Create("DButton", self)
 	self.button_search:SetText("")
 	self.button_search:SetIcon("icon16/magnifier.png")
-	self.button_search.DoClick = self.OnLookup
+	self.button_search.DoClick = function() self:OnLookup(self.textbox_search:GetValue()) end
 
 	--back button
 	self.button_back = vgui.Create("DButton", self)
 	self.button_back:SetText("Back")
-	self.button_back.DoClick = self.OnBackClick
+	self.button_back:SetVisible(false)
+	self.button_back.DoClick = function() self:OnBackClick() end
 
 	--Restrictions button
 	self.button_restrictions = vgui.Create("DButton", self)
 	self.button_restrictions:SetText("Restrictions")
-	self.button_restrictions.DoClick = self.OnRestrictionsClick
+	self.button_restrictions.DoClick = function() self:OnRestrictionsClick() end
 	self.button_restrictions:SetDisabled(true)
 
 	--Limits button
 	self.button_limits = vgui.Create("DButton", self)
 	self.button_limits:SetText("Limits")
-	self.button_limits.DoClick = self.OnLimitsClick
+	self.button_limits.DoClick = function() self:OnLimitsClick() end
 	self.button_limits:SetDisabled(true)
 
 	--Loadouts button
 	self.button_loadouts = vgui.Create("DButton", self)
 	self.button_loadouts:SetText("Loadouts")
-	self.button_loadouts.DoClick = self.OnLoadoutsClick
+	self.button_loadouts.DoClick = function() self:OnLoadoutsClick() end
 	self.button_loadouts:SetDisabled(true)
 
 	--Items list
 	self.list_items = vgui.Create("WListView", self)
 	self.list_items:SetMultiSelect(false)
-	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Nick")
 	self.list_items:AddColumn("SteamID")
+	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Last Online")
-	self.list_items.OnRowSelected = self.OnUserSelected
-	self.list_items.OnViewChange = function()
-		self.list_items:SortByColumn(4)
-	end
+	self.list_items.OnItemSelected = function(_, item) return self:OnUserSelected(item) end
+	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
+	self.list_items:SetClassifyFunction(function(...) return self:ClassifyUser(...) end)
+	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
-	local old_sortby = self.list_items.SortByColumn
-	self.list_items.SortByColumn = function(panel, column)
-		panel.SortedColumn = column
-		old_sortby(panel, column)
+	local old_SortByColumn = self.list_items.SortByColumn
+	function self.list_items:SortByColumn(column_id, desc)
+		if (column_id == 4) then
+			old_SortByColumn(self, column_id, true)
+		end
 	end
-
-	local function highlight(line, data, datav)
-		if WUMA.ServerUsers[datav.steamid] then return Color(0, 255, 0, 120) else return nil end
-	end
-	self.list_items:SetHighlightFunction(highlight)
 
 	--Restrictions panel
 	self.restrictions = vgui.Create("WUMA_Restrictions", self)
 	self.restrictions:SetVisible(false)
+	self.restrictions.list_items.Columns[1]:SetName("User")
 	self.restrictions.list_usergroups:SetVisible(false)
 	self.restrictions.GetSelectedUsergroups = function()
-		return {self:GetSelectedUser()}
+		return {self:GetSelectedUserSteamId()}
 	end
-	self.restrictions:GetDataView().Columns[1]:SetName("User")
 
-	self.restrictions.Command.Add = "restrictuser"
-	self.restrictions.Command.Delete = "unrestrictuser"
-	self.restrictions.Command.Edit = "restrictuser"
-
-	local display = function(data)
-		local scope = "Permanent"
-		if data:GetScope() then
-			scope = data:GetScope():GetPrint2()
-		end
-		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
-
-		local nick = "ERROR"
-		if WUMA.LookupUsers[data.parent] then nick = WUMA.LookupUsers[data.parent].nick elseif WUMA.ServerUsers[data.parent] then nick = WUMA.ServerUsers[data.parent]:Nick() end
-
-		return {nick, data.print or data.string, scope}
-	end
-	self.restrictions:GetDataView():SetDisplayFunction(display)
-
-	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersRestrictionUpdate", function(user, type, update)
-		if (user == self:GetSelectedUser()) and (type == Restriction:GetID()) then
-			if not (self.restrictions:GetDataView():GetDataSource() == WUMA.UserData[self:GetSelectedUser()].Restrictions) then
-				self.restrictions:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].Restrictions end)
-			else
-				self.restrictions:GetDataView():UpdateDataTable(update)
-			end
-		end
+	self.restrictions.old_ClassifyFunction = self.restrictions.list_items:GetClassifyFunction()
+	self.restrictions.list_items:SetClassifyFunction(function(...)
+		local response = {self.restrictions.old_ClassifyFunction(...)}
+		response[2][1] = self:GetSelectedUserNick()
+		return response[1], response[2], response[3], response[4], response[5]
 	end)
 
 	--Limits panel
 	self.limits = vgui.Create("WUMA_Limits", self)
 	self.limits:SetVisible(false)
 	self.limits.list_usergroups:SetVisible(false)
+	self.restrictions.list_items.Columns[1]:SetName("User")
 	self.limits.GetSelectedUsergroups = function()
-		return {self:GetSelectedUser()}
+		return {self:GetSelectedUserSteamId()}
 	end
-	self.restrictions:GetDataView().Columns[1]:SetName("User")
 
-	self.limits.Command.Add = "setuserlimit"
-	self.limits.Command.Delete = "unsetuserlimit"
-	self.limits.Command.Edit = "setuserlimit"
-
-	local display = function(data)
-		local scope = "Permanent"
-		if data:GetScope() then
-			scope = data:GetScope():GetPrint2()
-		end
-
-		if scope and istable(scope) and scope.type and Scope.types[scope.type] then scope = Scope.types[scope.type].print end
-
-		local nick = "ERROR"
-		if WUMA.LookupUsers[data.parent] then nick = WUMA.LookupUsers[data.parent].nick elseif WUMA.ServerUsers[data.parent] then nick = WUMA.ServerUsers[data.parent]:Nick() end
-
-		local sort_limit = data.limit
-		if isnumber(sort_limit) then sort_limit = -sort_limit else sort_limit = -1 end
-
-		local limit = data.limit
-		if ((tonumber(limit) or 1) < 0) then limit = "∞" end
-
-		return {nick, data.print or data.string, limit, scope}, {_, _, sort_limit, 0}
-	end
-	self.limits:GetDataView():SetDisplayFunction(display)
-
-	local sort = function(data)
-		return self:GetSelectedUser()
-	end
-	self.limits:GetDataView():SetClassifyFunction(sort)
-
-	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLimitUpdate", function(user, type, update)
-		if (user == self:GetSelectedUser()) and (type == Limit:GetID()) then
-			if not (self.limits:GetDataView():GetDataSource() == WUMA.UserData[self:GetSelectedUser()].Limits) then
-				self.limits:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].Limits end)
-			else
-				self.limits:GetDataView():UpdateDataTable(update)
-			end
-		end
+	self.limits.old_ClassifyFunction = self.limits.list_items:GetClassifyFunction()
+	self.limits.list_items:SetClassifyFunction(function(...)
+		local response = {self.limits.old_ClassifyFunction(...)}
+		response[2][1] = self:GetSelectedUserNick()
+		return response[1], response[2], response[3], response[4], response[5]
 	end)
 
 	--Loadouts panel
@@ -154,360 +109,247 @@ function PANEL:Init()
 	self.loadouts:SetVisible(false)
 	self.loadouts.list_usergroups:SetVisible(false)
 	self.loadouts.GetSelectedUsergroups = function()
-		return {self:GetSelectedUser()}
-	end
-	self.loadouts.GetCurrentLoadout = function()
-		if (WUMA.UserData[self:GetSelectedUser()]) then
-			return WUMA.UserData[self:GetSelectedUser()].Loadouts
-		end
+		return {self:GetSelectedUserSteamId()}
 	end
 
-
-	self.loadouts.Command.Add = "adduserloadout"
-	self.loadouts.Command.Delete = "removeuserloadout"
-	self.loadouts.Command.Edit = "adduserloadout"
-	self.loadouts.Command.Clear = "clearuserloadout"
-	self.loadouts.Command.Primary = "setuserprimaryweapon"
-	self.loadouts.Command.Enforce = "setuserenforceloadout"
-
-	local display = function(data)
-		local scope = "Permanent"
-		if data.scope then scope = data.scope end
-
-		local nick = "ERROR"
-		if WUMA.LookupUsers[data.usergroup] then nick = WUMA.LookupUsers[data.usergroup].nick elseif WUMA.ServerUsers[data.usergroup] then nick = WUMA.ServerUsers[data.usergroup]:Nick() end
-
-		local secondary = data.secondary or -1
-		if (secondary < 0) then
-			secondary = "def"
-		end
-
-		local primary = data.primary or -1
-		if (primary < 0) then
-			primary = "def"
-		end
-
-		return {nick, data.print or data.class, primary, secondary, scope}, {0, _, -(data.primary or 0), -(data.secondary or 0)}
-	end
-	self.loadouts:GetDataView():SetDisplayFunction(display)
-
-	local sort = function(data)
-		return self:GetSelectedUser()
-	end
-	self.loadouts:GetDataView():SetClassifyFunction(sort)
-
-	WUMA.GUI.AddHook(WUMA.USERDATAUPDATE, "WUMAUsersLoadoutUpdate", function(user, type, update)
-		if (user == self:GetSelectedUser()) and (type == Loadout:GetID()) then
-			if not (self.loadouts:GetDataView():GetDataSource() == WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons) then
-				self.loadouts:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons end)
-			else
-				self.loadouts:GetDataView():UpdateDataTable(update)
-			end
-		end
+	self.loadouts.old_ClassifyFunction = self.loadouts.list_items:GetClassifyFunction()
+	self.loadouts.list_items:SetClassifyFunction(function(...)
+		local response = {self.loadouts.old_ClassifyFunction(...)}
+		response[2][1] = self:GetSelectedUserNick()
+		return response[1], response[2], response[3], response[4], response[5]
 	end)
 
 	--User label
 	self.label_user = vgui.Create("DLabel", self)
 	self.label_user:SetText("NO_USER")
 	self.label_user:SetTextColor(Color(0, 0, 0))
-	self.label_user:SetVisible(true)
+	self.label_user:SetVisible(false)
 
-	local highlight = function(line, data, datav)
-		if WUMA.ServerUsers[datav.steamid] then return Color(0, 255, 0, 120) end
+	self.list_items:Show({"lookup", "online"})
+
+end
+
+function PANEL:SortGrouping(user)
+	if user.group == "online" then
+		return 1, "Online players"
 	end
-	self.list_items:SetHighlightFunction(highlight)
+	return 2, "Offline players"
+end
 
-	local display = function(user)
-		local data, sort
-
-		data = {user.usergroup, user.nick, user.steamid, os.date("%d/%m/%Y %H:%M", user.t)}
-		sort = {tonumber(table.KeyFromValue(WUMA.ServerGroups, user.usergroup) or "1") or 1, 1, 1, tonumber((WUMA.GetServerTime()-user.t) or "1")}
-
-		return data, sort
+function PANEL:ClassifyUser(user)
+	local last_online = os.date("%d/%m/%Y %H:%M", user.t)
+	if user.online then
+		last_online = "Online"
 	end
-	self:GetDataView():SetDisplayFunction(display)
 
-	local sort = function(data)
-		local text = self.textbox_search:GetValue()
-		if (text ~= "" and text ~= self.textbox_search:GetDefault()) then
+	local columns = {user.nick, user.steamid, user.usergroup, last_online}
+	local sort = {user.nick, user.steamid, user.usergroup, user.t}
 
-			local column = "nick"
-			if (string.lower(string.Left(text, 6)) == "steam_") then column = "steamid" end
+	local highlight
+	if (user.group == "online") then
+		highlight = Color(0, 255, 0, 120)
+	end
 
-			local item = data[column]
-			local succ, err = pcall(function()
-				local matched = string.match(string.lower(item), string.lower(text))
-			end)
+	return user.group, columns, sort, highlight
+end
 
-			if succ then
-				if string.match(string.lower(item), string.lower(text)) then
-					return "kek"
-				end
+function PANEL:PerformLayout(w, h)
+	self.textbox_search:SetSize(120, 20)
+	self.textbox_search:SetPos(5, 5)
+
+	self.button_search:SetSize(self.textbox_search:GetTall(), self.textbox_search:GetTall())
+	self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5, 5)
+
+	self.button_back:SetSize(70, self.textbox_search:GetTall())
+	self.button_back:SetPos(5, 5)
+
+	self.button_loadouts:SetSize(70, self.textbox_search:GetTall())
+	self.button_loadouts:SetPos(w-self.button_loadouts:GetWide()-5, 5)
+
+	self.button_limits:SetSize(50, self.textbox_search:GetTall())
+	self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5, 5)
+
+	self.button_restrictions:SetSize(80, self.textbox_search:GetTall())
+	self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5, 5)
+
+	self.limits:SetSize(w, h-25)
+	self.limits:SetPos(0, 25)
+
+	self.loadouts:SetSize(w, h-25)
+	self.loadouts:SetPos(0, 25)
+
+	self.restrictions:SetSize(w, h-25)
+	self.restrictions:SetPos(0, 25)
+
+	self.label_user:SizeToContents()
+	self.label_user:SetTall(self.button_back:GetTall())
+	self.label_user:SetPos(w-self.label_user:GetWide()-5, 5)
+
+	self.list_items:SetSize(w-10, h-(self.textbox_search.y+self.textbox_search:GetTall())-10)
+	self.list_items:SetPos(5, self.textbox_search.y+self.textbox_search:GetTall()+5)
+end
+
+function PANEL:GetSelectedUserSteamId()
+	local selected_items = self.list_items:GetSelectedItems()
+	if table.IsEmpty(selected_items) then return end
+
+	return selected_items[1].steamid
+end
+
+function PANEL:GetSelectedUserNick()
+	local selected_items = self.list_items:GetSelectedItems()
+	if table.IsEmpty(selected_items) then return end
+
+	return selected_items[1].nick
+end
+
+function PANEL:NotifyLookupUsersChanged(users, key, updated, deleted)
+	if (key == "online") and not table.IsEmpty(deleted) then
+		local current_lookup = self.list_items:GetDataSources()["lookup"]
+
+		if  current_lookup then
+			for steamid, user in pairs(deleted) do
+				current_lookup[steamid] = user
+				current_lookup[steamid].group = "lookup"
 			end
-			return "false"
 		end
-		return "kek"
-	end
-	self:GetDataView():SetClassifyFunction(sort)
-
-	local function updateUserList()
-		self:GetDataView():SetDataSource(function() return WUMA.LookupUsers end)
-		self:GetDataView():SortAll()
-
-		self:GetDataView():Show("kek")
-		self.list_items:SortByColumn(self.list_items.SortedColumn or 4)
-	end
-	WUMA.GUI.AddHook(WUMA.LOOKUPUSERSUPDATE, "VGUIUsersUserListHook1", updateUserList)
-	WUMA.GUI.AddHook(WUMA.SERVERUSERSUPDATE, "VGUIUsersUserListHook2", updateUserList)
-
-end
-
-function PANEL:PerformLayout()
-	if not self:IsExtraVisible() then
-		self.textbox_search:SetSize(120, 20)
-		self.textbox_search:SetPos(5, 5)
-
-		self.button_search:SetSize(self.textbox_search:GetTall(), self.textbox_search:GetTall())
-		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5, 5)
-
-		self.button_back:SetSize(70, self.textbox_search:GetTall())
-		self.button_back:SetPos(self:GetWide()+5, 5)
-
-		self.button_loadouts:SetSize(70, self.textbox_search:GetTall())
-		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5, 5)
-
-		self.button_limits:SetSize(50, self.textbox_search:GetTall())
-		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5, 5)
-
-		self.button_restrictions:SetSize(80, self.textbox_search:GetTall())
-		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5, 5)
-
-		self.limits:SetSize(self:GetWide(), self:GetTall()-25)
-		self.limits:SetPos(self:GetWide(), 25)
-
-		self.loadouts:SetSize(self:GetWide(), self:GetTall()-25)
-		self.loadouts:SetPos(self:GetWide(), 25)
-
-		self.restrictions:SetSize(self:GetWide(), self:GetTall()-25)
-		self.restrictions:SetPos(self:GetWide(), 25)
-
-		self.label_user:SizeToContents()
-		self.label_user:SetTall(self.button_back:GetTall())
-		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide(), 5)
-
-		self.list_items:SetSize(self:GetWide()-10, self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
-		self.list_items:SetPos(5, self.textbox_search.y+self.textbox_search:GetTall()+5)
-	elseif not self.isanimating then
-		local offset = self:GetWide()
-
-		self.textbox_search:SetSize(120, 20)
-		self.textbox_search:SetPos(5-offset, 5)
-
-		self.button_search:SetSize(self.textbox_search:GetTall(), self.textbox_search:GetTall())
-		self.button_search:SetPos(self.textbox_search.x+self.textbox_search:GetWide()+5-offset, 5)
-
-		self.button_back:SetSize(70, self.textbox_search:GetTall())
-		self.button_back:SetPos(self:GetWide()+5-offset, 5)
-
-		self.button_loadouts:SetSize(70, self.textbox_search:GetTall())
-		self.button_loadouts:SetPos(self:GetWide()-self.button_loadouts:GetWide()-5-offset, 5)
-
-		self.button_limits:SetSize(50, self.textbox_search:GetTall())
-		self.button_limits:SetPos(self.button_loadouts.x-self.button_limits:GetWide()-5-offset, 5)
-
-		self.button_restrictions:SetSize(80, self.textbox_search:GetTall())
-		self.button_restrictions:SetPos(self.button_limits.x-self.button_restrictions:GetWide()-5-offset, 5)
-
-		self.limits:SetSize(self:GetWide(), self:GetTall()-25)
-		self.limits:SetPos(self:GetWide()-offset, 25)
-
-		self.loadouts:SetSize(self:GetWide(), self:GetTall()-25)
-		self.loadouts:SetPos(self:GetWide()-offset, 25)
-
-		self.restrictions:SetSize(self:GetWide(), self:GetTall()-25)
-		self.restrictions:SetPos(self:GetWide()-offset, 25)
-
-		self.label_user:SizeToContents()
-		self.label_user:SetTall(self.button_back:GetTall())
-		self.label_user:SetPos(self:GetWide()-self.label_user:GetWide()-5+self:GetWide()-offset, 5)
-
-		self.list_items:SetSize(self:GetWide()-10, self:GetTall()-(self.textbox_search.y+self.textbox_search:GetTall())-10)
-		self.list_items:SetPos(5-offset, self.textbox_search.y+self.textbox_search:GetTall()+5)
-	end
-end
-
-function PANEL:GetDataView()
-	return self.list_items
-end
-
-function PANEL:PopulateList(key, tbl, clear, select)
-	local listview = self[key]
-
-	if clear then
-		listview:Clear()
 	end
 
-	for k, v in pairs(tbl) do
-		listview:AddLine(v)
-	end
-
-	if select then
-		listview:SelectFirstItem()
-	end
-end
-
-function PANEL:GetSelectedUser()
-	if self:GetDataView():GetLine(self:GetDataView():GetSelectedLine()) then
-		return self:GetDataView():GetLine(self:GetDataView():GetSelectedLine()):GetColumnText(3)
-	end
-end
-
-function PANEL:IsExtraVisible()
-	return self.isextravisible
-end
-
-function PANEL:ToggleExtra()
-	if self:IsExtraVisible() then
-		for _, child in pairs(self:GetChildren()) do
-			child:SetPos(child.x+self:GetWide(), child.y)
+	if (users ~= self.list_items:GetDataSources()[key]) then
+		for _, user in pairs(users) do
+			user.group = key
 		end
-		self.isextravisible = false
 
-		self.label_user:SetVisible(false)
+		self.list_items:AddDataSource(key, users)
 	else
-		for _, child in pairs(self:GetChildren()) do
-			child:SetPos(child.x-self:GetWide(), child.y)
+		for _, user in pairs(updated) do
+			user.group = key
 		end
-		self.isextravisible = true
 
-		self.label_user:SetVisible(true)
-
-		local data = self:GetDataView():GetSelectedItems()[1]
-		if data then
-			if istable(data) then
-				self.label_user:SetText(string.format("Selected user: %s (%s)", data.nick, data.steamid))
-			elseif data:IsValid() then
-				self.label_user:SetText(string.format("Selected user: %s (%s)", data:Nick(), data:SteamID()))
-			end
-			self:InvalidateLayout()
-		end
+		self.list_items:UpdateDataSource(key, updated, table.GetKeys(deleted))
 	end
+
+	self.list_items:SortByColumn(4)
 end
 
-function PANEL:OnUserSelected(this)
-	self = self:GetParent()
-
+function PANEL:OnUserSelected(user)
 	self.button_restrictions:SetDisabled(false)
 	self.button_loadouts:SetDisabled(false)
 	self.button_limits:SetDisabled(false)
+
+	self.label_user:SetText(string.format("Selected user: %s (%s)", user.nick, user.steamid))
 end
 
-function PANEL:OnExtraChange(id)
+function PANEL:OnViewChanged()
+	if (#self.list_items:GetSelectedItems() > 0) then
+		self.button_restrictions:SetDisabled(false)
+		self.button_limits:SetDisabled(false)
+		self.button_loadouts:SetDisabled(false)
+	else
+		self.button_restrictions:SetDisabled(true)
+		self.button_limits:SetDisabled(true)
+		self.button_loadouts:SetDisabled(true)
+	end
 end
 
 function PANEL:OnRestrictionsClick()
-	self = self:GetParent()
-
-	self.loadouts:SetVisible(false)
-	self.limits:SetVisible(false)
+	for _, child in pairs(self:GetChildren()) do
+		child:SetVisible(false)
+	end
 
 	self.restrictions:SetVisible(true)
+	self.button_back:SetVisible(true)
+	self.label_user:SetVisible(true)
 
-	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
-	WUMA.UserData[self:GetSelectedUser()].Restrictions = WUMA.UserData[self:GetSelectedUser()].Restrictions or {}
+	self:OnRestrictionsDisplayed(self.restrictions, self:GetSelectedUserSteamId())
 
-	self.restrictions:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].Restrictions end)
-	self.restrictions:GetDataView():Show(self:GetSelectedUser() .. ":::" .. self.restrictions:GetSelectedType())
-
-	self.restrictions.Command.DataID = Restriction:GetID() .. ":::" .. self:GetSelectedUser()
-
-	self:OnExtraChange(Restriction:GetID(), self:GetSelectedUser())
-
-	self:ToggleExtra()
+	self.restrictions:OnUsergroupsChanged()
 end
 
-function PANEL:OnLimitsClick()
-	self = self:GetParent()
+--luacheck: push no unused args
+function PANEL:OnRestrictionsDisplayed(panel, steamid)
+	--For override
+end
+--luacheck: pop
 
-	self.loadouts:SetVisible(false)
-	self.restrictions:SetVisible(false)
+function PANEL:OnLimitsClick()
+	for _, child in pairs(self:GetChildren()) do
+		child:SetVisible(false)
+	end
 
 	self.limits:SetVisible(true)
 
-	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
-	WUMA.UserData[self:GetSelectedUser()].Limits = WUMA.UserData[self:GetSelectedUser()].Limits or {}
+	self.button_back:SetVisible(true)
+	self.label_user:SetVisible(true)
 
-	self.limits:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].Limits end)
-	self.limits:GetDataView():Show(self:GetSelectedUser())
+	self:OnLimitsDisplayed(self.limits,  self:GetSelectedUserSteamId())
 
-	self.limits.Command.DataID = Limit:GetID() .. ":::" .. self:GetSelectedUser()
-
-	self:OnExtraChange(Limit:GetID(), self:GetSelectedUser())
-
-	self:ToggleExtra()
+	self.limits:OnUsergroupsChanged()
 end
+
+--luacheck: push no unused args
+function PANEL:OnLimitsDisplayed(panel, steamid)
+	--For override
+end
+--luacheck: pop
 
 function PANEL:OnLoadoutsClick()
-	self = self:GetParent()
-
-	self.restrictions:SetVisible(false)
-	self.limits:SetVisible(false)
+	for _, child in pairs(self:GetChildren()) do
+		child:SetVisible(false)
+	end
 
 	self.loadouts:SetVisible(true)
+	self.button_back:SetVisible(true)
+	self.label_user:SetVisible(true)
 
-	WUMA.UserData[self:GetSelectedUser()] = WUMA.UserData[self:GetSelectedUser()] or {}
-	WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons = WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons or {}
+	self:OnLoadoutsDisplayed(self.loadouts, self:GetSelectedUserSteamId())
 
-	self.loadouts:GetDataView():SetDataSource(function() return WUMA.UserData[self:GetSelectedUser()].LoadoutWeapons end)
-	self.loadouts:GetDataView():Show(self:GetSelectedUser())
-
-	self.loadouts.Command.DataID = Loadout:GetID() .. ":::" .. self:GetSelectedUser()
-
-	self:OnExtraChange(Loadout:GetID(), self:GetSelectedUser())
-
-	self:ToggleExtra()
+	self.loadouts:OnUsergroupsChanged()
 end
 
+--luacheck: push no unused args
+function PANEL:OnLoadoutsDisplayed(panel, steamid)
+	--For override
+end
+--luacheck: pop
+
 function PANEL:OnBackClick()
-	self = self:GetParent()
+	for _, child in pairs(self:GetChildren()) do
+		child:SetVisible(true)
+	end
 
 	self.restrictions:SetVisible(false)
 	self.limits:SetVisible(false)
 	self.loadouts:SetVisible(false)
-
-	self.restrictions:GetDataView():SetDataSource(function() return {} end)
-	self.limits:GetDataView():SetDataSource(function() return {} end)
-	self.loadouts:GetDataView():SetDataSource(function() return {} end)
-
-	self:OnExtraChange("default", self:GetSelectedUser())
-
-	self:ToggleExtra()
+	self.button_back:SetVisible(false)
+	self.label_user:SetVisible(false)
 end
 
-function PANEL:OnSearch()
-	self:GetParent().OnLookup(self)
+--luacheck: push no unused args
+function PANEL:OnSearchUsers(limit, offset, search, callback)
+	--For override
 end
+--luacheck: pop
 
-function PANEL:OnLookup()
-	self = self:GetParent()
+function PANEL:SearchUsers(limit, offset, search)
+	local key = table.concat({limit, offset, search}, "_")
 
-	if (self.textbox_search:GetValue() ~= "") then
-		WUMA.RequestFromServer("lookup", self.textbox_search:GetValue())
+	if self:GetCachedCalls()[key] then
+		self:NotifyLookupUsersChanged(key, self:GetCachedCalls()[key], {})
 	else
-		self:GetDataView():ClearView()
+		self:OnSearchUsers(limit, offset, search, function(users)
+			self:NotifyLookupUsersChanged(key, users, {})
+			self:GetCachedCalls()[key] = users
+		end)
 	end
-
-	self:GetDataView():SortAll()
-	self:GetDataView():Show("kek")
-	self.list_items:SortByColumn(self.list_items.SortedColumn or 4)
 end
 
-function PANEL:OnItemChange(lineid, line)
-	self = self:GetParent()
-
-	self.restrictions.Command.DataID = Restriction:GetID()..":::"..self:GetSelectedUser()
-	self.limits.Command.DataID = Limit:GetID()..":::"..self:GetSelectedUser()
-	self.loadouts.Command.DataID = Loadout:GetID()..":::"..self:GetSelectedUser()
+function PANEL:OnLookup(text)
+	if (text ~= "") then
+		self:SearchUsers(50, 0, text)
+	else
+		self.list_items:Show({"lookup", "online"})
+	end
 end
 
 vgui.Register("WUMA_Users", PANEL, 'DPanel');

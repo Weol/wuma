@@ -18,7 +18,7 @@ function PANEL:Init()
 	self.list_usergroups = vgui.Create("DListView", self)
 	self.list_usergroups:SetMultiSelect(true)
 	self.list_usergroups:AddColumn("Usergroups")
-	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupChanged(lineid, line) end
+	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupsChanged(lineid, line) end
 
 	--Search bar
 	self.textbox_search = vgui.Create("WTextbox", self)
@@ -28,12 +28,21 @@ function PANEL:Init()
 	--Delete button
 	self.button_delete = vgui.Create("DButton", self)
 	self.button_delete:SetText("Delete")
+	self.button_delete:SetDisabled(true)
 	self.button_delete.DoClick = function() self:OnDeleteClick() end
 
-	--Add button
-	self.button_add = vgui.Create("DButton", self)
-	self.button_add:SetText("Add")
-	self.button_add.DoClick = function() self:OnAddClick() end
+	--Restrict button
+	self.button_add = vgui.Create("WCollapsableButton", self)
+	self.button_add:SetText("Restrict")
+	self.button_add:SetInnerPadding(0, 5)
+	self.button_add.DoClick = function() self:OnRestrictClick() end
+
+	--Derestrict button
+	self.button_derestrict = vgui.Create("DButton", self)
+	self.button_derestrict:SetText("De-restrict")
+	self.button_derestrict.DoClick = function() self:OnDerestrictClick() end
+
+	self.button_add:AddButton(self.button_derestrict)
 
 	--Suggestion list
 	self.list_suggestions = vgui.Create("DListView", self)
@@ -45,7 +54,8 @@ function PANEL:Init()
 	self.list_items = vgui.Create("WListView", self)
 	self.list_items:AddColumn("Usergroup")
 	self.list_items:AddColumn("Item")
-	self.list_items:AddColumn("Scope")
+	self.list_items.OnItemSelected = function(_, item) return self:OnItemSelected(item) end
+	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyRestriction(...) end)
 
 	--Whitelist checkbox
@@ -81,8 +91,8 @@ function PANEL:PerformLayout()
 	self.button_delete:SetSize(self.textbox_search:GetWide(), 25)
 	self.button_delete:SetPos(self.textbox_search.x,  (self:GetTall() - 5) - self.button_delete:GetTall())
 
-	self.button_add:SetSize(self.textbox_search:GetWide(), 25)
-	self.button_add:SetPos(self.button_delete.x, (self.button_delete.y - 5)-self.button_delete:GetTall())
+	self.button_add:SetWide(self.textbox_search:GetWide())
+	self.button_add:SetPos(self.button_delete.x, (self.button_delete.y - 5) - self.button_add:GetTall())
 
 	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y+self.textbox_search:GetTall()+5)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y-self.list_suggestions.y-5)
@@ -98,31 +108,32 @@ end
 function PANEL:ClassifyRestriction(restriction)
 	local group = restriction:GetType() .. "_" .. restriction:GetParent()
 
-	return group, {restriction:GetParent(), restriction:GetItem(), restriction:GetScope()}
+	local icon
+	if restriction:GetIsAnti() then
+		icon = {"icon16/lightning_delete.png", "This restriction is an anti-restriction"}
+	end
+
+	return group, {restriction:GetParent(), restriction:GetItem()}, nil, nil, icon
 end
 
 function PANEL:ReloadSuggestions(type)
-	if self.list_suggestions then
-		local items = WUMA.RestrictionTypes[type]:GetItems()
+	local items = WUMA.RestrictionTypes[type]:GetItems()
 
-		if table.IsEmpty(items) then
-			self.list_suggestions:SetDisabled(true)
-			self.list_suggestions:Clear()
-		else
-			self.list_suggestions:SetDisabled(false)
+	if table.IsEmpty(items) then
+		self.list_suggestions:SetDisabled(true)
+		self.list_suggestions:Clear()
+	else
+		self.list_suggestions:SetDisabled(false)
 
-			self.list_suggestions:Clear()
-			for k, v in pairs(items) do
-				self.list_suggestions:AddLine(v)
-			end
-			self.list_suggestions:SelectFirstItem()
+		self.list_suggestions:Clear()
+		for k, v in pairs(items) do
+			self.list_suggestions:AddLine(v)
 		end
+		self.list_suggestions:SelectFirstItem()
 	end
 end
 
 function PANEL:GetSelectedType()
-	if not self.list_types:GetSelected()[1] then return end
-
 	for k, restriction_type in pairs(WUMA.RestrictionTypes) do
 		if (restriction_type:GetPrint() == self.list_types:GetSelected()[1]:GetValue(1)) then
 			return k
@@ -131,14 +142,6 @@ function PANEL:GetSelectedType()
 end
 
 function PANEL:GetSelectedSuggestions()
-	if not self.list_suggestions:GetSelectedLine() then
-		if (self.textbox_search:GetValue() ~= "") then
-			return {self.textbox_search:GetValue()}
-		else
-			return {}
-		end
-	end
-
 	local tbl = {}
 	for _, v in pairs(self.list_suggestions:GetSelected()) do
 		table.insert(tbl, v:GetColumnText(1))
@@ -148,8 +151,6 @@ function PANEL:GetSelectedSuggestions()
 end
 
 function PANEL:GetSelectedUsergroups()
-	if not self.list_usergroups:GetSelected() then return {} end
-
 	local tbl = {}
 	for _, v in pairs(self.list_usergroups:GetSelected()) do
 		tbl[v:GetColumnText(1)] = v:GetColumnText(1)
@@ -195,7 +196,11 @@ function PANEL:OnSearch(text)
 			end
 		end
 
-		self.list_suggestions:SetDisabled(table.IsEmpty(self.list_suggestions:GetLines()))
+		if table.IsEmpty(self.list_suggestions:GetLines()) then
+			self.list_suggestions:AddLine(text)
+		end
+
+		self.list_suggestions:SelectFirstItem()
 	end
 end
 
@@ -210,27 +215,40 @@ function PANEL:ReloadSettings()
 	self.DisregardSettingsChange = true
 
 	local settings = self:GetSettings()
+
+	self.checkbox_restrictall:SetValue(-1)
+	self.checkbox_whitelist:SetValue(-1)
+
+	local prev_restrict_type
+	local prev_whitelist
+
+	local first = true
+
+	local lock_restrict_type = false
+	local lock_whitelist = false
 	for _, usergroup in pairs(usergroups) do
-		self.checkbox_restrictall:SetValue(-1)
-		self.checkbox_whitelist:SetValue(-1)
+		local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. type]
+		local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. type]
 
-		if settings[usergroup] then
-			local restrict_type = settings[usergroup]["restrict_type_" .. type]
-			local iswhitelist = settings[usergroup]["iswhitelist_type_" .. type]
-
-			if restrict_type and (self.checkbox_restrictall:GetValue() == 1) then
-				self.checkbox_restrictall:SetValue(0)
-			elseif restrict_type then
-				self.checkbox_restrictall:SetValue(1)
-			end
-
-			if iswhitelist and (self.checkbox_whitelist:GetValue() == 1) then
-				self.checkbox_whitelist:SetValue(0)
-			elseif iswhitelist then
-				self.checkbox_whitelist:SetValue(1)
-			end
+		if not first and not lock_restrict_type and restrict_type ~= prev_restrict_type then
+			self.checkbox_restrictall:SetValue(0)
+			lock_restrict_type = true
+		elseif not lock_restrict_type and restrict_type then
+			self.checkbox_restrictall:SetValue(1)
 		end
+
+		if not first and not lock_whitelist and is_whiteliest ~= prev_whitelist then
+			self.checkbox_whitelist:SetValue(0)
+			lock_whitelist = true
+		elseif not lock_whitelist and is_whiteliest then
+			self.checkbox_whitelist:SetValue(1)
+		end
+
+		prev_whitelist = is_whiteliest
+		prev_restrict_type = restrict_type
+		first = false
 	end
+
 	self.DisregardSettingsChange = false
 end
 
@@ -257,15 +275,26 @@ function PANEL:OnTypeChange(lineid, _)
 	self.list_types.previous_line = lineid
 end
 
-function PANEL:OnUsergroupChanged()
-	if not self:GetSelectedType() then return end
+function PANEL:OnViewChanged()
+	if (#self.list_items:GetSelectedItems() > 0) then
+		self.button_delete:SetDisabled(false)
+	else
+		self.button_delete:SetDisabled(true)
+	end
+end
 
+function PANEL:OnItemSelected(_)
+	self.button_delete:SetDisabled(false)
+end
+
+function PANEL:OnUsergroupsChanged()
 	local groups = {}
 	for _, group in pairs(self:GetSelectedUsergroups()) do
 		table.insert(groups, self:GetSelectedType() .. "_" .. group)
 
 		self:OnUsergroupSelected(group)
 	end
+	self:ReloadSettings()
 	self.list_items:Show(groups)
 end
 
@@ -313,7 +342,7 @@ function PANEL:OnRestrictAllChanged(usergroups, type, restrict_all)
 end
 --luacheck: pop
 
-function PANEL:OnAddClick()
+function PANEL:OnRestrictClick()
 	local selected_type = self:GetSelectedType()
 	if not selected_type then return end
 
@@ -321,11 +350,22 @@ function PANEL:OnAddClick()
 
 	local suggestions = self:GetSelectedSuggestions()
 
-	self:OnAddRestriction(usergroups, selected_type, suggestions, false)
+	self:OnAddRestrictions(usergroups, selected_type, suggestions, false)
+end
+
+function PANEL:OnDerestrictClick()
+	local selected_type = self:GetSelectedType()
+	if not selected_type then return end
+
+	local usergroups = self:GetSelectedUsergroups()
+
+	local suggestions = self:GetSelectedSuggestions()
+
+	self:OnAddRestrictions(usergroups, selected_type, suggestions, true)
 end
 
 --luacheck: push no unused args
-function PANEL:OnAddRestriction(usergroups, selected_type, suggestions, is_anti)
+function PANEL:OnAddRestrictions(usergroups, selected_type, suggestions, is_anti)
 	--For override
 end
 --luacheck: pop
@@ -337,18 +377,22 @@ function PANEL:OnDeleteClick()
 	local selected_items = self.list_items:GetSelectedItems()
 	if table.IsEmpty(selected_items) then return end
 
-	local parents, types, items = {}, {}, {}
+	local parents, items = {}, {}
 	for _, item in pairs(selected_items) do
 		parents[item:GetParent()] = true
-		types[item:GetType()] = true
-		items[item:GetItem()] = true
+
+		items[item:GetParent()] = items[item:GetParent()] or {}
+
+		table.insert(items[item:GetParent()], item:GetItem())
 	end
 
-	self:OnDeleteRestriction(table.GetKeys(parents), table.GetKeys(types), table.GetKeys(items))
+	for parent, _ in pairs(parents) do
+		self:OnDeleteRestrictions(parent, selected_type, items[parent])
+	end
 end
 
 --luacheck: push no unused args
-function PANEL:OnDeleteRestriction(usergroups, types, items)
+function PANEL:OnDeleteRestrictions(usergroups, types, items)
 	--For override
 end
 --luacheck: pop

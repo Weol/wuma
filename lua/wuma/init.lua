@@ -106,7 +106,6 @@ function WUMA.Initialize()
 			`class` TEXT NOT NULL,
 			`primary_ammo` INT NULL,
 			`secondary_ammo` INT NULL,
-			`ignore_restrictions` INT(1) NULL,
 			PRIMARY KEY (`parent`, `class`)
 		)
 	]])
@@ -173,13 +172,37 @@ function WUMA.SetSetting(parent, key, value)
 	hook.Call("WUMAOnSettingChanged", nil, parent, key, value)
 end
 
+local function convertSettingValue(value)
+	if value == "'true'" or value == "true" then
+		return true
+	end
+
+	if (tonumber(value) ~= nil) then
+		return tonumber(value)
+	end
+
+	return value
+end
+
 function WUMA.GetSetting(parent, key)
 	local settings = WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s" AND `key` == "%s"]], parent, key)
-	return settings[1]
+
+	if not settings then return nil end
+
+	return convertSettingValue(settings[1].value)
 end
 
 function WUMA.ReadSettings(parent)
-	return WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s"]], parent)
+	local settings = WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s"]], parent)
+
+	if not settings then return {} end
+
+	local tbl = {}
+	for i, setting in pairs(settings) do
+		tbl[settings[i].key] = convertSettingValue(settings[i].value)
+	end
+
+	return tbl
 end
 
 local function userDisconnect(user)

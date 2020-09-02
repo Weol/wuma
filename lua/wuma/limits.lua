@@ -24,15 +24,17 @@ local function deleteLimit(parent, item)
 	)
 end
 
-function WUMA.AddLimit(caller, parent, item, limit, is_exclusive, scope)
+function WUMA.AddLimit(caller, parent, item, limit, is_exclusive)
 	if (item == limit) then error("item and limit cannot be the same") end
 	if (tonumber(item) ~= nil) then error("item cannot be numeric") end
+
+	if isstring(limit) and (tonumber(limit) ~= nil) then limit = tonumber(limit)end
 
 	if (string.sub(item, 0, 7) == "models/") then
 		item = string.lower(item)
 	end
 
-	local limit = Limit:New{string=item, parent=parent, limit=limit, is_exclusive=is_exclusive, scope=scope}
+	local limit = Limit:New{item=item, parent=parent, limit=limit, is_exclusive=is_exclusive}
 
 	if WUMA.Limits[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
 		WUMA.Limits[parent] = WUMA.Limits[parent] or {}
@@ -76,7 +78,6 @@ function WUMA.ReadLimits(parent)
 		return preprocessed
 	end
 end
-
 
 local function userDisconnected(user)
 	WUMA.Limits[user:SteamID()] = nil

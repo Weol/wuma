@@ -10,6 +10,15 @@ if not WUMA.HasCreatedFonts then
 		scanlines = 0,
 		antialias = true
 	})
+
+	surface.CreateFont("WUMAText", {
+		font = "Arial",
+		size = 15,
+		weight = 500,
+		blursize = 0,
+		scanlines = 0,
+		antialias = true
+	})
 end
 WUMA.HasCreatedFonts = true
 
@@ -21,36 +30,55 @@ function WUMA.GUI.Initialize()
 	WUMA.GUI.Base:SetPos(ScrW()/2-WUMA.GUI.Base:GetWide()/2, ScrH()/2-WUMA.GUI.Base:GetTall()/2)
 	WUMA.GUI.Base:SetVisible(false)
 
-	--Create propertysheet
-	WUMA.GUI.PropertySheet = vgui.Create("WPropertySheet", WUMA.GUI.Base)
-	WUMA.GUI.PropertySheet:SetSize(WUMA.GUI.Base:GetSize())
-	WUMA.GUI.PropertySheet:SetPos(0, 0)
-	WUMA.GUI.PropertySheet:SetShowExitButton(true)
 
-	function WUMA.GUI.PropertySheet:OnCloseButtonPressed()
-		WUMA.GUI.Toggle()
+	local function asd()
+
+		--Create propertysheet
+		WUMA.GUI.PropertySheet = vgui.Create("WPropertySheet", WUMA.GUI.Base)
+		WUMA.GUI.PropertySheet:SetSize(WUMA.GUI.Base:GetSize())
+		WUMA.GUI.PropertySheet:SetPos(0, 0)
+		WUMA.GUI.PropertySheet:SetShowExitButton(true)
+
+		function WUMA.GUI.PropertySheet:OnCloseButtonPressed()
+			WUMA.GUI.Toggle()
+		end
+
+		--Create panels
+		WUMA.GUI.SettingsTab = vgui.Create("WUMA_Settings", WUMA.GUI.PropertySheet)
+
+		--Restrictions
+		WUMA.GUI.RestrictionsTab = vgui.Create("WUMA_Restrictions", WUMA.GUI.PropertySheet)
+
+		--Limits
+		WUMA.GUI.LimitsTab = vgui.Create("WUMA_Limits", WUMA.GUI.PropertySheet)
+
+		--Loadouts
+		WUMA.GUI.LoadoutsTab = vgui.Create("WUMA_Loadouts", WUMA.GUI.PropertySheet)
+
+		--Users
+		WUMA.GUI.UsersTab = vgui.Create("WUMA_Users", WUMA.GUI.PropertySheet)
+
+		WUMA.GUI.PropertySheet.OnTabChange = function(_, tab_name) WUMA.OnTabChange(tab_name) end
+
+		--Adding panels to PropertySheet
+		WUMA.GUI.PropertySheet:AddSheet("Settings", WUMA.GUI.SettingsTab, "icon16/wrench.png")
+		WUMA.GUI.PropertySheet:AddSheet("Restrictions", WUMA.GUI.RestrictionsTab, "icon16/shield.png")
+		WUMA.GUI.PropertySheet:AddSheet("Limits", WUMA.GUI.LimitsTab, "icon16/table.png")
+		WUMA.GUI.PropertySheet:AddSheet("Loadouts", WUMA.GUI.LoadoutsTab, "icon16/bomb.png")
+		WUMA.GUI.PropertySheet:AddSheet("Users", WUMA.GUI.UsersTab, "icon16/drive_user.png")
+
+		--WUMA.GUI.UsersTab.OnExtraChange = function(_, type, steamid) WUMA.OnUserTabChange(type, steamid) end
 	end
 
-	--Create panels
-	WUMA.GUI.SettingsTab = vgui.Create("WUMA_Settings", WUMA.GUI.PropertySheet)
+	asd()
 
-	--Restrictions
-	WUMA.GUI.RestrictionsTab = vgui.Create("WUMA_Restrictions", WUMA.GUI.PropertySheet)
+	concommand.Add("reload_wuma", function()
+		WUMA.FlushSubscriptions()
+		WUMA.GUI.PropertySheet:Remove()
 
-	--WUMA.GUI.LimitsTab = vgui.Create("WUMA_Limits", WUMA.GUI.PropertySheet)
-	--WUMA.GUI.LoadoutsTab = vgui.Create("WUMA_Loadouts", WUMA.GUI.PropertySheet)
-	--WUMA.GUI.UsersTab = vgui.Create("WUMA_Users", WUMA.GUI.PropertySheet)
+		asd()
+	end)
 
-	WUMA.GUI.PropertySheet.OnTabChange = function(_, tab_name) WUMA.OnTabChange(tab_name) end
-
-	--Adding panels to PropertySheet
-	WUMA.GUI.PropertySheet:AddSheet("Settings", WUMA.GUI.SettingsTab, "icon16/shield.png")
-	WUMA.GUI.PropertySheet:AddSheet("Restrictions", WUMA.GUI.RestrictionsTab, WUMA.GUI.RestrictionsTab.TabIcon)
-	--WUMA.GUI.PropertySheet:AddSheet("Limits", WUMA.GUI.LimitsTab, WUMA.GUI.LimitsTab.TabIcon)
-	--WUMA.GUI.PropertySheet:AddSheet("Loadouts", WUMA.GUI.LoadoutsTab, WUMA.GUI.LoadoutsTab.TabIcon)
-	--WUMA.GUI.PropertySheet:AddSheet("Users", WUMA.GUI.UsersTab, WUMA.GUI.UsersTab.TabIcon)
-
-	--WUMA.GUI.UsersTab.OnExtraChange = function(_, type, steamid) WUMA.OnUserTabChange(type, steamid) end
 
 	hook.Call("OnWUMAInitialized", nil, WUMA.GUI.PropertySheet)
 
@@ -67,7 +95,7 @@ end
 
 function WUMA.GUI.Show()
 	if not table.IsEmpty(WUMA.GUI.Base:GetChildren()) then
-		WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTab.TabName)
+		WUMA.OnTabChange(WUMA.GUI.ActiveTab or "Settings")
 
 		WUMA.GUI.Base:SetVisible(true)
 		WUMA.GUI.Base:MakePopup()
@@ -88,11 +116,16 @@ function WUMA.OnTabChange(tabname)
 	elseif (tabname == "Restrictions" and not initialized_tabs[tabname]) then
 		WUMA.GUI.InitializeRestrictionsTab()
 		--initialized_tabs[tabname] = true
+	elseif (tabname == "Limits" and not initialized_tabs[tabname]) then
+		WUMA.GUI.InitializeLimitsTab()
+		--initialized_tabs[tabname] = true
+	elseif (tabname == "Loadouts" and not initialized_tabs[tabname]) then
+		WUMA.GUI.InitializeLoadoutTab()
+		--initialized_tabs[tabname] = true
+	elseif (tabname == "Users" and not initialized_tabs[tabname]) then
+		WUMA.GUI.InitializeUsersTab()
+		--initialized_tabs[tabname] = true
 	end
-end
-
-function WUMA.OnUserTabChange(type, steamid)
-
 end
 
 function WUMA.GUI.InitializeSettingsTab()
@@ -158,11 +191,11 @@ function WUMA.GUI.InitializeRestrictionsTab()
 		WUMA.RPC.RestrictType:Transaction(usergroups, type, restrict_all)
 	end
 
-	function WUMA.GUI.RestrictionsTab:OnAddRestriction(usergroups, selected_type, suggestions, is_anti)
+	function WUMA.GUI.RestrictionsTab:OnAddRestrictions(usergroups, selected_type, suggestions, is_anti)
 		WUMA.RPC.Restrict:Transaction(usergroups, selected_type, suggestions, is_anti)
 	end
 
-	function WUMA.GUI.RestrictionsTab:OnDeleteRestriction(usergroups, types, items)
+	function WUMA.GUI.RestrictionsTab:OnDeleteRestrictions(usergroups, types, items)
 		WUMA.RPC.Unrestrict:Transaction(usergroups, types, items)
 	end
 
@@ -193,6 +226,234 @@ function WUMA.GUI.InitializeRestrictionsTab()
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
 		WUMA.GUI.RestrictionsTab:NotifyUsergroupsChanged(usergroups)
 	end}
+end
+
+function WUMA.GUI.InitializeLimitsTab()
+	function WUMA.GUI.LimitsTab:OnAddLimits(usergroups, suggestions, limit, is_exclusive)
+		WUMA.RPC.SetLimit:Transaction(usergroups, suggestions, limit, is_exclusive)
+	end
+
+	function WUMA.GUI.LimitsTab:OnDeleteLimits(usergroups, items)
+		WUMA.RPC.UnsetLimit:Transaction(usergroups, items)
+	end
+
+	function WUMA.GUI.LimitsTab:OnUsergroupSelected(usergroup)
+		WUMA.Subscribe{
+			args = {
+				"limits",
+				usergroup,
+			},
+			id = self,
+			callback = function(limits, parent, updated, deleted)
+				self:NotifyLimitsChanged(limits, parent, updated, deleted)
+			end
+		}
+	end
+
+	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
+		WUMA.GUI.LimitsTab:NotifyUsergroupsChanged(usergroups)
+	end}
+end
+
+function WUMA.GUI.InitializeLoadoutTab()
+
+	function WUMA.GUI.LoadoutsTab:OnAddWeapon(usergroups, weapons, primary_ammo, secondary_ammo)
+		WUMA.RPC.AddLoadout:Transaction(usergroups, weapons, primary_ammo, secondary_ammo)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnDeleteWeapon(usergroups, weapons)
+		WUMA.RPC.RemoveLoadout:Transaction(usergroups, weapons)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnCopyPlayerLoadout(usergroups, steamid)
+		WUMA.RPC.CopyPlayerLoadout:Transaction(usergroups, steamid)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnPrimaryWeaponSet(usergroups, weapon)
+		WUMA.RPC.SetPrimaryWeapon:Transaction(usergroups, weapon)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnIgnoreRestrictionsChanged(usergroups, ignore_restrictions)
+		WUMA.RPC.SetLoadoutIgnoreRestrictions:Transaction(usergroups, ignore_restrictions)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnEnforceLoadoutChanged(usergroups, enforce)
+		WUMA.RPC.SetEnforceLoadout:Transaction(usergroups, enforce)
+	end
+
+	function WUMA.GUI.LoadoutsTab:OnUsergroupSelected(usergroup)
+		WUMA.Subscribe{
+			args = {
+				"loadouts",
+				usergroup,
+			},
+			id = self,
+			callback = function(weapons, parent, updated, deleted)
+				self:NotifyWeaponsChanged(weapons, parent, updated, deleted)
+			end
+		}
+
+		WUMA.Subscribe{
+			args = {
+				"settings",
+				usergroup,
+			},
+			id = self,
+			callback = function(settings, parent, updated, deleted)
+				self:NotifySettingsChanged(parent, settings, updated, deleted)
+			end
+		}
+	end
+
+	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
+		WUMA.GUI.LoadoutsTab:NotifyUsergroupsChanged(usergroups)
+	end}
+end
+
+function WUMA.GUI.InitializeUsersTab()
+	function WUMA.GUI.UsersTab:OnRestrictionsDisplayed(panel, steamid)
+		WUMA.GUI.InitializeUserRestrictionsTab(panel, steamid)
+	end
+
+	function WUMA.GUI.UsersTab:OnLimitsDisplayed(panel, steamid)
+		WUMA.GUI.InitializeUserLimitsTab(panel, steamid)
+	end
+
+	function WUMA.GUI.UsersTab:OnLoadoutsDisplayed(panel, steamid)
+		WUMA.GUI.InitializeUserLoadoutsTab(panel, steamid)
+	end
+
+	function WUMA.GUI.UsersTab:OnSearchUsers(limit, offset, search, callback)
+		WUMA.RPC.Lookup:Invoke(limit, offset, search, callback)
+	end
+
+	WUMA.Subscribe{
+		args = {
+			"lookup"
+		},
+		id = WUMA.GUI.UsersTab,
+		callback = function(users, updated, deleted)
+			WUMA.GUI.UsersTab:NotifyLookupUsersChanged(users, "online", updated, deleted)
+		end
+	}
+
+	WUMA.RPC.Lookup:Invoke(50, 0, nil, function(users)
+		local mapped = {}
+		for i, user in ipairs(users) do
+			mapped[user.steamid] = user
+		end
+
+		WUMA.GUI.UsersTab:NotifyLookupUsersChanged(mapped, "lookup", mapped, {})
+	end)
+end
+
+function WUMA.GUI.InitializeUserRestrictionsTab(panel, steamid)
+	function panel:OnWhitelistChanged(usergroups, type, is_whitelist)
+		WUMA.RPC.SetUserRestrictionsWhitelist:Transaction(usergroups, type, is_whitelist)
+	end
+
+	function panel:OnRestrictAllChanged(usergroups, type, restrict_all)
+		WUMA.RPC.RestrictUserType:Transaction(usergroups, type, restrict_all)
+	end
+
+	function panel:OnAddRestrictions(usergroups, selected_type, suggestions, is_anti)
+		WUMA.RPC.RestrictUser:Transaction(usergroups, selected_type, suggestions, is_anti)
+	end
+
+	function panel:OnDeleteRestrictions(usergroups, types, items)
+		WUMA.RPC.UnrestrictUser:Transaction(usergroups, types, items)
+	end
+
+	WUMA.Subscribe{
+		args = {
+			"restrictions",
+			steamid,
+		},
+		id = panel,
+		callback = function(restrictions, parent, updated, deleted)
+			panel:NotifyRestrictionsChanged(restrictions, parent, updated, deleted)
+		end
+	}
+
+	WUMA.Subscribe{
+		args = {
+			"settings",
+			steamid,
+		},
+		id = panel,
+		callback = function(settings, parent, _, _)
+			panel:NotifySettingsChanged(parent, settings)
+		end
+	}
+end
+
+function WUMA.GUI.InitializeUserLimitsTab(panel, steamid)
+	function panel:OnAddLimits(usergroups, suggestions, limit, is_exclusive)
+		WUMA.RPC.SetUserLimit:Transaction(usergroups, suggestions, limit, is_exclusive)
+	end
+
+	function panel:OnDeleteLimits(usergroups, items)
+		WUMA.RPC.UnsetUserLimit:Transaction(usergroups, items)
+	end
+
+	WUMA.Subscribe{
+		args = {
+			"limits",
+			steamid,
+		},
+		id = panel,
+		callback = function(limits, parent, updated, deleted)
+			panel:NotifyLimitsChanged(limits, parent, updated, deleted)
+		end
+	}
+end
+
+function WUMA.GUI.InitializeUserLoadoutsTab(panel, steamid)
+	function panel:OnAddWeapon(usergroups, weapons, primary_ammo, secondary_ammo)
+		WUMA.RPC.AddUserLoadout:Transaction(usergroups, weapons, primary_ammo, secondary_ammo)
+	end
+
+	function panel:OnDeleteWeapon(usergroups, weapons)
+		WUMA.RPC.RemoveUserLoadout:Transaction(usergroups, weapons)
+	end
+
+	function panel:OnCopyPlayerLoadout(usergroups, steamid)
+		WUMA.RPC.UserCopyPlayerLoadout:Transaction(usergroups, steamid)
+	end
+
+	function panel:OnPrimaryWeaponSet(usergroups, weapon)
+		WUMA.RPC.SetUserPrimaryWeapon:Transaction(usergroups, weapon)
+	end
+
+	function panel:OnIgnoreRestrictionsChanged(usergroups, ignore_restrictions)
+		WUMA.RPC.SetUserLoadoutIgnoreRestrictions:Transaction(usergroups, ignore_restrictions)
+	end
+
+	function panel:OnEnforceLoadoutChanged(usergroups, enforce)
+		WUMA.RPC.SetUserEnforceLoadout:Transaction(usergroups, enforce)
+	end
+
+	WUMA.Subscribe{
+		args = {
+			"loadouts",
+			steamid,
+		},
+		id = panel,
+		callback = function(weapons, parent, updated, deleted)
+			panel:NotifyWeaponsChanged(weapons, parent, updated, deleted)
+		end
+	}
+
+	WUMA.Subscribe{
+		args = {
+			"settings",
+			steamid,
+		},
+		id = panel,
+		callback = function(settings, parent, updated, deleted)
+			panel:NotifySettingsChanged(parent, settings, updated, deleted)
+		end
+	}
 end
 
 function WUMA.GUI.CreateLoadoutSelector()

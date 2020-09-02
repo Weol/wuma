@@ -1,9 +1,6 @@
 
 local PANEL = {}
 
-PANEL.TabName = "Settings"
-PANEL.TabIcon = "icon16/wrench.png"
-
 AccessorFunc(PANEL, "usergroups", "Usergroups")
 AccessorFunc(PANEL, "inheritance", "Inheritance")
 

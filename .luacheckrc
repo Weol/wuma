@@ -89,6 +89,8 @@ stds.wuma = {
                 "SetTypeRestriction",
                 "SetTypeIsWhitelist",
                 "ReadSettings",
+                "SetLoadoutIgnoreRestrictions",
+                "CopyPlayerLoadout",
                 RPC = {
                     fields = {
                         "Subscribe",
@@ -118,6 +120,12 @@ stds.wuma = {
                         "AddPersonalLoadout",
                         "RemovePersonalLoadout",
                         "SetPersonalPrimaryWeapon",
+                        "SetLoadoutIgnoreRestrictions",
+                        "SetUserLoadoutIgnoreRestrictions",
+                        "CopyPlayerLoadout",
+                        "UserCopyPlayerLoadout",
+                        "FlushSubscriptions",
+                        "Lookup",
                     }
                 },
                 Files = {

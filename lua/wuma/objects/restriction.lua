@@ -6,12 +6,7 @@ object:AddProperty("type", "Type")
 object:AddProperty("item", "Item")
 object:AddProperty("is_anti", "IsAnti")
 
-object:AddMetaData("disabled", "IsDisabled", false)
 object:AddMetaData("exceptions", "Exceptions", {})
-
-function static:GenerateID(type, parent, item)
-	return type.."_"..parent.."_"..item
-end
 
 function object:Check(player)
 	if self:GetIsDisabled() then return end
@@ -35,31 +30,7 @@ function object:Check(player)
 end
 
 function object:__tostring()
-	return string.format("Restriction [%s][%s]", self:GetType(), self:GetItem())
-end
-
-function object:GetScope()
-	return self.scope
-end
-
-function object:SetScope(scope)
-	if not self:GetOrigin() then
-		self.scope = scope
-		if not scope.m then self.scope = Scope:New(scope) end
-
-		self.scope:SetParent(self)
-
-		self.scope:AllowThink()
-	end
-end
-
-function object:DeleteScope()
-	self.scope:Delete()
-	self.scope = nil
-end
-
-function object:GetID()
-	return self:GetType() .."_".. self:GetParent() .. "_" .. self:GetItem()
+	return string.format("Restriction [%s] [%s]", self:GetType(), self:GetItem())
 end
 
 Restriction = WUMA.ClassFactory.Create(object)

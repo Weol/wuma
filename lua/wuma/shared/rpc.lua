@@ -50,12 +50,24 @@ end
 
 WUMA.RPC = WUMA.RPC or {}
 
+WUMA.RPC.Lookup = WUMARPCFunction:New{
+	name = "lookup",
+	privilage = "wuma gui",
+	description = "Lookup users",
+	func = function(_, ...) return WUMA.Lookup(...) end,
+	validator = function(limit, offset, search)
+		assert(isnumber(limit))
+		assert(isnumber(offset))
+		assert(not search or isstring(search))
+	end
+}
+
 WUMA.RPC.Restrict = WUMARPCFunction:New{
 	name = "restrict",
 	privilage = "wuma restrict",
 	description = "Restrict something from a usergroup",
 	func = WUMA.AddRestriction,
-	validator = function(usergroup, restriction_type, item, is_anti, _)
+	validator = function(usergroup, restriction_type, item, is_anti)
 		assert(CAMI.GetUsergroups()[usergroup])
 		assert(WUMA.RestrictionTypes[restriction_type])
 		assert(isstring(item))
@@ -68,7 +80,7 @@ WUMA.RPC.RestrictUser = WUMARPCFunction:New{
 	privilage = "wuma restrictuser",
 	description = "Restrict something from a player",
 	func = WUMA.AddRestriction,
-	validator = function(steamid, restriction_type, item, is_anti, _)
+	validator = function(steamid, restriction_type, item, is_anti)
 		assert(WUMA.IsSteamID(steamid))
 		assert(WUMA.RestrictionTypes[restriction_type])
 		assert(isstring(item))
@@ -153,10 +165,10 @@ WUMA.RPC.SetLimit = WUMARPCFunction:New{
 	privilage = "wuma setlimit",
 	description = "Set the limit of something for a usergroup",
 	func = WUMA.AddLimit,
-	validator = function(usergroup, item, limit, is_exclusive, _)
+	validator = function(usergroup, item, limit, is_exclusive)
 		assert(CAMI.GetUsergroups()[usergroup])
 		assert(isstring(item))
-		assert(isstring(item) or isnumber(limit))
+		assert(isstring(limit) or isnumber(limit))
 		assert(isbool(is_exclusive))
 	end
 }
@@ -166,7 +178,7 @@ WUMA.RPC.SetUserLimit = WUMARPCFunction:New{
 	privilage = "wuma setuserlimit",
 	description = "Set the limit of something for a player",
 	func = WUMA.AddLimit,
-	validator = function(steamid, item, limit, is_exclusive, _)
+	validator = function(steamid, item, limit, is_exclusive)
 		assert(WUMA.IsSteamID(steamid))
 		assert(isstring(item))
 		assert(isstring(limit) or isnumber(limit))
@@ -178,7 +190,7 @@ WUMA.RPC.UnsetLimit = WUMARPCFunction:New{
 	name = "unsetlimit",
 	privilage = "wuma unsetlimit",
 	description = "Remove a limit from a usergroup",
-	func = WUMA.AddLimit,
+	func = WUMA.RemoveLimit,
 	validator = function(usergroup, item)
 		assert(CAMI.GetUsergroups()[usergroup])
 		assert(isstring(item))
@@ -189,7 +201,7 @@ WUMA.RPC.UnsetUserLimit = WUMARPCFunction:New{
 	name = "unsetuserlimit",
 	privilage = "wuma unsetuserlimit",
 	description = "Remove a limit from a player",
-	func = WUMA.AddLimit,
+	func = WUMA.RemoveLimit,
 	validator = function(steamid, item)
 		assert(WUMA.IsSteamID(steamid))
 		assert(isstring(item))
@@ -201,12 +213,11 @@ WUMA.RPC.AddLoadout = WUMARPCFunction:New{
 	privilage = "wuma addloadout",
 	description = "Add a weapon to a usergroup's loadout",
 	func = WUMA.AddLoadoutWeapon,
-	validator = function(usergroup, weapon, primary_ammo, secondary_ammo, ignore_restrictions, _)
+	validator = function(usergroup, weapon, primary_ammo, secondary_ammo)
 		assert(CAMI.GetUsergroups()[usergroup])
 		assert(isstring(weapon))
 		assert(isnumber(primary_ammo))
 		assert(isnumber(secondary_ammo))
-		assert(isbool(ignore_restrictions))
 	end
 }
 
@@ -215,12 +226,11 @@ WUMA.RPC.AddUserLoadout = WUMARPCFunction:New{
 	privilage = "wuma adduserloadout",
 	description = "Add a weapon to a player's loadout",
 	func = WUMA.AddLoadoutWeapon,
-	validator = function(steamid, weapon, primary_ammo, secondary_ammo, ignore_restrictions, _)
+	validator = function(steamid, weapon, primary_ammo, secondary_ammo)
 		assert(WUMA.IsSteamID(steamid))
 		assert(isstring(weapon))
 		assert(isnumber(primary_ammo))
 		assert(isnumber(secondary_ammo))
-		assert(isbool(ignore_restrictions))
 	end
 }
 
@@ -275,7 +285,7 @@ WUMA.RPC.SetEnforceLoadout = WUMARPCFunction:New{
 	func = WUMA.SetEnforceLoadout,
 	validator = function(usergroup, enforce)
 		assert(CAMI.GetUsergroups()[usergroup])
-		assert(isstring(enforce))
+		assert(isbool(enforce))
 	end
 }
 
@@ -286,7 +296,51 @@ WUMA.RPC.SetUserEnforceLoadout = WUMARPCFunction:New{
 	func = WUMA.SetEnforceLoadout,
 	validator = function(steamid, enforce)
 		assert(WUMA.IsSteamID(steamid))
-		assert(isstring(enforce))
+		assert(isbool(enforce))
+	end
+}
+
+WUMA.RPC.SetLoadoutIgnoreRestrictions = WUMARPCFunction:New{
+	name = "setloadoutignorerestrictions",
+	privilage = "wuma setloadoutignorerestrictions",
+	description = "Set whether or not a usergroup's loadout should ignore restrictions or not",
+	func = WUMA.SetLoadoutIgnoreRestrictions,
+	validator = function(usergroup, ignore_restrictions)
+		assert(CAMI.GetUsergroups()[usergroup])
+		assert(isbool(ignore_restrictions))
+	end
+}
+
+WUMA.RPC.SetUserLoadoutIgnoreRestrictions = WUMARPCFunction:New{
+	name = "setuserloadoutignorerestrictions",
+	privilage = "wuma setuserloadoutignorerestrictions",
+	description = "Set whether or not a usergroup's loadout should ignore restrictions or not",
+	func = WUMA.SetLoadoutIgnoreRestrictions,
+	validator = function(steamid, ignore_restrictions)
+		assert(WUMA.IsSteamID(steamid))
+		assert(isbool(ignore_restrictions))
+	end
+}
+
+WUMA.RPC.CopyPlayerLoadout = WUMARPCFunction:New{
+	name = "copyplayerloadout",
+	privilage = "wuma copyplayerloadout",
+	description = "Clear a usergroup's loadout and add the weapons that an online player has on them",
+	func = WUMA.CopyPlayerLoadout,
+	validator = function(usergroup, steamid)
+		assert(CAMI.GetUsergroups()[usergroup])
+		assert(WUMA.IsSteamID(steamid))
+	end
+}
+
+WUMA.RPC.UserCopyPlayerLoadout = WUMARPCFunction:New{
+	name = "usercopyplayerloadout",
+	privilage = "wuma usercopyplayerloadout",
+	description = "Clear a user's loadout and add the weapons that an online player has on them",
+	func = WUMA.CopyPlayerLoadout,
+	validator = function(user, steamid)
+		assert(WUMA.IsSteamID(user))
+		assert(WUMA.IsSteamID(steamid))
 	end
 }
 

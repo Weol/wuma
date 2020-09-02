@@ -24,14 +24,23 @@ function WUMA.RemoveLookup(user)
 	WUMASQL("DELETE FROM WUMALookup WHERE steamid=%s;", user:SteamID())
 end
 
-function WUMA.Lookup(user)
-	if isstring(user) then
-		if WUMA.IsSteamID(user) then
-			return WUMASQL("SELECT * FROM WUMALookup WHERE steamid LIKE '%s%s LIMIT 50;", user, "%'")
+function WUMA.Lookup(limit, offset, search)
+	offset = offset or 0
+
+	local users
+	if search and search ~= "" then
+		if WUMA.IsSteamID(search) then
+			users = WUMASQL("SELECT * FROM WUMALookup WHERE steamid LIKE '%s%%' LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
 		else
-			return WUMASQL("SELECT * FROM WUMALookup WHERE nick LIKE %s%s%s LIMIT 50;", "'%", user, "%'")
+			users = WUMASQL("SELECT * FROM WUMALookup WHERE nick LIKE '%%%s%%' LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
 		end
-	elseif (isnumber(user)) then
-		return WUMASQL("SELECT * FROM WUMALookup ORDER BY t ASC LIMIT %s", tostring(user))
+	else
+		users = WUMASQL("SELECT * FROM WUMALookup ORDER BY t DESC LIMIT %s OFFSET %s", tostring(limit), tostring(offset))
 	end
+
+	for _, user in ipairs(users) do
+		user.t = tonumber(user.t)
+	end
+
+	return users
 end

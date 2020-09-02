@@ -69,12 +69,11 @@ end
 
 local function insertWeapon(weapon)
 	WUMASQL(
-		[[REPLACE INTO `WUMALoadouts` (`parent`, `class`, `primary_ammo`, `secondary_ammo`, `ignore_restrictions`) VALUES ("%s", "%s", "%s", "%s", %s);]],
+		[[REPLACE INTO `WUMALoadouts` (`parent`, `class`, `primary_ammo`, `secondary_ammo`) VALUES ("%s", "%s", "%s", "%s");]],
 		weapon:GetParent(),
 		weapon:GetClass(),
 		weapon:GetPrimaryAmmo(),
-		weapon:GetSecondaryAmmo(),
-		weapon:GetIsIgnoreRestrictions() or "NULL"
+		weapon:GetSecondaryAmmo()
 	)
 end
 
@@ -86,7 +85,20 @@ local function deleteWeapon(parent, class)
 	)
 end
 
+local function clearLoadout(parent)
+	WUMASQL(
+		[[DELETE FROM `WUMALoadouts` WHERE `parent` == "%s"]],
+		parent
+	)
+end
+
 function WUMA.SetLoadoutPrimaryWeapon(caller, parent, class)
+	local current_primary = WUMA.GetSetting(parent, "loadout_primary_weapon")
+
+	if (current_primary == class) then
+		class = nil
+	end
+
 	WUMA.SetSetting(parent, "loadout_primary_weapon", class)
 
 	hook.Call("WUMAOnLoadoutPrimaryWeaponChanged", nil, caller, parent, class)
@@ -98,8 +110,14 @@ function WUMA.SetEnforceLoadout(caller, parent, enforce)
 	hook.Call("WUMAOnLoadoutEnforceChanged", nil, caller, parent, enforce)
 end
 
-function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_ammo, ignore_restrictions, scope)
-	local weapon = LoadoutWeapon:New{parent=parent, class=class, primary_ammo=primary_ammo, secondary_ammo=secondary_ammo, ignore_restrictions=ignore_restrictions, scope=scope}
+function WUMA.SetLoadoutIgnoreRestrictions(caller, parent, ignore)
+	WUMA.SetSetting(parent, "loadout_ignore_restrictions", ignore)
+
+	hook.Call("WUMAOnLoadoutIgnoreRestrictionsChanged", nil, caller, parent, ignore)
+end
+
+function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_ammo)
+	local weapon = LoadoutWeapon:New{parent=parent, class=class, primary_ammo=primary_ammo, secondary_ammo=secondary_ammo}
 
 	if WUMA.Loadouts[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
 		WUMA.Loadouts[parent] = WUMA.Loadouts[parent] or {}
@@ -134,14 +152,36 @@ function WUMA.RemoveLoadoutWeapon(caller, parent, class)
 	hook.Call("WUMAOnLoadoutRemoved", nil, caller, parent, class)
 end
 
+function WUMA.CopyPlayerLoadout(caller, parent, steamid)
+	local ply = player.GetBySteamID(steamid)
+
+	if not ply then error("cannot copy player loadout, player not found") end
+
+	local weapons = {}
+	for _, weapon in pairs(ply:GetWeapons()) do
+		local primary = ply:GetAmmoCount(weapon:GetPrimaryAmmoType()) + (weapon:Clip1() or 0)
+		local secondary = ply:GetAmmoCount(weapon:GetSecondaryAmmoType()) + (weapon:Clip2() or 0)
+		table.insert(weapons, {parent, weapon:GetClass(), primary, secondary})
+		WUMA.AddLoadoutWeapon(caller, parent, weapon:GetClass(), primary, secondary)
+	end
+
+	clearLoadout(parent)
+
+	local primary = ply:GetActiveWeapon()
+	if primary then
+		WUMA.SetLoadoutPrimaryWeapon(caller, parent, primary:GetClass())
+	end
+end
+
 function WUMA.ReadLoadouts(parent)
 	local loadouts = WUMASQL([[SELECT * FROM `WUMALoadouts` WHERE `parent` == "%s"]], parent)
 	if loadouts then
 		local preprocessed = {}
 		for _, args in pairs(loadouts) do
-			args.ignore_restrictions = (args.ignore_restrictions ~= "NULL") and tobool(args.ignore_restrictions)
-			args.primary_ammo = tonumber(args.primary_ammo)
-			args.secondary_ammo = tonumber(args.secondary_ammo)
+			--PrintTable(args)
+			args.primary_ammo = tonumber(string.Replace(args.primary_ammo, "'", ""))
+			args.secondary_ammo = tonumber(string.Replace(args.secondary_ammo, "'", ""))
+			--PrintTable(args)
 			local loadout = LoadoutWeapon:New(args)
 			preprocessed[loadout:GetClass()] = loadout
 		end

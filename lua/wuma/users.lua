@@ -66,7 +66,7 @@ local function userDisconnect(user)
 end
 hook.Add("PlayerDisconnected", "WUMA_USERS_PlayerDisconnected", userDisconnect)
 
-local function playerInitialSpawn(player)
-	WUMARPC(player, "WUMA.CalculateServerTimeDifference", os.time())
+local function playerInitialSpawn(ply)
+	WUMARPC(ply, "WUMA.CalculateServerTimeDifference", os.time())
 end
 hook.Add("PlayerInitialSpawn", "WUMA_USERS_PlayerInitialSpawn", playerInitialSpawn)

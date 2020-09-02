@@ -177,6 +177,10 @@ function WUMA.GetAllItems()
 	return tbl
 end
 
+function WUMA.GetAllLimits()
+	return WUMA.GetAllItems()
+end
+
 function WUMA.IsValidProp()
 	return true
 end

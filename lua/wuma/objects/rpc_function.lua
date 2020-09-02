@@ -47,13 +47,13 @@ function object:__construct()
 						local args = net.ReadTable()
 
 						local response_function = (id >= 0) and function(response)
-							net.Start(self:GetNetworkString())
+							net.Start(network_string)
 								net.WriteInt(id, 32)
 								net.WriteTable(response)
 							net.Send(player)
 						end
 
-						WUMADebug("%s (%s) invoked RPC function \"%s\"", player:Nick(), player:SteamID(), self:GetName())
+						WUMADebug("%s (%s) invoked RPC function \"%s\" (%d)", player:Nick(), player:SteamID(), self:GetName(), id)
 						WUMADebug(args)
 
 						self:Invoke(player, args, response_function)
@@ -80,6 +80,7 @@ function object:__construct()
 	else
 		net.Receive(network_string, function()
 			local id = net.ReadInt(32)
+
 			if (id >= 0) then
 				local response = net.ReadTable()
 
@@ -128,9 +129,10 @@ if SERVER then
 		if validator then
 			sucess, error = pcall(validator, unpack(args))
 		end
+
 		if sucess or not validator then
 			local response = {self:GetFunction()(caller, unpack(args))}
-			if self:GetDoesRespond() and response_function then
+			if response_function then
 				response_function(response)
 			end
 		else
@@ -140,13 +142,13 @@ if SERVER then
 	end
 
 	function object:__call(args)
-			local sucess, error = pcall(self:GetValidator(), unpack(args))
-			if sucess then
-				return self:GetFunction()(unpack(args))
-			else
-				WUMADebug("Call of function \"%s\" failed due to validator error:")
-				WUMADebug(error)
-			end
+		local sucess, error = pcall(self:GetValidator(), unpack(args))
+		if sucess then
+			return self:GetFunction()(unpack(args))
+		else
+			WUMADebug("Call of function \"%s\" failed due to validator error:")
+			WUMADebug(error)
+		end
 	end
 else
 	object:AddMetaData("invoke_ids", "InvokeId", 0)
@@ -181,10 +183,17 @@ else
 		local args = {...}
 
 		local callback
-		if (#args > 0) and isfunction(args[#args]) then
-			callback = table.remove(args)
-			self:GetInvocations()[id] = callback
+		if not table.IsEmpty(args) then
+			local maxn = table.maxn(args)
+			if isfunction(args[maxn]) then
+				callback = args[maxn]
+				args[maxn] = nil
+				self:GetInvocations()[id] = callback
+			end
 		end
+
+		WUMADebug("Calling function %s (%d)", self:GetName(), callback and id or -1)
+		WUMADebug(args)
 
 		net.Start(self:GetNetworkString())
 			net.WriteInt(callback and id or -1, 32)
@@ -195,6 +204,9 @@ else
 	function object:OnResponse(args, id)
 		local invocations = self:GetInvocations()
 		if invocations[id] then
+			WUMADebug("Responding to function %s (%d)",self:GetName(), id)
+			WUMADebug(args)
+
 			invocations[id](unpack(args))
 			invocations[id] = nil
 		end
