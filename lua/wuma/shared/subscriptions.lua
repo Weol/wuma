@@ -235,24 +235,35 @@ end
 ------------------
 -- ONLINE USERS --
 ------------------
-WUMA.Subscribable.lookup = function(caller)
+WUMA.Subscribable.online = function(caller)
     local users = {}
 
     for _, ply in pairs(player.GetAll()) do
         users[ply:SteamID()] = {steamid = ply:SteamID(), nick = ply:Nick(), usergroup = ply:GetUserGroup(), t = os.time()}
     end
 
-    WUMARPC(caller, "WUMA.OnLookupUpdate", users, {})
+    WUMARPC(caller, "WUMA.OnOnlineUpdate", users, {})
 end
 
-local function playerDisconnected(player)
-    local subscribers = WUMA.Subscriptions["lookup"]
-    WUMARPC(subscribers, "WUMA.OnLookupUpdate", {}, {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}})
+function playerDisconnected(player)
+    WUMADebug(player:SteamID())
+    local subscribers = WUMA.Subscriptions["online"]
+    WUMARPC(subscribers, "WUMA.OnOnlineUpdate", {}, {player:SteamID()})
 end
-hook.Add("PlayerDisconnected", "WUMA_LOOKUP_PlayerDisconnected", playerDisconnected)
+hook.Add("PlayerDisconnected", "WUMA_ONLINE_PlayerDisconnected", playerDisconnected)
 
 function playerInitialSpawn(player)
-    local subscribers = WUMA.Subscriptions["lookup"]
-    WUMARPC(subscribers, "WUMA.OnLookupUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}}, {})
+    WUMADebug(player:SteamID())
+    local subscribers = WUMA.Subscriptions["online"]
+    WUMARPC(subscribers, "WUMA.OnOnlineUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}}, {})
 end
-hook.Add("PlayerInitialSpawn", "WUMA_LOOKUP_PlayerInitialSpawn", playerInitialSpawn)
+hook.Add("PlayerInitialSpawn", "WUMA_ONLINE_PlayerInitialSpawn", playerInitialSpawn)
+
+------------------
+-- LOOKUP USERS --
+------------------
+function playerDisconnected2(player)
+    local subscribers = WUMA.Subscriptions["lookup"]
+    WUMARPC(subscribers, "WUMA.OnLookupUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}} , {})
+end
+hook.Add("PlayerDisconnected", "WUMA_LOOKUP_PlayerDisconnected", playerDisconnected)

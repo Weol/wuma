@@ -37,9 +37,9 @@ else
 		end
 
 		if fn then
-			WUMADebug("Calling \"%s\" with arguments: ", fname)
+			--WUMADebug("Calling \"%s\" with arguments: ", fname)
 			for k, v in pairs(args) do
-				WUMADebug("   %s", tostring(v))
+				--WUMADebug("   %s", tostring(v))
 			end
 			fn(unpack(args))
 		else

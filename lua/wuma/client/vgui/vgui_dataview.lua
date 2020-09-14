@@ -3,6 +3,10 @@ local PANEL = {}
 
 AccessorFunc(PANEL, "ClassifyFunction", "ClassifyFunction")
 AccessorFunc(PANEL, "SortGroupingFunction", "SortGroupingFunction")
+AccessorFunc(PANEL, "FilterFunction", "FilterFunction")
+AccessorFunc(PANEL, "Footer", "Footer")
+AccessorFunc(PANEL, "Groups", "Groups")
+AccessorFunc(PANEL, "Keys", "Keys")
 
 function PANEL:Init()
 	self.Keys = {}
@@ -69,9 +73,9 @@ end
 
 local material_cache = {}
 function PANEL:AddViewLine(key)
-	if self.Keys[key] then
-		local item = self.Keys[key]
+	local item = self.Keys[key]
 
+	if self.Keys[key] and self:Filter(item.value) then
 		local line = self:AddLine(unpack(item.display))
 		line.key = key
 		line.group = item.group
@@ -164,6 +168,25 @@ function PANEL:AddViewLine(key)
 	end
 end
 
+function PANEL:SetFilterFunction(f)
+	self.FilterFunction = f
+
+	for group, lines in pairs(self.DataRegistry) do
+		for key, line in pairs(lines) do
+			if not self:Filter(line.value) then
+				self:RemoveViewLine(key)
+			end
+		end
+	end
+end
+
+function PANEL:Filter(item)
+	if self.FilterFunction then
+		return self.FilterFunction(item)
+	end
+	return true
+end
+
 function PANEL:RemoveViewLine(key)
 	if not self.Keys[key] then return end
 
@@ -214,6 +237,11 @@ function PANEL:SortByColumn(column_id, desc)
 	self:InvalidateLayout()
 end
 
+function PANEL:SetFooter(panel)
+	panel:SetParent(self.pnlCanvas)
+	self.Footer = panel
+end
+
 function PANEL:DataLayout()
 	local y = 0
 	local h = self.m_iDataHeight
@@ -222,6 +250,7 @@ function PANEL:DataLayout()
 
 	local last_index
 	for k, line in ipairs(self.Sorted) do
+		line:SetSize(self:GetWide() - 2, h)
 
 		if (line.sort_index ~= last_index) and line.sort_title then
 			table.insert(self.Headers, {y, y + line:GetTall() + 4, line.sort_title})
@@ -230,7 +259,6 @@ function PANEL:DataLayout()
 		end
 
 		line:SetPos(1, y)
-		line:SetSize(self:GetWide() - 2, h)
 		line:DataLayout( self )
 
 		line:SetAltLine(k % 2 == 1)
@@ -238,6 +266,15 @@ function PANEL:DataLayout()
 		y = y + line:GetTall()
 
 		last_index = line.sort_index
+	end
+
+	local footer = self:GetFooter()
+	if footer then
+		footer:SetPos(1, y)
+		footer:SetSize(self:GetWide() - 2)
+		footer:SizeToContentsY()
+
+		y = y + footer:GetTall() + 1
 	end
 
 	return y
@@ -292,6 +329,7 @@ function PANEL:Show(key)
 			end
 		end
 	end
+	self:DataLayout()
 end
 
 function PANEL:Sort(key, value)
@@ -310,6 +348,10 @@ function PANEL:Sort(key, value)
 	}
 
 	return group, display, sort, highlight
+end
+
+function PANEL:FilterAll()
+	self:SetFilterFunction(self:GetFilterFunction())
 end
 
 function PANEL:ReSort(id, k)
@@ -350,14 +392,18 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 		local group, display, sort = self:Sort(key, value)
 
 		if self.DataRegistry[group] and self.DataRegistry[group][key] then
-			local line = self.DataRegistry[group][key]
+			if not self:Filter(value) then
+				self:RemoveViewLine(key)
+			else
+				local line = self.DataRegistry[group][key]
 
-			for k, v in pairs(display) do
-				line:SetColumnText(k, v)
+				for k, v in pairs(display) do
+					line:SetColumnText(k, v)
+				end
+				line.Data = sort or {}
+
+				line:InvalidateLayout()
 			end
-			line.Data = sort or {}
-
-			line:InvalidateLayout()
 		elseif self.DataRegistry[group] then
 			self:AddViewLine(key)
 		end

@@ -329,7 +329,7 @@ function WUMA.GUI.InitializeUsersTab()
 
 	WUMA.Subscribe{
 		args = {
-			"lookup"
+			"online"
 		},
 		id = WUMA.GUI.UsersTab,
 		callback = function(users, updated, deleted)
@@ -337,7 +337,17 @@ function WUMA.GUI.InitializeUsersTab()
 		end
 	}
 
-	WUMA.RPC.Lookup:Invoke(50, 0, nil, function(users)
+	WUMA.Subscribe{
+		args = {
+			"lookup"
+		},
+		id = WUMA.GUI.UsersTab,
+		callback = function(users, updated, deleted)
+			WUMA.GUI.UsersTab:NotifyLookupUsersChanged(users, "lookup", updated, deleted)
+		end
+	}
+
+	WUMA.RPC.Lookup:Invoke(WUMA.GUI.UsersTab.FETCH_COUNT, 0, nil, function(users)
 		local mapped = {}
 		for i, user in ipairs(users) do
 			mapped[user.steamid] = user

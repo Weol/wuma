@@ -248,6 +248,28 @@ function WUMA.OnMapsUpdate(updated, deleted)
 	end
 end
 
+function WUMA.OnOnlineUpdate(updated, deleted)
+	local key = "online"
+
+	subscription_data[key] = subscription_data[key] or {}
+
+	for steamid, user in pairs(updated) do
+		subscription_data[key][steamid] = user
+	end
+
+	for _, steamid  in pairs(deleted) do
+		subscription_data[key][steamid] = nil
+	end
+
+	subscription_init[key] = function(callback)
+		callback(subscription_data[key], updated, deleted)
+	end
+
+	for _, f in pairs(subscribe_callbacks[key] or {}) do
+		f(subscription_data[key], updated, deleted)
+	end
+end
+
 function WUMA.OnLookupUpdate(updated, deleted)
 	local key = "lookup"
 
@@ -257,7 +279,7 @@ function WUMA.OnLookupUpdate(updated, deleted)
 		subscription_data[key][steamid] = user
 	end
 
-	for steamid, user  in pairs(deleted) do
+	for _, steamid  in pairs(deleted) do
 		subscription_data[key][steamid] = nil
 	end
 

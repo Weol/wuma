@@ -29,14 +29,16 @@ function WUMA.Lookup(limit, offset, search)
 
 	local users
 	if search and search ~= "" then
-		if WUMA.IsSteamID(search) then
-			users = WUMASQL("SELECT * FROM WUMALookup WHERE steamid LIKE '%s%%' LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
+		if (string.StartWith(search, "STEAM_")) then
+			users = WUMASQL("SELECT * FROM WUMALookup WHERE steamid LIKE '%s%%' ORDER BY t DESC LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
 		else
-			users = WUMASQL("SELECT * FROM WUMALookup WHERE nick LIKE '%%%s%%' LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
+			users = WUMASQL("SELECT * FROM WUMALookup WHERE nick LIKE '%%%s%%' ORDER BY t DESC LIMIT %s OFFSET %s;", search, tostring(limit), tostring(offset))
 		end
 	else
 		users = WUMASQL("SELECT * FROM WUMALookup ORDER BY t DESC LIMIT %s OFFSET %s", tostring(limit), tostring(offset))
 	end
+
+	if not users then return {} end
 
 	for _, user in ipairs(users) do
 		user.t = tonumber(user.t)

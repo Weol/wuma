@@ -7,9 +7,12 @@ AccessorFunc(PANEL, "loadouts", "LoadoutsPanel")
 AccessorFunc(PANEL, "Users", "Users")
 AccessorFunc(PANEL, "CachedCalls", "CachedCalls")
 
+PANEL.FETCH_COUNT = 50
+
 function PANEL:Init()
 
 	self.CachedCalls = {}
+	self.ExhaustedSearches = {}
 	self.Users = {}
 
 	--Search bar
@@ -64,9 +67,10 @@ function PANEL:Init()
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyUser(...) end)
 	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
+	self.list_items:SetFilterFunction(function(...) return self:Filter(...) end)
 
 	local old_SortByColumn = self.list_items.SortByColumn
-	function self.list_items:SortByColumn(column_id, desc)
+	function self.list_items:SortByColumn(column_id, _)
 		if (column_id == 4) then
 			old_SortByColumn(self, column_id, true)
 		end
@@ -127,28 +131,61 @@ function PANEL:Init()
 
 	self.list_items:Show({"lookup", "online"})
 
+	--List footer
+	self.items_footer = vgui.Create("DPanel")
+
+	self.load_button = vgui.Create("DButton", self.items_footer)
+	self.load_button:SetText("Load more users")
+	self.load_button:SetSize(130, 25)
+	self.load_button.DoClick = function() self:OnLoadMoreUsers() end
+
+	self.items_footer.load_button = self.load_button
+
+	function self.items_footer:SizeToContentsY()
+		self:SetTall(10 + self.load_button:GetTall())
+	end
+
+	function self.items_footer:Paint(w, h)
+		surface.SetDrawColor(255, 255, 255, 255)
+		surface.DrawRect(0, 0, w, h)
+
+		surface.SetDrawColor(82, 82, 82, 255)
+		surface.DrawLine(0, 0, w, 0)
+	end
+
+	function self.items_footer:PerformLayout(w, h)
+		self.load_button:SetPos(w / 2 - self.load_button:GetWide() / 2, h / 2 - self.load_button:GetTall() / 2)
+	end
+
+	self.list_items:SetFooter(self.items_footer)
+
 end
 
 function PANEL:SortGrouping(user)
-	if user.group == "online" then
+	if self.list_items:GetKeys()["online_" .. user.steamid] then
 		return 1, "Online players"
 	end
 	return 2, "Offline players"
 end
 
+function PANEL:Filter(user)
+	if (user.group == "lookup") then
+		return not self.list_items:GetKeys()["online_" .. user.steamid]
+	end
+	return true
+end
+
 function PANEL:ClassifyUser(user)
 	local last_online = os.date("%d/%m/%Y %H:%M", user.t)
-	if user.online then
+
+	local highlight
+	if (user.group == "online") or self.list_items:GetKeys()["online_" .. user.steamid] then
+		highlight = Color(0, 255, 0, 120)
 		last_online = "Online"
 	end
 
 	local columns = {user.nick, user.steamid, user.usergroup, last_online}
 	local sort = {user.nick, user.steamid, user.usergroup, user.t}
-
-	local highlight
-	if (user.group == "online") then
-		highlight = Color(0, 255, 0, 120)
-	end
 
 	return user.group, columns, sort, highlight
 end
@@ -204,18 +241,7 @@ function PANEL:GetSelectedUserNick()
 end
 
 function PANEL:NotifyLookupUsersChanged(users, key, updated, deleted)
-	if (key == "online") and not table.IsEmpty(deleted) then
-		local current_lookup = self.list_items:GetDataSources()["lookup"]
-
-		if  current_lookup then
-			for steamid, user in pairs(deleted) do
-				current_lookup[steamid] = user
-				current_lookup[steamid].group = "lookup"
-			end
-		end
-	end
-
-	if (users ~= self.list_items:GetDataSources()[key]) then
+	if users and (users ~= self.list_items:GetDataSources()[key]) then
 		for _, user in pairs(users) do
 			user.group = key
 		end
@@ -226,10 +252,11 @@ function PANEL:NotifyLookupUsersChanged(users, key, updated, deleted)
 			user.group = key
 		end
 
-		self.list_items:UpdateDataSource(key, updated, table.GetKeys(deleted))
+		self.list_items:UpdateDataSource(key, updated, deleted)
 	end
 
 	self.list_items:SortByColumn(4)
+	self.list_items:FilterAll()
 end
 
 function PANEL:OnUserSelected(user)
@@ -331,24 +358,58 @@ function PANEL:OnSearchUsers(limit, offset, search, callback)
 end
 --luacheck: pop
 
-function PANEL:SearchUsers(limit, offset, search)
-	local key = table.concat({limit, offset, search}, "_")
+function PANEL:OnLoadMoreUsers()
+	local search = self.textbox_search:GetValue()
 
-	if self:GetCachedCalls()[key] then
-		self:NotifyLookupUsersChanged(key, self:GetCachedCalls()[key], {})
+	if (search == "") then search = nil end
+	self:SearchUsers(self.FETCH_COUNT, table.Count(self.list_items:GetGroups()[search or "lookup"]), search)
+end
+
+function PANEL:ShowKey(key)
+	self.list_items:Show((key == "lookup") and {"lookup", "online"} or key)
+	self.list_items:SortByColumn(4)
+
+	if self.ExhaustedSearches[key] then
+		self.load_button:SetText("No more users found")
+		self.load_button:SetDisabled(true)
 	else
+		self.load_button:SetText("Load more users")
+		self.load_button:SetDisabled(false)
+	end
+end
+
+function PANEL:SearchUsers(limit, offset, search)
+	local cache_key = table.concat({limit, offset, search}, "_")
+	local key = search or "lookup"
+
+	if not self:GetCachedCalls()[cache_key] then
 		self:OnSearchUsers(limit, offset, search, function(users)
-			self:NotifyLookupUsersChanged(key, users, {})
-			self:GetCachedCalls()[key] = users
+			local tbl = {}
+			for _, v in pairs(users) do
+				tbl[v.steamid] = v
+			end
+
+			if (table.Count(users) < self.FETCH_COUNT) then
+				self.ExhaustedSearches[key] = true
+				self.load_button:SetText("No more users found")
+				self.load_button:SetDisabled(true)
+			end
+
+			self:NotifyLookupUsersChanged(nil, key, tbl, {})
+			self:GetCachedCalls()[cache_key] = true
+
+			self:ShowKey(key)
 		end)
+	else
+		self:ShowKey(key)
 	end
 end
 
 function PANEL:OnLookup(text)
 	if (text ~= "") then
-		self:SearchUsers(50, 0, text)
+		self:SearchUsers(self.FETCH_COUNT, 0, text)
 	else
-		self.list_items:Show({"lookup", "online"})
+		self:ShowKey("lookup")
 	end
 end
 

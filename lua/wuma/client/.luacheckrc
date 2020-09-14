@@ -52,6 +52,7 @@ stds.wuma = {
                 "GetWeapons",
                 "GenerateUniqueID",
                 "OnLookupUpdate",
+                "OnOnlineUpdate",
                 RestrictionTypes = {
                     field = {
                         "entity",
@@ -1742,6 +1743,7 @@ stds.gmod = {
         "BOTTOM",
         "TEXT_ALIGN_LEFT",
         "DLabel",
+        "FORCE_NUMBER",
     }
 }
 

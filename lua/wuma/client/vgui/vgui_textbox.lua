@@ -6,6 +6,15 @@ AccessorFunc(PANEL, "min_numeric", "MinNumeric", FORCE_NUMBER)
 
 function PANEL:Init()
 	self.default_color = Color(150, 150, 150)
+	self.old_GetValue = self.GetValue
+
+	function self:GetValue()
+		local value = self:old_GetValue()
+		if (value == self:GetDefault()) then
+			return ""
+		end
+		return value
+	end
 end
 
 function PANEL:SetDefault(default)
