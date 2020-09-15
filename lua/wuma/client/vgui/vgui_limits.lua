@@ -105,8 +105,14 @@ end
 function PANEL:ReloadSuggestions()
 	self.list_suggestions:Clear()
 
+	if (self.textbox_search:GetValue() ~= "") then
+		self.list_suggestions:AddLine(self.textbox_search:GetValue())
+	end
+
 	for _, item in pairs(WUMA.GetAllLimits()) do
-		self.list_suggestions:AddLine(item)
+		if (item ~= self.textbox_search:GetValue()) then
+			self.list_suggestions:AddLine(item)
+		end
 	end
 
 	self.list_suggestions.VBar:SetScroll(0)
@@ -162,10 +168,6 @@ function PANEL:OnSearch(text)
 		if not string.match(string.lower(item), string.lower(text)) then
 			self.list_suggestions:RemoveLine(k)
 		end
-	end
-
-	if table.IsEmpty(self.list_suggestions:GetLines()) then
-		self.list_suggestions:AddLine(text)
 	end
 
 	self.list_suggestions:SelectFirstItem()

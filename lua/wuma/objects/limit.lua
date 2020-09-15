@@ -1,9 +1,20 @@
 
 local object, static = WUMA.ClassFactory.Builder("Limit")
 
+local function toNumberIfNumber(limit)
+	if isnumber(limit) then return limit end
+
+	if not isstring(limit) then error("limit must be number or string (was " .. type(limit) ..")") end
+
+	local limit = string.Replace(limit, "'", "")
+
+	local converted = tonumber(limit)
+	return converted or limit
+end
+
 object:AddProperty("parent", "Parent")
 object:AddProperty("item", "Item")
-object:AddProperty("limit", "Limit")
+object:AddProperty("limit", "Limit", nil, toNumberIfNumber)
 object:AddProperty("is_exclusive", "IsExclusive")
 
 object:AddMetaData("entities", "Entities", {})
@@ -14,12 +25,7 @@ function object:__construct(args)
 
 	if (args.limit == args.item) then error("limit and item cannot be the same") end
 
-	if not isnumber(args.limit) then
-		local limit = string.Replace(args.limit, "'", "")
-		if (tonumber(limit) ~= nil) then
-			self:SetLimit(tonumber(limit))
-		end
-	end
+	self:SetLimit(args.limit)
 end
 
 function object:__tostring()
@@ -27,23 +33,11 @@ function object:__tostring()
 end
 
 function object:Check(player, int)
-	if self:IsDisabled() then return end
-
 	local limit = int or self:GetLimit()
 
-	if istable(limit) then
-		if not limit:IsExclusive() then
-			return limit:Check(player)
-		else
-			return self:Check(player, limit:Get())
-		end
-	elseif isstring(limit) and self:GetParent():HasLimit(limit) then
-		return self:Check(self:GetParent():GetLimit(limit))
-	elseif isstring(limit) then
-		return
-	end
+	if not isnumber(limit) then error("limit is not number") end
 
-	local count = self:GetCounts()[player:SteamID()]
+	local count = self:GetCounts()[player:SteamID()] or 0
 	if (limit < 0) then return true end
 	if (limit <= count) then
 		player:SendLua(string.format([[WUMA.NotifyLimitHit("%s")]], self:GetItem()))
@@ -63,11 +57,31 @@ function object:Purge()
 	self:SetEntities({})
 end
 
+function object:Purge()
+	for id, entry in pairs(self:GetEntities()) do
+		local _, entity = unpack(entry)
+		entity:RemoveWUMAParent(self)
+	end
+
+	self:SetCounts({})
+	self:SetEntities({})
+end
+
+function object:Recover(limit)
+	for id, entry in pairs(limit:GetEntities()) do
+		self:AddEntity(unpack(entry))
+	end
+
+	limit:Purge()
+end
+
 function object:DeleteEntity(entity)
-	local player, _ = unpack(entity:GetEntities()[entity:GetCreationID()])
+	local player, _ = unpack(self:GetEntities()[entity:GetCreationID()])
 
 	local counts = self:GetCounts()
-	counts[player:SteamID()] = (counts[player:SteamID()] or 0) - 1
+	counts[player:SteamID()] = (counts[player:SteamID()] or 1) - 1
+
+	self:GetEntities()[entity:GetCreationID()] = nil
 
 	if (counts[player:SteamID()] <= 0) then
 		counts[player:SteamID()] = nil
@@ -75,7 +89,7 @@ function object:DeleteEntity(entity)
 end
 
 function object:AddEntity(player, entity)
-	local entities = entity:GetEntities()
+	local entities = self:GetEntities()
 	if (entities[entity:GetCreationID()]) then return end
 
 	local counts = self:GetCounts()

@@ -126,9 +126,17 @@ function PANEL:ReloadSuggestions(type)
 		self.list_suggestions:SetDisabled(false)
 
 		self.list_suggestions:Clear()
-		for k, v in pairs(items) do
-			self.list_suggestions:AddLine(v)
+
+		if (self.textbox_search:GetValue() ~= "") then
+			self.list_suggestions:AddLine(self.textbox_search:GetValue())
 		end
+
+		for k, v in pairs(items) do
+			if (v ~= self.textbox_search:GetValue()) then
+				self.list_suggestions:AddLine(v)
+			end
+		end
+
 		self.list_suggestions:SelectFirstItem()
 	end
 end
@@ -194,10 +202,6 @@ function PANEL:OnSearch(text)
 			if not string.match(string.lower(item), string.lower(text)) then
 				self.list_suggestions:RemoveLine(k)
 			end
-		end
-
-		if table.IsEmpty(self.list_suggestions:GetLines()) then
-			self.list_suggestions:AddLine(text)
 		end
 
 		self.list_suggestions:SelectFirstItem()

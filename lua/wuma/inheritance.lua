@@ -1,6 +1,20 @@
 
 WUMA.Inheritance = WUMA.Inheritance or {}
 
+function WUMA.GetInheritsLimitsFrom(parent)
+	local inheritsFrom = WUMA.Inheritance["limits"] and  WUMA.Inheritance["limits"][parent]
+	if inheritsFrom then
+		return inheritsFrom
+	end
+end
+
+function WUMA.GetInheritsRestrictionsFrom(parent)
+	local inheritsFrom = WUMA.Inheritance["restrictions"] and  WUMA.Inheritance["restrictions"][parent]
+	if inheritsFrom then
+		return inheritsFrom
+	end
+end
+
 function WUMA.LoadInheritance()
 	local inheritances = WUMASQL([[SELECT * FROM `WUMAInheritance`]])
 	if inheritances then

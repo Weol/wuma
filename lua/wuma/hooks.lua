@@ -1,45 +1,67 @@
 
 
-function WUMA.PlayerSpawnSENT(player, sent)
-	if not player or not sent then return end
-	if (player:CheckRestriction("entity", sent) == false) then return false end
-	if (player:CheckLimit("sents", sent) == false) then return false end
-end
-hook.Add("PlayerSpawnSENT", "WUMA_HOOKS_PlayerSpawnSENT", WUMA.PlayerSpawnSENT, -1)
+local function checkLimit(player, str, id)
+	if string.Left(id, 5) == "gmod_" then
+		local convar = GetConVar("sbox_max" .. string.sub(id, 6))
+		if convar then
+			str = string.sub(id, 6)
+			id = nil
+		else
+			convar = GetConVar("sbox_max" .. string.sub(id, 6) .. "s")
+			if convar then
+				str = string.sub(id, 6) .. "s"
+				id = nil
+			end
+		end
+	end
 
-function WUMA.PlayerSpawnedSENT(player, ent)
+	return player:CheckLimit(str, id)
+end
+
+local function checkRestriction(player, str, id)
+	--TODO
+end
+
+local function playerSpawnSENT(player, sent)
+	if not player or not sent then return end
+	if (checkRestriction(player, "entity", sent) == false) then return false end
+	if (checkLimit(player, "sents", sent) == false) then return false end
+end
+hook.Add("PlayerSpawnSENT", "WUMA_HOOKS_PlayerSpawnSENT", playerSpawnSENT, -1)
+
+local function playerSpawnedSENT(player, ent)
 	if not player or not ent then return end
 	player:AddCount("sents", ent, ent:GetClass())
 end
-hook.Add("PlayerSpawnedSENT", "WUMA_HOOKS_PlayerSpawnedSENT", WUMA.PlayerSpawnedSENT, -2)
+hook.Add("PlayerSpawnedSENT", "WUMA_HOOKS_PlayerSpawnedSENT", playerSpawnedSENT, -2)
 
-function WUMA.PlayerSpawnProp(player, mdl)
+local function playerSpawnProp(player, mdl)
 	if not player or not mdl then return end
 
 	mdl = string.lower(mdl) --Models are alwyas lowercase
 
-	if (player:CheckRestriction("prop", mdl) == false) then return false end
-	if (player:CheckLimit("props", mdl) == false) then return false end
+	if (checkRestriction(player, "prop", mdl) == false) then return false end
+	if (checkLimit(player, "props", mdl) == false) then return false end
 end
-hook.Add("PlayerSpawnProp", "WUMA_HOOKS_PlayerSpawnProp", WUMA.PlayerSpawnProp, -1)
+hook.Add("PlayerSpawnProp", "WUMA_HOOKS_PlayerSpawnProp", playerSpawnProp, -1)
 
-function WUMA.PlayerSpawnedProp(player, model, ent)
+local function playerSpawnedProp(player, model, ent)
 	if not player or not model or not ent then return end
 
 	model = string.lower(model) --Models are alwyas lowercase
 
 	player:AddCount("props", ent, model)
 end
-hook.Add("PlayerSpawnedProp", "WUMA_HOOKS_PlayerSpawnedProp", WUMA.PlayerSpawnedProp, -2)
+hook.Add("PlayerSpawnedProp", "WUMA_HOOKS_PlayerSpawnedProp", playerSpawnedProp, -2)
 
-function WUMA.CanTool(player, tr, tool)
+local function canTool(player, tr, tool)
 	if not player or not tool then return end
-	return player:CheckRestriction("tool", tool)
+	return checkRestriction(player, "tool", tool)
 end
-hook.Add("CanTool", "WUMA_HOOKS_CanTool", WUMA.CanTool, -1)
+hook.Add("CanTool", "WUMA_HOOKS_CanTool", canTool, -1)
 
 local use_last = {}
-function WUMA.PlayerUse(player, ent)
+local function playerUse(player, ent)
 	if not player or not ent then return end
 
 	if (use_last[player:SteamID()] and os.time() < use_last[player:SteamID()].time) then
@@ -48,26 +70,26 @@ function WUMA.PlayerUse(player, ent)
 		if ent:GetTable().VehicleName then ent = ent:GetTable().VehicleName else ent = ent:GetClass() end
 
 		use_last[player:SteamID()] = {
-			returned = player:CheckRestriction("use", ent),
+			returned = checkRestriction(player, "use", ent),
 			time = os.time() + 2
 		}
 
 		if (use_last[player:SteamID()].returned == false) then return false end
 	end
 end
-hook.Add("PlayerUse", "WUMA_HOOKS_PlayerUse", WUMA.PlayerUse)
+hook.Add("PlayerUse", "WUMA_HOOKS_PlayerUse", playerUse)
 
-function WUMA.PlayerSpawnEffect(player, mdl)
+local function playerSpawnEffect(player, mdl)
 	if not player or not mdl then return end
 
 	mdl = string.lower(mdl) --Models are alwyas lowercase
 
-	if (player:CheckRestriction("effect", mdl) == false) then return false end
-	if (player:CheckLimit("effects", mdl) == false) then return false end
+	if (checkRestriction(player, "effect", mdl) == false) then return false end
+	if (checkLimit(player, "effects", mdl) == false) then return false end
 end
-hook.Add("PlayerSpawnEffect", "WUMA_HOOKS_PlayerSpawnEffect", WUMA.PlayerSpawnEffect, -1)
+hook.Add("PlayerSpawnEffect", "WUMA_HOOKS_PlayerSpawnEffect", playerSpawnEffect, -1)
 
-function WUMA.PlayerSpawnedEffect(player, model, ent)
+local function playerSpawnedEffect(player, model, ent)
 	if not player or not model or not ent then return end
 
 	model = string.lower(model) --Models are alwyas lowercase
@@ -75,99 +97,99 @@ function WUMA.PlayerSpawnedEffect(player, model, ent)
 	ent.WUMAModel = model
 	player:AddCount("effects", ent, model)
 end
-hook.Add("PlayerSpawnedEffect", "WUMA_HOOKS_PlayerSpawnedEffect", WUMA.PlayerSpawnedEffect, -2)
+hook.Add("PlayerSpawnedEffect", "WUMA_HOOKS_PlayerSpawnedEffect", playerSpawnedEffect, -2)
 
-function WUMA.PlayerSpawnNPC(player, npc, weapon)
+local function playerSpawnNPC(player, npc, weapon)
 	if not player or not npc then return end
-	if (player:CheckRestriction("npc", npc) == false) then return false end
-	if (player:CheckLimit("npcs", npc) == false) then return false end
+	if (checkRestriction(player, "npc", npc) == false) then return false end
+	if (checkLimit(player, "npcs", npc) == false) then return false end
 end
-hook.Add("PlayerSpawnNPC", "WUMA_HOOKS_PlayerSpawnNPC", WUMA.PlayerSpawnNPC, -1)
+hook.Add("PlayerSpawnNPC", "WUMA_HOOKS_PlayerSpawnNPC", playerSpawnNPC, -1)
 
-function WUMA.PlayerSpawnedNPC(player, ent)
+local function playerSpawnedNPC(player, ent)
 	if not player or not ent then return end
 	player:AddCount("npcs", ent, ent:GetClass())
 end
-hook.Add("PlayerSpawnedNPC", "WUMA_HOOKS_PlayerSpawnedNPC", WUMA.PlayerSpawnedNPC, -2)
+hook.Add("PlayerSpawnedNPC", "WUMA_HOOKS_PlayerSpawnedNPC", playerSpawnedNPC, -2)
 
-function WUMA.PlayerSpawnRagdoll(player, mdl)
+local function playerSpawnRagdoll(player, mdl)
 	if not player or not mdl then return end
 
 	mdl = string.lower(mdl) --Models are alwyas lowercase
 
-	if (player:CheckRestriction("ragdoll", mdl) == false) then return false end
-	if (player:CheckLimit("ragdolls", mdl) == false) then return false end
+	if (checkRestriction(player, "ragdoll", mdl) == false) then return false end
+	if (checkLimit(player, "ragdolls", mdl) == false) then return false end
 end
-hook.Add("PlayerSpawnRagdoll", "WUMA_HOOKS_PlayerSpawnRagdoll", WUMA.PlayerSpawnRagdoll, -1)
+hook.Add("PlayerSpawnRagdoll", "WUMA_HOOKS_PlayerSpawnRagdoll", playerSpawnRagdoll, -1)
 
-function WUMA.PlayerSpawnedRagdoll(player, model, ent)
+local function playerSpawnedRagdoll(player, model, ent)
 	if not player or not model or not ent then return end
 
 	model = string.lower(model) --Models are alwyas lowercase
 
 	player:AddCount("ragdolls", ent, model)
 end
-hook.Add("PlayerSpawnedRagdoll", "WUMA_HOOKS_PlayerSpawnedRagdoll", WUMA.PlayerSpawnedRagdoll, -2)
+hook.Add("PlayerSpawnedRagdoll", "WUMA_HOOKS_PlayerSpawnedRagdoll", playerSpawnedRagdoll, -2)
 
-function WUMA.PlayerSpawnSWEP(player, class, weapon)
+local function playerSpawnSWEP(player, class, weapon)
 	if not player or not class then return end
-	if (player:CheckRestriction("swep", class) == false) then return false end
-	if (player:CheckLimit("sents", class) == false) then return false end
+	if (checkRestriction(player, "swep", class) == false) then return false end
+	if (checkLimit(player, "sents", class) == false) then return false end
 end
-hook.Add("PlayerSpawnSWEP", "WUMA_HOOKS_PlayerSpawnSWEP", WUMA.PlayerSpawnSWEP, -1)
+hook.Add("PlayerSpawnSWEP", "WUMA_HOOKS_PlayerSpawnSWEP", playerSpawnSWEP, -1)
 
-function WUMA.PlayerGiveSWEP(player, class, weapon)
+local function playerGiveSWEP(player, class, weapon)
 	if not player or not class then return end
-	if (player:CheckRestriction("swep", class) == false) then return false end
+	if (checkRestriction(player, "swep", class) == false) then return false end
 	player:DisregardNextPickup(class)
 end
-hook.Add("PlayerGiveSWEP", "WUMA_HOOKS_PlayerGiveSWEP", WUMA.PlayerGiveSWEP, -1)
+hook.Add("PlayerGiveSWEP", "WUMA_HOOKS_PlayerGiveSWEP", playerGiveSWEP, -1)
 
-function WUMA.PlayerSpawnedSWEP(player, ent)
+local function playerSpawnedSWEP(player, ent)
 	if not player or not ent then return end
 	player:AddCount("sents", ent, ent:GetClass())
 end
-hook.Add("PlayerSpawnedSWEP", "WUMA_HOOKS_PlayerSpawnedSWEP", WUMA.PlayerSpawnedSWEP, -2)
+hook.Add("PlayerSpawnedSWEP", "WUMA_HOOKS_PlayerSpawnedSWEP", playerSpawnedSWEP, -2)
 
 local pickup_last = {}
-function WUMA.PlayerCanPickupWeapon(player, weapon)
+local function playerCanPickupWeapon(player, weapon)
 	if not player or not weapon then return end
 
 	if (pickup_last[player:SteamID()] and os.time() < pickup_last[player:SteamID()].time) then
 		if (pickup_last[player:SteamID()].returned == false) then return false end
 	else
 		pickup_last[player:SteamID()] = {
-			returned = player:CheckRestriction("pickup", weapon:GetClass()),
+			returned = checkRestriction(player, "pickup", weapon:GetClass()),
 			time = os.time() + 2
 		}
 
 		if (pickup_last[player:SteamID()].returned == false) then return false end
 	end
 end
-hook.Add("PlayerCanPickupWeapon", "WUMA_HOOKS_PlayerCanPickupWeapon", WUMA.PlayerCanPickupWeapon, -1)
+hook.Add("PlayerCanPickupWeapon", "WUMA_HOOKS_PlayerCanPickupWeapon", playerCanPickupWeapon, -1)
 
-function WUMA.PlayerSpawnVehicle(player, mdl, name, vehicle_table)
+local function playerSpawnVehicle(player, mdl, name, vehicle_table)
 	if not player or not name then return end
-	if (player:CheckRestriction("vehicle", name) == false) then return false end
-	if (player:CheckLimit("vehicles", name) == false) then return false end
+	if (checkRestriction(player, "vehicle", name) == false) then return false end
+	if (checkLimit(player, "vehicles", name) == false) then return false end
 end
-hook.Add("PlayerSpawnVehicle", "WUMA_HOOKS_PlayerSpawnVehicle", WUMA.PlayerSpawnVehicle, -1)
+hook.Add("PlayerSpawnVehicle", "WUMA_HOOKS_PlayerSpawnVehicle", playerSpawnVehicle, -1)
 
-function WUMA.PlayerSpawnedVehicle(player, ent)
+local function playerSpawnedVehicle(player, ent)
 	if not player or not ent then return end
 	player:AddCount("vehicles", ent, ent:GetTable().VehicleName)
 end
-hook.Add("PlayerSpawnedVehicle", "WUMA_HOOKS_PlayerSpawnedVehicle", WUMA.PlayerSpawnedVehicle, -2)
+hook.Add("PlayerSpawnedVehicle", "WUMA_HOOKS_PlayerSpawnedVehicle", playerSpawnedVehicle, -2)
 
-function WUMA.PlayerCanProperty(player, property, ent)
+local function playerCanProperty(player, property, ent)
 	if not player or not property then return end
-	if (player:CheckRestriction("property", property) == false) then return false end
+	if (checkRestriction(player, "property", property) == false) then return false end
 end
-hook.Add("CanProperty", "WUMA_HOOKS_CanProperty", WUMA.PlayerCanProperty, -1)
+hook.Add("CanProperty", "WUMA_HOOKS_CanProperty", playerCanProperty, -1)
 
 local physgun_last_return = {}
 local physgun_last_time = {}
-function WUMA.PlayerPhysgunPickup(player, ent)
+local function playerPhysgunPickup(player, ent)
 	if not player or not ent then return end
 
 	if (physgun_last_time[player:SteamID()] and os.time() < physgun_last_time[player:SteamID()]) then
@@ -182,11 +204,11 @@ function WUMA.PlayerPhysgunPickup(player, ent)
 			class = ent:GetTable().VehicleName
 		end
 
-		physgun_last_return[player:SteamID()] = player:CheckRestriction("physgrab", class)
+		physgun_last_return[player:SteamID()] = checkRestriction(player, "physgrab", class)
 		physgun_last_time[player:SteamID()] = os.time() + 2
 
 		if (physgun_last_return[player:SteamID()] == false) then return false end
 	end
 end
-hook.Add("PhysgunPickup", "WUMA_HOOKS_PhysgunPickup", WUMA.PlayerPhysgunPickup, -1)
-hook.Add("CanPlayerUnfreeze", "WUMA_HOOKS_CanPlayerUnfreeze", WUMA.PlayerPhysgunPickup, -1)
+hook.Add("PhysgunPickup", "WUMA_HOOKS_PhysgunPickup", playerPhysgunPickup, -1)
+hook.Add("CanPlayerUnfreeze", "WUMA_HOOKS_CanPlayerUnfreeze", playerPhysgunPickup, -1)

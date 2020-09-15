@@ -26,6 +26,7 @@ stds.wuma = {
         "RestrictionType",
         "WUMARPCFunction",
         "LoadoutWeapon",
+        "WUMAPrintObject",
         WUMA = {
             fields = {
                 "Limits",
@@ -91,6 +92,8 @@ stds.wuma = {
                 "ReadSettings",
                 "SetLoadoutIgnoreRestrictions",
                 "CopyPlayerLoadout",
+                "GetInheritsLimitsFrom",
+                "GetInheritsRestrictionsFrom",
                 RPC = {
                     fields = {
                         "Subscribe",

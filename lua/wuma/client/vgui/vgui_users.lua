@@ -362,6 +362,7 @@ function PANEL:OnLoadMoreUsers()
 	local search = self.textbox_search:GetValue()
 
 	if (search == "") then search = nil end
+
 	self:SearchUsers(self.FETCH_COUNT, table.Count(self.list_items:GetGroups()[search or "lookup"]), search)
 end
 

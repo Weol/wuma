@@ -67,8 +67,6 @@ function PANEL:Init()
 			surface.DrawText(title)
 		end
 	end
-
-	self.old_SortByColumn = self.SortByColumn
 end
 
 local material_cache = {}
@@ -204,27 +202,27 @@ end
 
 function PANEL:SortByColumn(column_id, desc)
 	local grouper = self:GetSortGroupingFunction()
-	if not grouper then self:old_SortByColumn(column_id, desc) end
 
 	table.Copy(self.Sorted, self.Lines)
 
 	table.sort(self.Sorted, function(a, b)
+		if grouper then
+			local a_index, a_title = grouper(a.value)
+			local b_index, b_title = grouper(b.value)
 
-		local a_index, a_title = grouper(a.value)
-		local b_index, b_title = grouper(b.value)
+			a.sort_index = a_index
+			a.sort_title = a_title
 
-		a.sort_index = a_index
-		a.sort_title = a_title
+			b.sort_index = b_index
+			b.sort_title = b_title
 
-		b.sort_index = b_index
-		b.sort_title = b_title
+			if a_index ~= b_index then
+				return a_index < b_index
+			end
+		end
 
 		local a_val = a:GetSortValue(column_id) or a:GetColumnText(column_id)
 		local b_val = b:GetSortValue(column_id) or b:GetColumnText(column_id)
-
-		if a_index ~= b_index then
-			return a_index < b_index
-		end
 
 		if (desc) then
 			a_val, b_val = b_val, a_val

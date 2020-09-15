@@ -104,7 +104,7 @@ hook.Add("PlayerDisconnected", "WUMA_RESTRICTIONS_PlayerDisconnected", userDisco
 
 local function playerInitialSpawn(player)
 	if not WUMA.Restrictions[player:GetUserGroup()] then
-		WUMA.Restrictions[player:GetUserGroup()] = WUMA.ReadRestrictions(player:GetUserGroup())
+		WUMA.Restrictions[player:GetUserGroup()] = WUMA.ReadRestrictions(player:GetUserGroup()) or {}
 	end
 
 	if not WUMA.Restrictions[player:SteamID()] then

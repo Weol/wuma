@@ -1,7 +1,6 @@
 
 
 WUMA.UserLimitStrings = WUMA.UserLimitStrings or {}
-WUMA.UserLimits = WUMA.UserLimits or {}
 WUMA.Limits = WUMA.Limits or {}
 
 WUMA.ExcludeLimits = CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits", 0, 1)
@@ -17,8 +16,7 @@ local function insertLimit(limit)
 end
 
 local function deleteLimit(parent, item)
-	WUMASQL(
-		[[DELETE FROM `WUMALimits` WHERE `parent` == "%s" and `item` == "%s"]],
+	WUMASQL([[DELETE FROM `WUMALimits` WHERE `parent` == "%s" and `item` == "%s"]],
 		parent,
 		item
 	)
@@ -28,17 +26,23 @@ function WUMA.AddLimit(caller, parent, item, limit, is_exclusive)
 	if (item == limit) then error("item and limit cannot be the same") end
 	if (tonumber(item) ~= nil) then error("item cannot be numeric") end
 
-	if isstring(limit) and (tonumber(limit) ~= nil) then limit = tonumber(limit)end
-
 	if (string.sub(item, 0, 7) == "models/") then
 		item = string.lower(item)
 	end
 
 	local limit = Limit:New{item=item, parent=parent, limit=limit, is_exclusive=is_exclusive}
 
+	local old_limit
 	if WUMA.Limits[parent] or player.GetBySteamID(parent) or WUMA.IsUsergroupConnected(parent) then
 		WUMA.Limits[parent] = WUMA.Limits[parent] or {}
+
+		old_limit = WUMA.Limits[parent][item]
+
 		WUMA.Limits[parent][item] = limit
+	end
+
+	if old_limit then
+		limit:Recover(old_limit)
 	end
 
 	insertLimit(limit)
@@ -90,7 +94,7 @@ hook.Add("PlayerDisconnected", "WUMA_LIMITS_PlayerDisconnected", userDisconnecte
 
 local function playerInitialSpawn(player)
 	if not WUMA.Limits[player:GetUserGroup()] then
-		WUMA.Limits[player:GetUserGroup()] = WUMA.ReadLimits(player:GetUserGroup())
+		WUMA.Limits[player:GetUserGroup()] = WUMA.ReadLimits(player:GetUserGroup()) or {}
 	end
 
 	if not WUMA.Limits[player:SteamID()] then
