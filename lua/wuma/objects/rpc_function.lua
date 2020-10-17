@@ -192,8 +192,8 @@ else
 			end
 		end
 
-		WUMADebug("Calling function %s (%d)", self:GetName(), callback and id or -1)
-		WUMADebug(args)
+		--WUMADebug("Calling function %s (%d)", self:GetName(), callback and id or -1)
+		--WUMADebug(args)
 
 		net.Start(self:GetNetworkString())
 			net.WriteInt(callback and id or -1, 32)
@@ -204,8 +204,8 @@ else
 	function object:OnResponse(args, id)
 		local invocations = self:GetInvocations()
 		if invocations[id] then
-			WUMADebug("Responding to function %s (%d)",self:GetName(), id)
-			WUMADebug(args)
+			--WUMADebug("Responding to function %s (%d)",self:GetName(), id)
+			--WUMADebug(args)
 
 			invocations[id](unpack(args))
 			invocations[id] = nil

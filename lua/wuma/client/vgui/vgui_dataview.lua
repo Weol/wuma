@@ -4,7 +4,8 @@ local PANEL = {}
 AccessorFunc(PANEL, "ClassifyFunction", "ClassifyFunction")
 AccessorFunc(PANEL, "SortGroupingFunction", "SortGroupingFunction")
 AccessorFunc(PANEL, "FilterFunction", "FilterFunction")
-AccessorFunc(PANEL, "Footer", "Footer")
+AccessorFunc(PANEL, "Panels", "Panels")
+AccessorFunc(PANEL, "Headers", "Headers")
 AccessorFunc(PANEL, "Groups", "Groups")
 AccessorFunc(PANEL, "Keys", "Keys")
 
@@ -15,6 +16,8 @@ function PANEL:Init()
 	self.DataSources = {}
 
 	self.Headers = {}
+
+	self.Panels = {TOP = {}, BOTTOM = {}}
 
 	local parent = self
 	while (parent:GetParent():GetClassName() ~= "CGModBase") do
@@ -78,6 +81,9 @@ function PANEL:AddViewLine(key)
 		line.key = key
 		line.group = item.group
 		line.value = item.value
+		line.sort_index = item.sort_index
+		line.sort_title = item.sort_title
+		line.disallow_select = item.disallow_select
 
 		line.old_Paint = line.old_Paint or line.Paint or function() end
 		line.Paint = function(_, w, h)
@@ -155,6 +161,15 @@ function PANEL:AddViewLine(key)
 			end
 		end
 
+		line.old_SetSelected = line.old_SetSelected or line.SetSelected
+		function line:SetSelected(selected)
+			if self.disallow_select then
+				return line:old_SetSelected(false)
+			else
+				return line:old_SetSelected(selected)
+			end
+		end
+
 		if item.sort then line.Data = item.sort end
 
 		self.DataRegistry[item.group] = self.DataRegistry[item.group] or {}
@@ -200,44 +215,93 @@ function PANEL:RemoveViewLine(key)
 	end
 end
 
-function PANEL:SortByColumn(column_id, desc)
-	local grouper = self:GetSortGroupingFunction()
+local function sort_function(column_id, desc, a, b)
+	if a.sort_index and b.sort_index and (a.sort_index ~= b.sort_index) then
+		return a.sort_index < b.sort_index
+	end
 
+	local a_val = a:GetSortValue(column_id) or a:GetColumnText(column_id)
+	local b_val = b:GetSortValue(column_id) or b:GetColumnText(column_id)
+
+	if (desc) then
+		a_val, b_val = b_val, a_val
+	end
+
+	if (not isnumber(a_val) and isnumber(b_val)) then
+		return true
+	end
+
+	if (isnumber(a_val) and not isnumber(b_val)) then
+		return false
+	end
+
+	if (a_val == b_val) then
+		return a.key < b.key
+	end
+
+	return a_val < b_val
+end
+
+function PANEL:SortByColumn(column_id, desc)
 	table.Copy(self.Sorted, self.Lines)
 
 	table.sort(self.Sorted, function(a, b)
-		if grouper then
-			local a_index, a_title = grouper(a.value)
-			local b_index, b_title = grouper(b.value)
-
-			a.sort_index = a_index
-			a.sort_title = a_title
-
-			b.sort_index = b_index
-			b.sort_title = b_title
-
-			if a_index ~= b_index then
-				return a_index < b_index
-			end
-		end
-
-		local a_val = a:GetSortValue(column_id) or a:GetColumnText(column_id)
-		local b_val = b:GetSortValue(column_id) or b:GetColumnText(column_id)
-
-		if (desc) then
-			a_val, b_val = b_val, a_val
-		end
-
-		return a_val < b_val
+		return sort_function(column_id, desc, a, b)
 	end)
+
+	self.CurrentSort = {column_id, desc}
 
 	self:SetDirty(true)
 	self:InvalidateLayout()
 end
 
-function PANEL:SetFooter(panel)
+--TOP or BOTTOM
+function PANEL:AddPanel(value, where)
+	local panel = value
+	if (isstring(value)) then
+		panel = vgui.Create("DPanel")
+		panel:SetVisible(false)
+
+		local panel_label = vgui.Create("DLabel", panel)
+		panel_label:SetText(value)
+		panel_label:SizeToContents()
+		panel_label:SetTextColor(Color(0, 0, 0))
+		panel_label.DoClick = function() self:OnLoadMoreUsers() end
+
+		panel.footer_label = panel_label
+
+		function panel:SizeToContentsY()
+			self:SetTall(10 + panel_label:GetTall())
+		end
+
+		local list = self.list_items
+		function panel:Paint(w, h)
+			surface.SetDrawColor(255, 255, 255, 255)
+			surface.DrawRect(0, 0, w, h)
+
+			if (self.y > 0) then
+				surface.SetDrawColor(82, 82, 82, 255)
+				surface.DrawLine(0, 0, w, 0)
+			end
+
+			local _, y = self:LocalToScreen(0, h)
+			local _, y2 = list:LocalToScreen(0, list:GetTall())
+			if (y + 1 ~= y2) then
+				surface.SetDrawColor(82, 82, 82, 255)
+				surface.DrawLine(0, h - 1, w, h - 1)
+			end
+		end
+
+		function panel:PerformLayout(w, h)
+			panel_label:SetPos(w / 2 - panel_label:GetWide() / 2, h / 2 - panel_label:GetTall() / 2)
+		end
+	end
 	panel:SetParent(self.pnlCanvas)
-	self.Footer = panel
+	table.insert(self.Footers[where], panel)
+end
+
+function PANEL:ClearPanels()
+	self.Panels = {TOP = {}, BOTTOM = {}}
 end
 
 function PANEL:DataLayout()
@@ -269,7 +333,7 @@ function PANEL:DataLayout()
 	local footer = self:GetFooter()
 	if footer then
 		footer:SetPos(1, y)
-		footer:SetSize(self:GetWide() - 2)
+		footer:SetSize(self.pnlCanvas:GetWide() - 2)
 		footer:SizeToContentsY()
 
 		y = y + footer:GetTall() + 1
@@ -310,6 +374,8 @@ end
 function PANEL:Show(key)
 	if not istable(key) then key = {key} end
 
+	self:ClearSelection()
+
 	for group, lines in pairs(self.DataRegistry) do
 		if not table.HasValue(key, group) then
 			for key, _ in pairs(lines) do
@@ -327,6 +393,13 @@ function PANEL:Show(key)
 			end
 		end
 	end
+
+	if self.CurrentSort then
+		self:SortByColumn(unpack(self.CurrentSort))
+	else
+		self:SortByColumn(1, false)
+	end
+
 	self:DataLayout()
 end
 
@@ -342,8 +415,11 @@ function PANEL:Sort(key, value)
 		display = display,
 		sort = sort,
 		highlight = highlight,
-		icon = icon
+		icon = icon,
+		key = key
 	}
+
+	self:Group(self.Keys[key])
 
 	return group, display, sort, highlight
 end
@@ -367,6 +443,35 @@ function PANEL:SortAll()
 	for id, source in pairs(self:GetDataSources()) do
 		for k, v in pairs(source) do
 			self:Sort(id .. "_" .. k, v)
+		end
+	end
+end
+
+function PANEL:Group(item)
+	local grouper = self:GetSortGroupingFunction()
+	if grouper then
+		local index, title, disallow_select = grouper(item.value)
+
+		item.sort_index = index
+		item.sort_title = title
+		item.disallow_select = disallow_select
+	end
+
+	local line = self.DataRegistry[item.group] and self.DataRegistry[item.group][item.key]
+	if line then
+		line.sort_index = item.sort_index
+		line.sort_title = item.sort_title
+		line.disallow_select = item.disallow_select
+	end
+end
+
+function PANEL:GroupAll()
+	for group, lines in pairs(self.DataRegistry) do
+		for key, line in pairs(lines) do
+			local item = self.Keys[key]
+			if item then
+				self:Group(item)
+			end
 		end
 	end
 end
@@ -418,6 +523,12 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 			self.Keys[key] = nil
 			if self.Groups[group] then self.Groups[group][key] = nil end
 		end
+	end
+
+	if self.CurrentSort then
+		self:SortByColumn(unpack(self.CurrentSort))
+	else
+		self:SortByColumn(1, false)
 	end
 
 	self:InvalidateLayout()

@@ -52,7 +52,7 @@ local function echoFunction(args, affected, caller)
 end
 
 hook.Add("OnWUMALoaded", "ULXOverideWUMALog", function()
-	for name, access in pairs(WUMA.AccessRegister) do
-		access:SetLogFunction(echoFunction)
-	end
+	--for name, access in pairs(WUMA.AccessRegister) do
+		--access:SetLogFunction(echoFunction)
+	--end
 end)

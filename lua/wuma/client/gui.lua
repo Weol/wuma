@@ -30,7 +30,6 @@ function WUMA.GUI.Initialize()
 	WUMA.GUI.Base:SetPos(ScrW()/2-WUMA.GUI.Base:GetWide()/2, ScrH()/2-WUMA.GUI.Base:GetTall()/2)
 	WUMA.GUI.Base:SetVisible(false)
 
-
 	local function asd()
 
 		--Create propertysheet
@@ -79,7 +78,6 @@ function WUMA.GUI.Initialize()
 		asd()
 	end)
 
-
 	hook.Call("OnWUMAInitialized", nil, WUMA.GUI.PropertySheet)
 
 end
@@ -94,7 +92,7 @@ function WUMA.GUI.Toggle()
 end
 
 function WUMA.GUI.Show()
-	if not table.IsEmpty(WUMA.GUI.Base:GetChildren()) then
+	if (WUMA.GUI.PropertySheet:GetParent() == WUMA.GUI.Base) then
 		WUMA.OnTabChange(WUMA.GUI.ActiveTab or "Settings")
 
 		WUMA.GUI.Base:SetVisible(true)
@@ -103,7 +101,7 @@ function WUMA.GUI.Show()
 end
 
 function WUMA.GUI.Hide()
-	if not table.IsEmpty(WUMA.GUI.Base:GetChildren()) then
+	if (WUMA.GUI.PropertySheet:GetParent() == WUMA.GUI.Base) then
 		WUMA.GUI.Base:SetVisible(false)
 	end
 end
@@ -154,7 +152,7 @@ function WUMA.GUI.InitializeSettingsTab()
 	end
 
 	cvars.AddChangeCallback("wuma_exclude_limits", function(_, _, new)
-		WUMA.RPC.ChangeSettings:NotifyExludeLimitsChanged(new)
+		WUMA.GUI.SettingsTab:NotifyExludeLimitsChanged(new)
 	end)
 
 	cvars.AddChangeCallback("wuma_personal_loadout_chatcommand", function(_, _, new)
@@ -206,8 +204,8 @@ function WUMA.GUI.InitializeRestrictionsTab()
 				usergroup,
 			},
 			id = self,
-			callback = function(restrictions, parent, updated, deleted)
-				self:NotifyRestrictionsChanged(restrictions, parent, updated, deleted)
+			callback = function(limits, parent, updated, deleted)
+				self:NotifyRestrictionsChanged(limits, parent, updated, deleted)
 			end
 		}
 
@@ -221,6 +219,38 @@ function WUMA.GUI.InitializeRestrictionsTab()
 				self:NotifySettingsChanged(parent, settings)
 			end
 		}
+
+		WUMA.Subscribe{args = {"inheritance"}, callback = function(inheritance)
+			local current = inheritance["restrictions"] and inheritance["restrictions"][usergroup]
+			while current do
+				WUMA.Subscribe{
+					args = {
+						"restrictions",
+						current,
+					},
+					id = self,
+					callback = function(limits, parent, updated, deleted)
+						self:NotifyRestrictionsChanged(limits, parent, updated, deleted)
+					end
+				}
+
+				WUMA.Subscribe{
+					args = {
+						"settings",
+						current,
+					},
+					id = self,
+					callback = function(settings, parent, _, _)
+						self:NotifySettingsChanged(parent, settings)
+					end
+				}
+
+				current = inheritance["restrictions"] and inheritance["restrictions"][current]
+			end
+
+			self:NotifyInheritanceChanged(inheritance)
+		end}
+
 	end
 
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
@@ -248,6 +278,26 @@ function WUMA.GUI.InitializeLimitsTab()
 				self:NotifyLimitsChanged(limits, parent, updated, deleted)
 			end
 		}
+
+		WUMA.Subscribe{args = {"inheritance"}, callback = function(inheritance)
+			local current = inheritance["limits"] and inheritance["limits"][usergroup]
+			while current do
+				WUMA.Subscribe{
+					args = {
+						"limits",
+						current,
+					},
+					id = self,
+					callback = function(limits, parent, updated, deleted)
+						self:NotifyLimitsChanged(limits, parent, updated, deleted)
+					end
+				}
+
+				current = inheritance["limits"] and inheritance["limits"][current]
+			end
+
+			self:NotifyInheritanceChanged(inheritance)
+		end}
 	end
 
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
@@ -395,6 +445,68 @@ function WUMA.GUI.InitializeUserRestrictionsTab(panel, steamid)
 			panel:NotifySettingsChanged(parent, settings)
 		end
 	}
+
+	local ply = player.GetBySteamID(steamid)
+	local usergroup = ply and ply:GetUserGroup()
+
+	if usergroup then
+		WUMA.Subscribe{
+			args = {
+				"restrictions",
+				usergroup,
+			},
+			id = panel,
+			callback = function(limits, parent, updated, deleted)
+				panel:NotifyRestrictionsChanged(limits, parent, updated, deleted)
+			end
+		}
+
+		WUMA.Subscribe{
+			args = {
+				"settings",
+				usergroup,
+			},
+			id = panel,
+			callback = function(settings, parent, _, _)
+				panel:NotifySettingsChanged(parent, settings)
+			end
+		}
+	end
+
+	WUMA.Subscribe{args = {"inheritance"}, callback = function(inheritance)
+		local current = inheritance["restrictions"] and inheritance["restrictions"][usergroup]
+		while current do
+			WUMA.Subscribe{
+				args = {
+					"restrictions",
+					current,
+				},
+				id = panel,
+				callback = function(limits, parent, updated, deleted)
+					panel:NotifyRestrictionsChanged(limits, parent, updated, deleted)
+				end
+			}
+
+			WUMA.Subscribe{
+				args = {
+					"settings",
+					current,
+				},
+				id = panel,
+				callback = function(settings, parent, _, _)
+					panel:NotifySettingsChanged(parent, settings)
+				end
+			}
+
+			current = inheritance["restrictions"] and inheritance["restrictions"][current]
+		end
+
+		if inheritance ["restrictions"] then
+			inheritance["restrictions"][steamid] = ply:GetUserGroup()
+		end
+
+		panel:NotifyInheritanceChanged(inheritance)
+	end}
 end
 
 function WUMA.GUI.InitializeUserLimitsTab(panel, steamid)
@@ -416,6 +528,47 @@ function WUMA.GUI.InitializeUserLimitsTab(panel, steamid)
 			panel:NotifyLimitsChanged(limits, parent, updated, deleted)
 		end
 	}
+
+	local ply = player.GetBySteamID(steamid)
+	local usergroup = ply and ply:GetUserGroup()
+
+	if usergroup then
+		WUMA.Subscribe{
+			args = {
+				"limits",
+				usergroup,
+			},
+			id = panel,
+			callback = function(limits, parent, updated, deleted)
+				panel:NotifyLimitsChanged(limits, parent, updated, deleted)
+			end
+		}
+	end
+
+	WUMA.Subscribe{args = {"inheritance"}, callback = function(inheritance)
+		local ply = player.GetBySteamID(steamid)
+		local current = inheritance["limits"] and inheritance["limits"][usergroup]
+		while current do
+			WUMA.Subscribe{
+				args = {
+					"limits",
+					current,
+				},
+				id = panel,
+				callback = function(limits, parent, updated, deleted)
+					panel:NotifyLimitsChanged(limits, parent, updated, deleted)
+				end
+			}
+
+			current = inheritance["limits"] and inheritance["limits"][current]
+		end
+
+		if inheritance ["limits"] then
+			inheritance["limits"][steamid] = ply:GetUserGroup()
+		end
+
+		panel:NotifyInheritanceChanged(inheritance)
+	end}
 end
 
 function WUMA.GUI.InitializeUserLoadoutsTab(panel, steamid)

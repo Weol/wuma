@@ -5,6 +5,8 @@ AccessorFunc(PANEL, "settings", "Settings")
 
 function PANEL:Init()
 
+	self.Inheritance = {}
+
 	self:SetSettings({})
 
 	--Restriction types list
@@ -57,6 +59,7 @@ function PANEL:Init()
 	self.list_items.OnItemSelected = function(_, item) return self:OnItemSelected(item) end
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyRestriction(...) end)
+	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
 	--Whitelist checkbox
 	self.checkbox_whitelist = vgui.Create("WCheckBoxLabel", self)
@@ -71,6 +74,46 @@ function PANEL:Init()
 	self.checkbox_restrictall:SetValue(-1)
 	self.checkbox_restrictall.OnChange = function(_, val) self:OnRestrictAllCheckboxChanged(val) end
 
+	--List footer
+	self.items_footer = vgui.Create("DPanel")
+	self.items_footer:SetVisible(false)
+
+	self.footer_label = vgui.Create("DLabel", self.items_footer)
+	self.footer_label:SetText("Not showing inherited restrictions when several usergroups are selected")
+	self.footer_label:SizeToContents()
+	self.footer_label:SetTextColor(Color(0, 0, 0))
+	self.footer_label.DoClick = function() self:OnLoadMoreUsers() end
+
+	self.items_footer.footer_label = self.footer_label
+
+	function self.items_footer:SizeToContentsY()
+		self:SetTall(10 + self.footer_label:GetTall())
+	end
+
+	local list = self.list_items
+	function self.items_footer:Paint(w, h)
+		surface.SetDrawColor(255, 255, 255, 255)
+		surface.DrawRect(0, 0, w, h)
+
+		if (self.y > 0) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, 0, w, 0)
+		end
+
+		local _, y = self:LocalToScreen(0, h)
+		local _, y2 = list:LocalToScreen(0, list:GetTall())
+		if (y + 1 ~= y2) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, h - 1, w, h - 1)
+		end
+	end
+
+	function self.items_footer:PerformLayout(w, h)
+		self.footer_label:SetPos(w / 2 - self.footer_label:GetWide() / 2, h / 2 - self.footer_label:GetTall() / 2)
+	end
+
+	self.list_items:AddPanel(self.items_footer)
+
 	for _, type in pairs(WUMA.RestrictionTypes) do
 		self.list_types:AddLine(type:GetPrint())
 	end
@@ -82,11 +125,11 @@ function PANEL:PerformLayout()
 	self.list_types:SizeToContents()
 	self.list_types:SetWide(100)
 
-	self.list_usergroups:SetPos(5, self.list_types.y+self.list_types:GetTall()+5)
-	self.list_usergroups:SetSize(self.list_types:GetWide(), self:GetTall()-self.list_usergroups.y-5)
+	self.list_usergroups:SetPos(5, self.list_types.y+self.list_types:GetTall() + 5)
+	self.list_usergroups:SetSize(self.list_types:GetWide(), self:GetTall() - self.list_usergroups.y - 5)
 
 	self.textbox_search:SetSize(130, 20)
-	self.textbox_search:SetPos((self:GetWide()-5)-self.textbox_search:GetWide(), 5)
+	self.textbox_search:SetPos((self:GetWide() - 5) - self.textbox_search:GetWide(), 5)
 
 	self.button_delete:SetSize(self.textbox_search:GetWide(), 25)
 	self.button_delete:SetPos(self.textbox_search.x,  (self:GetTall() - 5) - self.button_delete:GetTall())
@@ -94,15 +137,27 @@ function PANEL:PerformLayout()
 	self.button_add:SetWide(self.textbox_search:GetWide())
 	self.button_add:SetPos(self.button_delete.x, (self.button_delete.y - 5) - self.button_add:GetTall())
 
-	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y+self.textbox_search:GetTall()+5)
-	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y-self.list_suggestions.y-5)
+	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y + self.textbox_search:GetTall() + 5)
+	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y - self.list_suggestions.y - 5)
 
-	self.list_items:SetPos(self.list_types.x+5+self.list_types:GetWide(), 5)
-	self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5, self:GetTall()-self.checkbox_whitelist:GetTall() - 20)
+	self.list_items:SetPos(self.list_types.x + self.list_types:GetWide() + 5, 5)
+	self.list_items:SetSize(self.textbox_search.x-self.list_items.x - 5, self:GetTall() - self.checkbox_whitelist:GetTall() - 20)
 
-	self.checkbox_whitelist:SetPos(self.list_items.x + 5, self.list_items.y+self.list_items:GetTall()+5)
+	self.checkbox_whitelist:SetPos(self.list_items.x + 5, self.list_items.y+self.list_items:GetTall() + 5)
 
 	self.checkbox_restrictall:SetPos(self.checkbox_whitelist.x + self.checkbox_whitelist:GetWide() + 10, self.checkbox_whitelist.y)
+end
+
+function PANEL:SortGrouping(restriction)
+	if (table.Count(self:GetSelectedUsergroups()) == 1) then
+		local selected = self:GetSelectedUsergroups()[1]
+		for i, group in ipairs(self.Inheritance[selected] or {}) do
+			if (group == restriction:GetParent()) then
+				return i + 1, "Inherited from " .. group, true
+			end
+		end
+	end
+	return 1
 end
 
 function PANEL:ClassifyRestriction(restriction)
@@ -161,7 +216,7 @@ end
 function PANEL:GetSelectedUsergroups()
 	local tbl = {}
 	for _, v in pairs(self.list_usergroups:GetSelected()) do
-		tbl[v:GetColumnText(1)] = v:GetColumnText(1)
+		table.insert(tbl, v:GetColumnText(1))
 	end
 
 	return tbl
@@ -214,43 +269,48 @@ end
 
 function PANEL:ReloadSettings()
 	local usergroups = self:GetSelectedUsergroups()
-	local type = self:GetSelectedType()
 
 	self.DisregardSettingsChange = true
+	if (#usergroups == 1) then
+		local type = self:GetSelectedType()
 
-	local settings = self:GetSettings()
+		local settings = self:GetSettings()
 
-	self.checkbox_restrictall:SetValue(-1)
-	self.checkbox_whitelist:SetValue(-1)
+		self.checkbox_restrictall:SetValue(-1)
+		self.checkbox_whitelist:SetValue(-1)
 
-	local prev_restrict_type
-	local prev_whitelist
+		local prev_restrict_type
+		local prev_whitelist
 
-	local first = true
+		local first = true
 
-	local lock_restrict_type = false
-	local lock_whitelist = false
-	for _, usergroup in pairs(usergroups) do
-		local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. type]
-		local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. type]
+		local lock_restrict_type = false
+		local lock_whitelist = false
+		for _, usergroup in pairs(usergroups) do
+			local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. type]
+			local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. type]
 
-		if not first and not lock_restrict_type and restrict_type ~= prev_restrict_type then
-			self.checkbox_restrictall:SetValue(0)
-			lock_restrict_type = true
-		elseif not lock_restrict_type and restrict_type then
-			self.checkbox_restrictall:SetValue(1)
+			if not first and not lock_restrict_type and restrict_type ~= prev_restrict_type then
+				self.checkbox_restrictall:SetValue(0)
+				lock_restrict_type = true
+			elseif not lock_restrict_type and restrict_type then
+				self.checkbox_restrictall:SetValue(1)
+			end
+
+			if not first and not lock_whitelist and is_whiteliest ~= prev_whitelist then
+				self.checkbox_whitelist:SetValue(0)
+				lock_whitelist = true
+			elseif not lock_whitelist and is_whiteliest then
+				self.checkbox_whitelist:SetValue(1)
+			end
+
+			prev_whitelist = is_whiteliest
+			prev_restrict_type = restrict_type
+			first = false
 		end
-
-		if not first and not lock_whitelist and is_whiteliest ~= prev_whitelist then
-			self.checkbox_whitelist:SetValue(0)
-			lock_whitelist = true
-		elseif not lock_whitelist and is_whiteliest then
-			self.checkbox_whitelist:SetValue(1)
-		end
-
-		prev_whitelist = is_whiteliest
-		prev_restrict_type = restrict_type
-		first = false
+	else
+		self.checkbox_restrictall:SetValue(0)
+		self.checkbox_whitelist:SetValue(0)
 	end
 
 	self.DisregardSettingsChange = false
@@ -270,11 +330,7 @@ function PANEL:OnTypeChange(lineid, _)
 
 	self.checkbox_restrictall:SetText("Restrict all " .. string.lower(WUMA.RestrictionTypes[self:GetSelectedType()]:GetPrint2()))
 
-	local groups = {}
-	for _, group in pairs(self:GetSelectedUsergroups()) do
-		table.insert(groups, self:GetSelectedType() .. "_" .. group)
-	end
-	self.list_items:Show(groups)
+	self:ShowUsergroups(self:GetSelectedUsergroups())
 
 	self.list_types.previous_line = lineid
 end
@@ -291,15 +347,71 @@ function PANEL:OnItemSelected(_)
 	self.button_delete:SetDisabled(false)
 end
 
-function PANEL:OnUsergroupsChanged()
-	local groups = {}
-	for _, group in pairs(self:GetSelectedUsergroups()) do
-		table.insert(groups, self:GetSelectedType() .. "_" .. group)
+function PANEL:NotifyInheritanceChanged(inheritance)
+	inheritance = inheritance["restrictions"] or {}
 
+	self.Inheritance = {}
+	for usergroup, inheritsFrom in pairs(inheritance) do
+		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+
+		local current = inheritsFrom
+		while current do
+			table.insert(self.Inheritance[usergroup], current)
+
+			current = inheritance[current]
+		end
+	end
+
+	self:ShowUsergroups(self:GetSelectedUsergroups())
+end
+
+function PANEL:OnUsergroupsChanged()
+	for _, group in pairs(self:GetSelectedUsergroups()) do
 		self:OnUsergroupSelected(group)
 	end
+
+	if (#self:GetSelectedUsergroups() > 1) then
+		self.checkbox_restrictall:SetDisabled(true)
+		self.checkbox_whitelist:SetDisabled(true)
+
+		local message = "Disabled when multiple usergroups are selected"
+		self.checkbox_restrictall:SetHoverMessage(message)
+		self.checkbox_whitelist:SetHoverMessage(message)
+	else
+		self.checkbox_restrictall:SetDisabled(false)
+		self.checkbox_whitelist:SetDisabled(false)
+
+		self.checkbox_restrictall:SetHoverMessage(nil)
+		self.checkbox_whitelist:SetHoverMessage(nil)
+	end
+
 	self:ReloadSettings()
-	self.list_items:Show(groups)
+	self:ShowUsergroups(self:GetSelectedUsergroups())
+end
+
+function PANEL:ShowUsergroups(usergroups)
+	local to_show = {}
+
+	local selected_type = self:GetSelectedType()
+	if (table.Count(usergroups) == 1) then
+		for _, selected in pairs(usergroups) do
+			table.insert(to_show, selected_type .. "_" .. selected)
+			for _, group in ipairs(self.Inheritance[selected] or {}) do
+				table.insert(to_show, selected_type .. "_" .. group)
+			end
+		end
+
+		self.items_footer:SetVisible(false)
+	else
+		for i, selected in ipairs(usergroups) do
+			table.insert(to_show, selected_type .. "_" .. selected)
+		end
+
+		self.items_footer:SetVisible(true)
+	end
+
+	self.list_items:GroupAll()
+	self.list_items:Show(to_show)
 end
 
 --luacheck: push no unused args

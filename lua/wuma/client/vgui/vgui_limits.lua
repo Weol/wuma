@@ -3,6 +3,8 @@ local PANEL = {}
 
 function PANEL:Init()
 
+	self.Inheritance = {}
+
 	--Limit chooser
 	self.slider_limit = vgui.Create("WSlider", self)
 	self.slider_limit:SetMinMax(1, 300)
@@ -58,6 +60,47 @@ function PANEL:Init()
 	self.list_items.OnItemSelected = function(_, item) return self:OnItemSelected(item) end
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyLimit(...) end)
+	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
+
+	--List footer
+	self.items_footer = vgui.Create("DPanel")
+	self.items_footer:SetVisible(false)
+
+	self.footer_label = vgui.Create("DLabel", self.items_footer)
+	self.footer_label:SetText("Not showing inherited limits when several usergroups are selected")
+	self.footer_label:SizeToContents()
+	self.footer_label:SetTextColor(Color(0, 0, 0))
+	self.footer_label.DoClick = function() self:OnLoadMoreUsers() end
+
+	self.items_footer.footer_label = self.footer_label
+
+	function self.items_footer:SizeToContentsY()
+		self:SetTall(10 + self.footer_label:GetTall())
+	end
+
+	local list = self.list_items
+	function self.items_footer:Paint(w, h)
+		surface.SetDrawColor(255, 255, 255, 255)
+		surface.DrawRect(0, 0, w, h)
+
+		if (self.y > 0) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, 0, w, 0)
+		end
+
+		local _, y = self:LocalToScreen(0, h)
+		local _, y2 = list:LocalToScreen(0, list:GetTall())
+		if (y + 1 ~= y2) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, h - 1, w, h - 1)
+		end
+	end
+
+	function self.items_footer:PerformLayout(w, h)
+		self.footer_label:SetPos(w / 2 - self.footer_label:GetWide() / 2, h / 2 - self.footer_label:GetTall() / 2)
+	end
+
+	self.list_items:AddPanel(self.items_footer)
 
 	self:ReloadSuggestions()
 
@@ -88,6 +131,18 @@ function PANEL:PerformLayout(w, h)
 
 	self.list_items:SetPos(self.slider_limit.x + self.slider_limit:GetWide() + 5, 5)
 	self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, self:GetTall() - 10)
+end
+
+function PANEL:SortGrouping(limit)
+	if (table.Count(self:GetSelectedUsergroups()) == 1) then
+		local selected = self:GetSelectedUsergroups()[1]
+		for i, group in ipairs(self.Inheritance[selected] or {}) do
+			if (group == limit:GetParent()) then
+				return i + 1, "Inherited from " .. group, true
+			end
+		end
+	end
+	return 1
 end
 
 function PANEL:ClassifyLimit(limit)
@@ -199,6 +254,24 @@ function PANEL:NotifyLimitsChanged(limits, parent, updated, deleted)
 	end
 end
 
+function PANEL:NotifyInheritanceChanged(inheritance)
+	inheritance = inheritance["limits"] or {}
+
+	self.Inheritance = {}
+	for usergroup, inheritsFrom in pairs(inheritance) do
+		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+
+		local current = inheritsFrom
+		while current do
+			table.insert(self.Inheritance[usergroup], current)
+
+			current = inheritance[current]
+		end
+	end
+
+	self:ShowUsergroups(self:GetSelectedUsergroups())
+end
+
 function PANEL:NotifyUsergroupsChanged(usergroups)
 	self.list_usergroups:Clear()
 	for _, usergroup in pairs(usergroups) do
@@ -218,7 +291,30 @@ function PANEL:OnUsergroupsChanged()
 		self:OnUsergroupSelected(group)
 	end
 
-	self.list_items:Show(self:GetSelectedUsergroups())
+	self:ShowUsergroups(self:GetSelectedUsergroups())
+end
+
+function PANEL:ShowUsergroups(usergroups)
+	local to_show = {}
+	if (table.Count(usergroups) == 1) then
+		for i, selected in ipairs(usergroups) do
+			table.insert(to_show, selected)
+			for i, group in ipairs(self.Inheritance[selected] or {}) do
+				table.insert(to_show, group)
+			end
+		end
+
+		self.items_footer:SetVisible(false)
+	else
+		for i, selected in ipairs(usergroups) do
+			table.insert(to_show, selected)
+		end
+
+		self.items_footer:SetVisible(true)
+	end
+
+	self.list_items:GroupAll()
+	self.list_items:Show(to_show)
 end
 
 --luacheck: push no unused args
@@ -250,7 +346,6 @@ function PANEL:OnAddLimits(usergroups, suggestions, limit, is_exclusive)
 	--For override
 end
 --luacheck: pop
-
 
 function PANEL:OnDeleteClick()
 	local selected_items = self.list_items:GetSelectedItems()

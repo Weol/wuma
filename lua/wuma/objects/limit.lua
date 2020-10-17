@@ -47,20 +47,18 @@ function object:Check(player, int)
 	return true
 end
 
-function object:Purge()
-	for id, entry in pairs(self:GetEntities()) do
-		local _, entity = unpack(entry)
-		entity:RemoveWUMAParent(entity)
+function object:GetCount(player)
+	if not isstring(player) and IsValid(player) then
+		player = player:SteamID()
 	end
 
-	self:SetCounts({})
-	self:SetEntities({})
+	return self:GetCounts()[player] or 0
 end
 
 function object:Purge()
 	for id, entry in pairs(self:GetEntities()) do
 		local _, entity = unpack(entry)
-		entity:RemoveWUMAParent(self)
+		entity:RemoveWUMAParent(entity)
 	end
 
 	self:SetCounts({})
@@ -81,6 +79,8 @@ function object:DeleteEntity(entity)
 	local counts = self:GetCounts()
 	counts[player:SteamID()] = (counts[player:SteamID()] or 1) - 1
 
+	player:SetNWInt("Count." .. self:GetItem(), counts[player:SteamID()])
+
 	self:GetEntities()[entity:GetCreationID()] = nil
 
 	if (counts[player:SteamID()] <= 0) then
@@ -94,6 +94,8 @@ function object:AddEntity(player, entity)
 
 	local counts = self:GetCounts()
 	counts[player:SteamID()] = (counts[player:SteamID()] or 0) + 1
+
+	player:SetNWInt("Count." .. self:GetItem(), counts[player:SteamID()])
 
 	local limit = self:GetLimit()
 	if istable(limit) then

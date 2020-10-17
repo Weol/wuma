@@ -1,6 +1,8 @@
 
 local PANEL = {}
 
+AccessorFunc(PANEL, "HoverMessage", "HoverMessage")
+
 function PANEL:Init()
 	self.m_iVal = -1
 end

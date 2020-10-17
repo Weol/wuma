@@ -67,6 +67,12 @@ function WUMA.ClassFactory.Create(builder)
 		getmetatable(metadata).__index = metatable
 		getmetatable(obj).__index = metadata
 
+		for k, v in pairs(metatable) do
+			if string.StartWith(k, "__") and k ~= "__index" then
+				getmetatable(obj)[k] = v
+			end
+		end
+
 		for k, v in pairs(builder.properties) do
 			if args[k] then
 				obj[k] = args[k]

@@ -31,7 +31,7 @@ function WUMA.Initialize()
 	include("wuma/shared/cami.lua")
 	AddCSLuaFile("wuma/shared/cami.lua")
 
-	--Include net functions before files that depennd on it
+	--Include net functions before files that depend on it
 	include("wuma/shared/net.lua")
 	AddCSLuaFile("wuma/shared/net.lua")
 
@@ -51,8 +51,10 @@ function WUMA.Initialize()
 	include("wuma/inheritance.lua")
 	include("wuma/hooks.lua")
 	include("wuma/duplicator.lua")
-	include("wuma/extentions/playerextention.lua")
 	include("wuma/extentions/entityextention.lua")
+
+	--Clients need this for client-side GetCount
+	AddCSLuaFile("wuma/extentions/playerextention.lua")
 
 	--Include RPC functions
 	include("wuma/shared/rpc.lua")
@@ -148,8 +150,10 @@ function WUMA.Initialize()
 	--Scope:StartThink()
 
 	--Add hook so playerextention loads when the first player joins
-	hook.Add("PlayerAuthed", "WUMA_INIT_PlayerAuthed", function()
+	hook.Add("PlayerAuthed", "WUMA_INIT_PlayerAuthed", function(ply)
 		include("wuma/extentions/playerextention.lua")
+		ply:SendLua([[include("wuma/extentions/playerextention.lua")]])
+
 		if E2Lib then include("wuma/expression2.lua") end
 		hook.Remove("PlayerAuthed", "WUMA_INIT_PlayerAuthed")
 	end)

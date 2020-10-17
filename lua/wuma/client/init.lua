@@ -76,7 +76,8 @@ function WUMA.GenerateUniqueID()
 end
 
 function WUMA.IsSteamID(steamid)
-	return string.match(steamid, [[STEAM_\d{1}:\d{1}:\d*]])
+	if not isstring(steamid) then return false end
+	return (steamid == string.match(steamid, [[STEAM_%d:%d:%d*]]))
 end
 
 function WUMA.OnUsergroupRegistered(usergroup) --RPC from server
@@ -92,19 +93,23 @@ function WUMA.CalculateServerTimeDifference(server_time) --RPC from server
 	server_time_offset = server_time - os.time()
 end
 
+function WUMA.GetServerTimeOffset()
+	return server_time_offset
+end
+
 function WUMA.GetServerTime()
 	return os.time() + server_time_offset
 end
 
-function WUMA.NotifyTypeRestriction(type)
+function WUMA.NotifyTypeRestriction(type) --RPC from server
 	notification.AddLegacy(string.format("%s are restricted!", type), NOTIFY_ERROR, 3)
 end
 
-function WUMA.NotifyRestriction(type, str)
+function WUMA.NotifyRestriction(type, str) --RPC from server
 	notification.AddLegacy(string.format("This %s (%s) is restricted!", type, str), NOTIFY_ERROR, 3)
 end
 
-function WUMA.NotifyLimitHit(str)
+function WUMA.NotifyLimitHit(str) --RPC from server
 	notification.AddLegacy(string.format("You've hit the %s limit!", str), NOTIFY_ERROR, 3)
 	surface.PlaySound("buttons/button10.wav")
 end

@@ -32,7 +32,7 @@ function PANEL:Init()
 	self.button_search:SetIcon("icon16/magnifier.png")
 	self.button_search.DoClick = function() self:OnLookup(self.textbox_search:GetValue()) end
 
-	--back button
+	--Back button
 	self.button_back = vgui.Create("DButton", self)
 	self.button_back:SetText("Back")
 	self.button_back:SetVisible(false)
@@ -104,7 +104,9 @@ function PANEL:Init()
 	self.limits.old_ClassifyFunction = self.limits.list_items:GetClassifyFunction()
 	self.limits.list_items:SetClassifyFunction(function(...)
 		local response = {self.limits.old_ClassifyFunction(...)}
-		response[2][1] = self:GetSelectedUserNick()
+		if (WUMA.IsSteamID(response[2][1])) then
+			response[2][1] = self:GetSelectedUserNick()
+		end
 		return response[1], response[2], response[3], response[4], response[5]
 	end)
 
@@ -142,22 +144,32 @@ function PANEL:Init()
 	self.items_footer.load_button = self.load_button
 
 	function self.items_footer:SizeToContentsY()
-		self:SetTall(10 + self.load_button:GetTall())
+		self:SetTall(10 + self.load_button:GetTall() + 10)
 	end
 
+	local list = self.list_items
 	function self.items_footer:Paint(w, h)
 		surface.SetDrawColor(255, 255, 255, 255)
 		surface.DrawRect(0, 0, w, h)
 
-		surface.SetDrawColor(82, 82, 82, 255)
-		surface.DrawLine(0, 0, w, 0)
+		if (self.y > 0) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, 0, w, 0)
+		end
+
+		local _, y = self:LocalToScreen(0, h)
+		local _, y2 = list:LocalToScreen(0, list:GetTall())
+		if (y + 1 ~= y2) then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, h - 1, w, h - 1)
+		end
 	end
 
 	function self.items_footer:PerformLayout(w, h)
 		self.load_button:SetPos(w / 2 - self.load_button:GetWide() / 2, h / 2 - self.load_button:GetTall() / 2)
 	end
 
-	self.list_items:SetFooter(self.items_footer)
+	self.list_items:AddPanel(self.items_footer)
 
 end
 
@@ -176,7 +188,7 @@ function PANEL:Filter(user)
 end
 
 function PANEL:ClassifyUser(user)
-	local last_online = os.date("%d/%m/%Y %H:%M", user.t)
+	local last_online = os.date("%d/%m/%Y %H:%M", user.t + WUMA.GetServerTimeOffset())
 
 	local highlight
 	if (user.group == "online") or self.list_items:GetKeys()["online_" .. user.steamid] then

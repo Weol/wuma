@@ -53,6 +53,7 @@ stds.wuma = {
                 "GenerateUniqueID",
                 "OnLookupUpdate",
                 "OnOnlineUpdate",
+                "GetServerTimeOffset",
                 RestrictionTypes = {
                     field = {
                         "entity",

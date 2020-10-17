@@ -18,8 +18,8 @@ local function checkLimit(player, str, id)
 	return player:CheckLimit(str, id)
 end
 
-local function checkRestriction(player, str, id)
-	--TODO
+local function checkRestriction(player, type, item)
+	return player:CheckLimit(type, item)
 end
 
 local function playerSpawnSENT(player, sent)

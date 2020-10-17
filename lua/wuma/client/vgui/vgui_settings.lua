@@ -212,7 +212,7 @@ end
 
 function PANEL:OnExludeLimitsCheckboxChanged(exclude)
 	if not self.DisregardChanges then
-		self:OnPersonalLoadoutCommandChanged(exclude)
+		self:OnExludeLimitsChanged(exclude)
 	end
 end
 

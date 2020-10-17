@@ -1,8 +1,16 @@
 
-local wuma_tab = xlib.makepanel{ parent=xgui.null, x=-5, y=6, w=600, h=368 }
+local wuma_tab = xlib.makepanel{parent=xgui.null, x=-5, y=6, w=600, h=368}
 xgui.addModule("WUMA", wuma_tab, "icon16/keyboard.png", "wuma gui")
 
-local function OnWUMAInitialized(panel)
+local tabNameMap = {
+	WUMA_Settings = "Settings",
+	WUMA_Restrictions = "Restrictions",
+	WUMA_Limits = "Limits",
+	WUMA_Loadouts = "Loadouts",
+	WUMA_Users = "Users",
+}
+
+local function onWUMAInitialized(panel)
 	panel:SetParent(wuma_tab)
 
 	wuma_tab.PerformLayout = function()
@@ -24,11 +32,13 @@ local function OnWUMAInitialized(panel)
 
 		pcall(function()
 			if (tbl[2]:GetValue() == "WUMA") then
-				WUMA.OnTabChange(WUMA.GUI.ActiveTab or WUMA.GUI.SettingsTab.TabName)
+				local className = WUMA.GUI.PropertySheet:GetActiveTab().m_pPanel.ClassName
+
+				WUMA.OnTabChange(tabNameMap[className] or "Settings")
 			end
 		end)
 
 		old_SetActiveTab(unpack(tbl))
 	end
 end
-hook.Add("OnWUMAInitialized", "ULXOverrideWUMAGUI", OnWUMAInitialized)
+hook.Add("OnWUMAInitialized", "ULXOverrideWUMAGUI", onWUMAInitialized)

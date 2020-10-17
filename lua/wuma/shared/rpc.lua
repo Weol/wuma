@@ -350,7 +350,6 @@ WUMA.RPC.ChangeSettings = WUMARPCFunction:New{
 	description = "Change a WUMA setting",
 	func = function(_, setting, value)
 		local convar = GetConVar("wuma_"..setting)
-
 		if (tonumber(value) ~= nil) then
 			value = tonumber(value)
 			if (math.floor(value) == value) then
@@ -358,6 +357,10 @@ WUMA.RPC.ChangeSettings = WUMARPCFunction:New{
 			else
 				convar:SetFloat(value)
 			end
+		elseif isbool(value) then
+			convar:SetBool(value)
+		elseif(value == "true" or value == "false") then
+			convar:SetBool(value == "true")
 		else
 			convar:SetString(tostring(value))
 		end
