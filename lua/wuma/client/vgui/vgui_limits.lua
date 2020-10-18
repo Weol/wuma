@@ -62,46 +62,6 @@ function PANEL:Init()
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyLimit(...) end)
 	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
-	--List footer
-	self.items_footer = vgui.Create("DPanel")
-	self.items_footer:SetVisible(false)
-
-	self.footer_label = vgui.Create("DLabel", self.items_footer)
-	self.footer_label:SetText("Not showing inherited limits when several usergroups are selected")
-	self.footer_label:SizeToContents()
-	self.footer_label:SetTextColor(Color(0, 0, 0))
-	self.footer_label.DoClick = function() self:OnLoadMoreUsers() end
-
-	self.items_footer.footer_label = self.footer_label
-
-	function self.items_footer:SizeToContentsY()
-		self:SetTall(10 + self.footer_label:GetTall())
-	end
-
-	local list = self.list_items
-	function self.items_footer:Paint(w, h)
-		surface.SetDrawColor(255, 255, 255, 255)
-		surface.DrawRect(0, 0, w, h)
-
-		if (self.y > 0) then
-			surface.SetDrawColor(82, 82, 82, 255)
-			surface.DrawLine(0, 0, w, 0)
-		end
-
-		local _, y = self:LocalToScreen(0, h)
-		local _, y2 = list:LocalToScreen(0, list:GetTall())
-		if (y + 1 ~= y2) then
-			surface.SetDrawColor(82, 82, 82, 255)
-			surface.DrawLine(0, h - 1, w, h - 1)
-		end
-	end
-
-	function self.items_footer:PerformLayout(w, h)
-		self.footer_label:SetPos(w / 2 - self.footer_label:GetWide() / 2, h / 2 - self.footer_label:GetTall() / 2)
-	end
-
-	self.list_items:AddPanel(self.items_footer)
-
 	self:ReloadSuggestions()
 
 end
@@ -304,13 +264,13 @@ function PANEL:ShowUsergroups(usergroups)
 			end
 		end
 
-		self.items_footer:SetVisible(false)
+		self.list_items:ClearPanels()
 	else
 		for i, selected in ipairs(usergroups) do
 			table.insert(to_show, selected)
 		end
 
-		self.items_footer:SetVisible(true)
+		self.list_items:AddPanel("Not showing inherited limits when several usergroups are selected", BOTTOM)
 	end
 
 	self.list_items:GroupAll()

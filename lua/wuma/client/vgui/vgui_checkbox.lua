@@ -9,7 +9,7 @@ end
 
 function PANEL:SetValue(value)
 	if isbool(value) then
-		value = value and 1 or 0
+		value = value and 1 or -1
 	end
 	self.m_iVal = math.Clamp(value, -1, 1)
 

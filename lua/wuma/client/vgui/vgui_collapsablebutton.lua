@@ -33,15 +33,17 @@ function PANEL:Init()
 	self.arrow.Paint = function(self, w, h)
 		local ret = old_arrow_Paint(self, w, h)
 
-		surface.SetDrawColor(82, 82, 82, 255)
-		surface.DrawLine(0, 0, 0, h)
-		surface.DrawLine(0, 0, 2, 0)
-		surface.DrawLine(0, h - 1, 2, h - 1)
+		if not self.m_bDisabled then
+			surface.SetDrawColor(82, 82, 82, 255)
+			surface.DrawLine(0, 0, 0, h)
+			surface.DrawLine(0, 0, 2, 0)
+			surface.DrawLine(0, h - 1, 2, h - 1)
 
-		surface.SetDrawColor(234, 234, 234, 255)
-		surface.DrawLine(0, 1, 2, 1)
-		surface.DrawLine(0, h - 2, 2, h - 2)
-		surface.DrawLine(1, 1, 1, h - 2)
+			surface.SetDrawColor(234, 234, 234, 255)
+			surface.DrawLine(0, 1, 2, 1)
+			surface.DrawLine(0, h - 2, 2, h - 2)
+			surface.DrawLine(1, 1, 1, h - 2)
+		end
 
 		return ret
 	end
@@ -57,8 +59,15 @@ function PANEL:SetInnerPadding(x, y)
 	self:SetYPadding(y)
 end
 
-function PANEL:DoClick()
+function PANEL:SetDisabled(bDisabled)
+	self.button:SetDisabled(bDisabled)
+	self.arrow:SetDisabled(bDisabled)
+	for _, button in pairs(self.buttons) do
+		button:SetDisabled(bDisabled)
+	end
+end
 
+function PANEL:DoClick()
 end
 
 function PANEL:Toggle()

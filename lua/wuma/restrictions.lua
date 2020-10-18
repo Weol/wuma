@@ -56,6 +56,7 @@ function WUMA.RemoveRestriction(caller, parent, type, item)
 	hook.Call("WUMAOnRestrictionRemoved", nil, caller, parent, type, item)
 end
 
+-- 1: restricted, 2: derestricted
 function WUMA.SetTypeRestriction(caller, parent, restriction_type, restrict)
 	local key = "restrict_type_" .. restriction_type
 
@@ -68,6 +69,7 @@ function WUMA.SetTypeRestriction(caller, parent, restriction_type, restrict)
 	end
 end
 
+-- 1: whitelisted, 2: dewhitelisted
 function WUMA.SetTypeIsWhitelist(caller, parent, restriction_type, iswhitelist)
 	local key = "iswhitelist_type_" .. restriction_type
 

@@ -185,6 +185,11 @@ local function convertSettingValue(value)
 		return tonumber(value)
 	end
 
+	local replaced = string.Replace(value, "'", "")
+	if (tonumber(replaced) ~= nil) then
+		return tonumber(replaced)
+	end
+
 	return value
 end
 

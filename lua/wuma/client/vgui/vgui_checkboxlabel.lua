@@ -26,12 +26,13 @@ function PANEL:Init()
 	self.Label.OnCursorExited = function() self:OnCursorExited() end
 
 	local parent = self
-	while (parent:GetParent():GetClassName() ~= "CGModBase") do
+	while (parent:GetName() ~= "WPropertySheet") do
 		parent = parent:GetParent()
 	end
 
 	self.hover_panel = vgui.Create("DPanel", parent)
 	self.hover_panel:SetVisible(false)
+	self.hover_panel:SetZPos(32767)
 
 	self.hover_label = vgui.Create("DLabel", self.hover_panel)
 	self.hover_label:SetTextColor(Color(0, 0, 0))
@@ -82,10 +83,10 @@ function PANEL:PerformLayout()
 	self.Label:SetPos(x + self.Button:GetWide() + 9, 0)
 end
 
-function PANEL:SetDisabled( bDisabled )
+function PANEL:SetDisabled(bDisabled)
 	self.m_bDisabled = bDisabled
 
-	if ( bDisabled ) then
+	if (bDisabled) then
 		self:SetAlpha( 150 )
 		self:SetMouseInputEnabled( true )
 	else

@@ -17,15 +17,16 @@ function PANEL:Init()
 
 	self.Headers = {}
 
-	self.Panels = {TOP = {}, BOTTOM = {}}
+	self.Panels = {[TOP] = {}, [BOTTOM] = {}}
 
 	local parent = self
-	while (parent:GetParent():GetClassName() ~= "CGModBase") do
+	while (parent:GetName() ~= "WPropertySheet") do
 		parent = parent:GetParent()
 	end
 
 	self.hover_panel = vgui.Create("DPanel", parent)
 	self.hover_panel:SetVisible(false)
+	self.hover_panel:SetZPos(32767)
 
 	self.hover_label = vgui.Create("DLabel", self.hover_panel)
 	self.hover_label:SetTextColor(Color(0, 0, 0))
@@ -93,6 +94,10 @@ function PANEL:AddViewLine(key)
 				surface.DrawRect(0, 0, w, h)
 			end
 
+			if IsValid(self.VBar) and self.VBar.Enabled then
+				w = w - 16
+			end
+
 			local icon = self.Keys[key].icon
 			if icon then
 				if not material_cache[icon[1]] then
@@ -132,7 +137,13 @@ function PANEL:AddViewLine(key)
 			local size = line:GetTall() - 3
 			local icon = self.Keys[key].icon
 
-			if icon and (x > line:GetWide() - size - 3) then
+			local line_width = line:GetWide()
+
+			if IsValid(self.VBar) and self.VBar.Enabled then
+				line_width = line_width - 16
+			end
+
+			if icon and (x > line_width - size - 3) then
 				self.hover_label:SetText(icon[2])
 
 				local g_x, g_y = line:LocalToScreen(x, y)
@@ -161,11 +172,17 @@ function PANEL:AddViewLine(key)
 			end
 		end
 
+		local dataview = self
 		line.old_SetSelected = line.old_SetSelected or line.SetSelected
 		function line:SetSelected(selected)
 			if self.disallow_select then
 				return line:old_SetSelected(false)
 			else
+				if selected then
+					dataview:OnItemSelected(self.value)
+				else
+					dataview:OnItemDeselected(self.value)
+				end
 				return line:old_SetSelected(selected)
 			end
 		end
@@ -260,21 +277,41 @@ function PANEL:AddPanel(value, where)
 	local panel = value
 	if (isstring(value)) then
 		panel = vgui.Create("DPanel")
-		panel:SetVisible(false)
+		panel:SetVisible(true)
 
-		local panel_label = vgui.Create("DLabel", panel)
-		panel_label:SetText(value)
-		panel_label:SizeToContents()
-		panel_label:SetTextColor(Color(0, 0, 0))
-		panel_label.DoClick = function() self:OnLoadMoreUsers() end
+		local labels = {vgui.Create("DLabel", panel)}
 
-		panel.footer_label = panel_label
+		local words = string.Explode(" ", value)
+		local current_line = ""
+		local j = 1
+		for i = 1, #words do
+			current_line = current_line .. " " .. words[i]
+			labels[j]:SetText(current_line)
 
-		function panel:SizeToContentsY()
-			self:SetTall(10 + panel_label:GetTall())
+			if (i < #words) then
+				surface.SetFont(labels[j]:GetFont())
+				local w, _ = surface.GetTextSize(current_line .. " " .. words[i + 1])
+
+				if (w > self:GetWide() - 40) then
+					current_line = ""
+
+					j = j + 1
+					labels[j] = vgui.Create("DLabel", panel)
+				end
+			end
 		end
 
-		local list = self.list_items
+		local height = 0
+		for _, label in ipairs(labels) do
+			label:SetTextColor(Color(0, 0, 0))
+			label:SetFont("WUMAText")
+			height = height + label:GetTall()
+		end
+
+		function panel:SizeToContentsY()
+			self:SetTall(height + 4)
+		end
+
 		function panel:Paint(w, h)
 			surface.SetDrawColor(255, 255, 255, 255)
 			surface.DrawRect(0, 0, w, h)
@@ -284,31 +321,65 @@ function PANEL:AddPanel(value, where)
 				surface.DrawLine(0, 0, w, 0)
 			end
 
-			local _, y = self:LocalToScreen(0, h)
-			local _, y2 = list:LocalToScreen(0, list:GetTall())
-			if (y + 1 ~= y2) then
+			if (panel.is_last) then
+				surface.SetDrawColor(82, 82, 82, 255)
+				surface.DrawLine(0, h - 2, w, h - 2)
+			else
 				surface.SetDrawColor(82, 82, 82, 255)
 				surface.DrawLine(0, h - 1, w, h - 1)
 			end
 		end
 
-		function panel:PerformLayout(w, h)
-			panel_label:SetPos(w / 2 - panel_label:GetWide() / 2, h / 2 - panel_label:GetTall() / 2)
+		function panel:PerformLayout(w)
+			local y = 2
+			for _, label in ipairs(labels) do
+				label:SetPos(w / 2 - label:GetWide() / 2, y)
+
+				y = y + label:GetTall()
+
+				label:SizeToContentsX()
+			end
 		end
 	end
+
 	panel:SetParent(self.pnlCanvas)
-	table.insert(self.Footers[where], panel)
+	table.insert(self.Panels[where], panel)
 end
 
 function PANEL:ClearPanels()
-	self.Panels = {TOP = {}, BOTTOM = {}}
+	for _, panel in ipairs(self.Panels[TOP]) do
+		panel:Remove()
+	end
+
+	for _, panel in ipairs(self.Panels[BOTTOM]) do
+		panel:Remove()
+	end
+
+	self.Panels = {[TOP] = {}, [BOTTOM] = {}}
+
+	self:DataLayout()
 end
 
 function PANEL:DataLayout()
 	local y = 0
 	local h = self.m_iDataHeight
 
-	self.Headers = {}
+	local prev_last
+	for _, panel in ipairs(self.Panels[TOP]) do
+		panel:SetPos(1, y)
+		panel:SetSize(self.pnlCanvas:GetWide() - 2)
+		panel:SizeToContentsY()
+
+		if prev_last then
+			prev_last.is_last = nil
+		end
+		panel.is_last = true
+		prev_last = panel
+
+		y = y + panel:GetTall() - 1
+	end
+
+	table.Empty(self.Headers)
 
 	local last_index
 	for k, line in ipairs(self.Sorted) do
@@ -330,13 +401,18 @@ function PANEL:DataLayout()
 		last_index = line.sort_index
 	end
 
-	local footer = self:GetFooter()
-	if footer then
-		footer:SetPos(1, y)
-		footer:SetSize(self.pnlCanvas:GetWide() - 2)
-		footer:SizeToContentsY()
+	for _, panel in ipairs(self.Panels[BOTTOM]) do
+		panel:SetPos(1, y)
+		panel:SetSize(self.pnlCanvas:GetWide() - 2)
+		panel:SizeToContentsY()
 
-		y = y + footer:GetTall() + 1
+		if prev_last then
+			prev_last.is_last = nil
+		end
+		panel.is_last = true
+		prev_last = panel
+
+		y = y + panel:GetTall() - 1
 	end
 
 	return y
@@ -353,12 +429,14 @@ function PANEL:GetSelectedItems()
 	return tbl
 end
 
-function PANEL:OnRowSelected(_, line)
-	self:OnItemSelected(line.value)
-end
-
 --luacheck: push no unused args
 function PANEL:OnItemSelected(item)
+	--For override
+end
+--luacheck: pop
+
+--luacheck: push no unused args
+function PANEL:OnItemDeselected(item)
 	--For override
 end
 --luacheck: pop
@@ -459,6 +537,7 @@ function PANEL:Group(item)
 
 	local line = self.DataRegistry[item.group] and self.DataRegistry[item.group][item.key]
 	if line then
+		line.item = item
 		line.sort_index = item.sort_index
 		line.sort_title = item.sort_title
 		line.disallow_select = item.disallow_select

@@ -81,6 +81,11 @@ function PANEL:Init()
 	self.restrictions:SetVisible(false)
 	self.restrictions.list_items.Columns[1]:SetName("User")
 	self.restrictions.list_usergroups:SetVisible(false)
+	self.restrictions.GetUsergroupDisplay = function(_, usergroup)
+		if (usergroup == self:GetSelectedUserSteamId()) then
+			return self:GetSelectedUserNick()
+		end
+	end
 	self.restrictions.GetSelectedUsergroups = function()
 		return {self:GetSelectedUserSteamId()}
 	end
@@ -169,8 +174,7 @@ function PANEL:Init()
 		self.load_button:SetPos(w / 2 - self.load_button:GetWide() / 2, h / 2 - self.load_button:GetTall() / 2)
 	end
 
-	self.list_items:AddPanel(self.items_footer)
-
+	self.list_items:AddPanel(self.items_footer, BOTTOM)
 end
 
 function PANEL:SortGrouping(user)
