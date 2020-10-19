@@ -94,15 +94,21 @@ function PANEL:PerformLayout(w, h)
 end
 
 function PANEL:SortGrouping(limit)
-	if (table.Count(self:GetSelectedUsergroups()) == 1) then
-		local selected = self:GetSelectedUsergroups()[1]
-		for i, group in ipairs(self.Inheritance[selected] or {}) do
+	local selected_usergroups = self:GetSelectedUsergroups()
+	local usergroup = limit:GetParent()
+	local usergroup_display = self:GetUsergroupDisplay(usergroup) or usergroup --So that we can set usergroup_display on user-limits tab
+
+	if (#selected_usergroups > 1) then
+		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Limits for " .. usergroup
+	else
+		for i, group in ipairs(self.Inheritance[self:GetSelectedUsergroups()[1]] or {}) do
 			if (group == limit:GetParent()) then
-				return i + 1, "Inherited from " .. group, true
+				return i + 1, "Inherited limits from " .. usergroup_display, true
 			end
 		end
 	end
-	return 1
+
+	return 1, "Limits for " .. usergroup_display
 end
 
 function PANEL:ClassifyLimit(limit)
@@ -116,6 +122,12 @@ function PANEL:ClassifyLimit(limit)
 
 	return limit:GetParent(), {limit:GetParent(), limit:GetItem(), l}, nil, nil, icon
 end
+
+--luacheck: push no unused args
+function PANEL:GetUsergroupDisplay(usergroup)
+	--For use in user-restrictions
+end
+--luacheck: pop
 
 function PANEL:ReloadSuggestions()
 	self.list_suggestions:Clear()
@@ -256,6 +268,9 @@ end
 
 function PANEL:ShowUsergroups(usergroups)
 	local to_show = {}
+
+	self.list_items:ClearPanels()
+
 	if (table.Count(usergroups) == 1) then
 		for i, selected in ipairs(usergroups) do
 			table.insert(to_show, selected)
@@ -263,14 +278,12 @@ function PANEL:ShowUsergroups(usergroups)
 				table.insert(to_show, group)
 			end
 		end
-
-		self.list_items:ClearPanels()
 	else
 		for i, selected in ipairs(usergroups) do
 			table.insert(to_show, selected)
 		end
 
-		self.list_items:AddPanel("Not showing inherited limits when several usergroups are selected", BOTTOM)
+		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
 	end
 
 	self.list_items:GroupAll()

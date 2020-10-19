@@ -292,7 +292,7 @@ function PANEL:AddPanel(value, where)
 				surface.SetFont(labels[j]:GetFont())
 				local w, _ = surface.GetTextSize(current_line .. " " .. words[i + 1])
 
-				if (w > self:GetWide() - 40) then
+				if (w > self:GetWide() - 50) then
 					current_line = ""
 
 					j = j + 1

@@ -607,6 +607,20 @@ function WUMA.GUI.InitializeUserLoadoutsTab(panel, steamid)
 		end
 	}
 
+	local ply = player.GetBySteamID(steamid)
+	local usergroup = ply and ply:GetUserGroup()
+
+	WUMA.Subscribe{
+		args = {
+			"loadouts",
+			usergroup,
+		},
+		id = panel,
+		callback = function(weapons, parent, updated, deleted)
+			panel:NotifyWeaponsChanged(weapons, parent, updated, deleted)
+		end
+	}
+
 	WUMA.Subscribe{
 		args = {
 			"settings",
@@ -617,6 +631,19 @@ function WUMA.GUI.InitializeUserLoadoutsTab(panel, steamid)
 			panel:NotifySettingsChanged(parent, settings, updated, deleted)
 		end
 	}
+
+	WUMA.Subscribe{
+		args = {
+			"settings",
+			usergroup,
+		},
+		id = panel,
+		callback = function(settings, parent, updated, deleted)
+			panel:NotifySettingsChanged(parent, settings, updated, deleted)
+		end
+	}
+
+	panel:NotifyInheritanceChanged({loadout = {[steamid] = usergroup}})
 end
 
 function WUMA.GUI.CreateLoadoutSelector()

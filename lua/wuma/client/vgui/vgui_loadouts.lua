@@ -5,7 +5,8 @@ AccessorFunc(PANEL, "settings", "Settings")
 
 function PANEL:Init()
 
-	self:SetSettings({})
+	self.Inheritance = {}
+	self.Settings = {}
 
 	--Primary ammo chooser
 	self.slider_primary = vgui.Create("WSlider", self)
@@ -69,6 +70,7 @@ function PANEL:Init()
 	self.list_items.OnItemSelected = function(_, item) return self:OnItemSelected(item) end
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyWeapon(...) end)
+	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
 	--Allow checkbox
 	self.checkbox_ignore = vgui.Create("WCheckBoxLabel", self)
@@ -127,7 +129,7 @@ end
 function PANEL:ClassifyWeapon(weapon)
 	local icon
 
-	local settings = self:GetSettings()
+	local settings = self.Settings
 	if settings[weapon:GetParent()] and settings[weapon:GetParent()]["loadout_primary_weapon"] == weapon:GetClass() then
 		icon = {"icon16/star.png", "This is the primary weapon"}
 	end
@@ -140,6 +142,48 @@ function PANEL:ClassifyWeapon(weapon)
 
 	return weapon:GetParent(), {weapon:GetParent(), weapon:GetClass(), primary_ammo, secondary_ammo}, nil, nil, icon
 end
+
+function PANEL:SortGrouping(weapon)
+	local selected_usergroups = self:GetSelectedUsergroups()
+	local usergroup = weapon:GetParent()
+	local usergroup_display = self:GetUsergroupDisplay(usergroup) or usergroup --So that we can set usergroup_display on user-loadouts tab
+
+	if (#selected_usergroups > 1) then
+		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Loadout for " .. usergroup
+	else
+		for i, group in ipairs(self.Inheritance[self:GetSelectedUsergroups()[1]] or {}) do
+			if (group == weapon:GetParent()) then
+				return i + 1, "Loadout inherited from " .. usergroup_display, true
+			end
+		end
+	end
+
+	return 1, "Loadout for " .. usergroup_display
+end
+
+function PANEL:NotifyInheritanceChanged(inheritance)
+	inheritance = inheritance["loadout"] or {}
+
+	self.Inheritance = {}
+	for usergroup, inheritsFrom in pairs(inheritance) do
+		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+
+		local current = inheritsFrom
+		while current do
+			table.insert(self.Inheritance[usergroup], current)
+
+			current = inheritance[current]
+		end
+	end
+
+	self:ShowUsergroups(self:GetSelectedUsergroups())
+end
+
+--luacheck: push no unused args
+function PANEL:GetUsergroupDisplay(usergroup)
+	--For use in user-restrictions
+end
+--luacheck: pop
 
 function PANEL:ReloadSuggestions()
 	self.list_suggestions:Clear()
@@ -194,7 +238,7 @@ function PANEL:NotifyUsergroupsChanged(usergroups)
 end
 
 function PANEL:NotifySettingsChanged(parent, new_settings, updated, deleted)
-	local settings = self:GetSettings()
+	local settings = self.Settings
 
 	local resort = {}
 	if settings[parent] and settings[parent]["loadout_primary_weapon"] and table.HasValue(deleted, "loadout_primary_weapon") then
@@ -219,15 +263,40 @@ function PANEL:NotifySettingsChanged(parent, new_settings, updated, deleted)
 		self.list_items:ReSort(parent, class)
 	end
 
-	self:ReloadSettings()
+	self:ShowUsergroups(self:GetSelectedUsergroups())
 end
 
-function PANEL:ReloadSettings()
-	local usergroups = self:GetSelectedUsergroups()
+function PANEL:ShowUsergroups(usergroups)
+	local to_show = {}
+
+	local settings = self.Settings
+
+	self.list_items:ClearPanels()
+
+	local inherit_gamemode = false
+
+	if (table.Count(usergroups) == 1) then
+		for i, selected in ipairs(usergroups) do
+			table.insert(to_show, selected)
+			if settings[usergroups[1]] and settings[usergroups[1]]["loadout_enforce"] then
+				inherit_gamemode = true
+				for i, group in ipairs(self.Inheritance[selected] or {}) do
+					table.insert(to_show, group)
+					inherit_gamemode = settings[group] and settings[group]["loadout_enforce"]
+				end
+			end
+		end
+	else
+		for i, selected in ipairs(usergroups) do
+			table.insert(to_show, selected)
+		end
+	end
+
+	if inherit_gamemode then
+		self.list_items:AddPanel("This loadout will not replace existing loadout, weapons spawned by default will still be present", BOTTOM)
+	end
 
 	self.DisregardSettingsChange = true
-
-	local settings = self:GetSettings()
 
 	self.checkbox_enforce:SetValue(-1)
 	self.checkbox_ignore:SetValue(-1)
@@ -239,7 +308,7 @@ function PANEL:ReloadSettings()
 
 	local lock_enforce = false
 	local lock_ignore_restrictions = false
-	for _, usergroup in pairs(usergroups) do
+	for _, usergroup in pairs(self:GetSelectedUsergroups()) do
 		local loadout_enforce = settings[usergroup] and settings[usergroup]["loadout_enforce"]
 		local loadout_ignore_restrictions = settings[usergroup] and settings[usergroup]["loadout_ignore_restrictions"]
 
@@ -267,6 +336,9 @@ function PANEL:ReloadSettings()
 	end
 
 	self.DisregardSettingsChange = false
+
+	self.list_items:GroupAll()
+	self.list_items:Show(to_show)
 end
 
 function PANEL:OnViewChanged()
@@ -285,7 +357,7 @@ function PANEL:OnItemSelected(weapon)
 	self.button_primary:SetDisabled(false)
 	self.button_delete:SetDisabled(false)
 
-	local settings = self:GetSettings()
+	local settings = self.Settings
 	if settings[weapon:GetParent()] and settings[weapon:GetParent()]["loadout_primary_weapon"] == weapon:GetClass() then
 		self.button_primary:SetText("Unset primary")
 	end
@@ -308,8 +380,7 @@ function PANEL:OnUsergroupsChanged()
 	for _, group in pairs(self:GetSelectedUsergroups()) do
 		self:OnUsergroupSelected(group)
 	end
-	self:ReloadSettings()
-	self.list_items:Show(self:GetSelectedUsergroups())
+	self:ShowUsergroups(self:GetSelectedUsergroups())
 end
 
 --luacheck: push no unused args
@@ -496,7 +567,7 @@ function PANEL:OnDeleteClick()
 	local selected_items = self.list_items:GetSelectedItems()
 	if table.IsEmpty(selected_items) then return end
 
-	local settings = self:GetSettings()
+	local settings = self.Settings
 
 	local parents, items = {}, {}
 	for _, item in pairs(selected_items) do

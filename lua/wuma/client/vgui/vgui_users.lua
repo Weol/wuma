@@ -101,7 +101,12 @@ function PANEL:Init()
 	self.limits = vgui.Create("WUMA_Limits", self)
 	self.limits:SetVisible(false)
 	self.limits.list_usergroups:SetVisible(false)
-	self.restrictions.list_items.Columns[1]:SetName("User")
+	self.limits.list_items.Columns[1]:SetName("User")
+	self.limits.GetUsergroupDisplay = function(_, usergroup)
+		if (usergroup == self:GetSelectedUserSteamId()) then
+			return self:GetSelectedUserNick()
+		end
+	end
 	self.limits.GetSelectedUsergroups = function()
 		return {self:GetSelectedUserSteamId()}
 	end
@@ -119,6 +124,11 @@ function PANEL:Init()
 	self.loadouts = vgui.Create("WUMA_Loadouts", self)
 	self.loadouts:SetVisible(false)
 	self.loadouts.list_usergroups:SetVisible(false)
+	self.loadouts.GetUsergroupDisplay = function(_, usergroup)
+		if (usergroup == self:GetSelectedUserSteamId()) then
+			return self:GetSelectedUserNick()
+		end
+	end
 	self.loadouts.GetSelectedUsergroups = function()
 		return {self:GetSelectedUserSteamId()}
 	end
