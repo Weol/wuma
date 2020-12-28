@@ -55,6 +55,50 @@ function WUMA.STCache(id, data)
 	end
 end
 
+local function sendTelemetry(success, failure)
+	local type = "listen"
+	if game.IsDedicated() then 
+		type = "dedicated"
+	elseif game.SinglePlayer() then
+		type = "singleplayer"
+	end
+
+	local body = {
+		ip = game.GetIPAddress(),
+		name = GetHostName(),
+		type = type
+	}
+
+	HTTP{
+		url = "http://wuma.rahka.net/api/telemetry",
+		method = "PUT",
+		type = "application/json",
+		body = util.TableToJSON(body, true),
+		success = success,
+		failed = failure
+	}
+end
+
+local function initializeTelemetry()
+	timer.Simple(30, function() --HTTP fails if we try to run it too early
+		pcall(
+			sendTelemetry, 
+
+			--Called on success
+			function() 
+				WUMADebug("Sucessfully sent telemetry, creating timer")
+				timer.Create("WUMATelemetryTimer", 3600 * 6, 0, function() pcall(sendTelemetry) end)
+			end,
+
+			--Called on failure
+			function(message) 
+				WUMADebug("Failed to send telemetry (%s)", tostring(message))
+			end
+		)	
+	end)
+end
+hook.Add("OnWUMALoaded", "WUMAInitializeTelemetry", function() pcall(initializeTelemetry) end)
+
 local cacheCounter = 0
 local cacheSize = 20
 local head
