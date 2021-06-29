@@ -3,7 +3,8 @@ local PANEL = {}
 
 function PANEL:Init()
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 	self.Settings = {}
 	self.RawSettings = {}
 
@@ -111,12 +112,7 @@ end
 function PANEL:ClassifyRestriction(restriction)
 	local group = restriction:GetType() .. "_" .. restriction:GetParent()
 
-	local icon
-	if restriction:GetIsAnti() then
-		icon = {"icon16/lightning_delete.png", "This restriction is an anti-restriction"}
-	end
-
-	return group, {restriction:GetParent(), restriction:GetItem()}, nil, nil, icon
+	return group, {restriction:GetParent(), restriction:GetItem()}, nil, nil
 end
 
 function PANEL:SortGrouping(restriction)
@@ -128,19 +124,14 @@ function PANEL:SortGrouping(restriction)
 
 	if (#selected_usergroups > 1) then
 		local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. selected_type]
-		local inherited_is_whiteliest = settings[usergroup] and settings[usergroup]["inherited_iswhitelist_type_" .. selected_type]
 
 		if is_whiteliest then
-			if inherited_is_whiteliest then
-				return #(self.Inheritance[usergroup] or {}) + 1, "Whitelist for "  .. usergroup_display .. " (Inherited from " .. inherited_is_whiteliest .. ")"
-			else
-				return #(self.Inheritance[usergroup] or {}) + 1, "Whitelist for " .. usergroup_display
-			end
+			return #(self.InheritsFrom[usergroup] or {}) + 1, "Whitelist for " .. usergroup_display
 		else
 			return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Restrictions for " .. usergroup
 		end
 	else
-		for i, group in ipairs(self.Inheritance[self:GetSelectedUsergroups()[1]] or {}) do
+		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
 			if (group == restriction:GetParent()) then
 				local is_whiteliest = settings[group] and settings[group]["iswhitelist_type_" .. selected_type]
 
@@ -161,6 +152,56 @@ function PANEL:SortGrouping(restriction)
 	end
 end
 
+
+function PANEL:OnViewChanged()
+	if (#self.list_items:GetSelectedItems() > 0) then
+		self.button_delete:SetDisabled(false)
+	else
+		self.button_delete:SetDisabled(true)
+	end
+
+	local selected_usergroups = self:GetSelectedUsergroups()
+	local selected_type = self:GetSelectedType()
+
+	for _, line in pairs(self.list_items:GetLines()) do
+		if line:GetValue():GetIsAnti() then
+			local icon = {"icon16/lightning_delete.png", "This restriction is an anti-restriction"}
+			line:SetIcon(icon)
+		elseif line:GetIcon() then
+			line:SetIcon(nil)
+		end
+	end
+
+	if (#selected_usergroups == 1) then
+		local overriden_items = {}
+
+		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+		if inheritsFrom then
+			local data_registry = self.list_items:GetDataRegistry()
+			for i = #inheritsFrom, 1, -1 do
+				for j = i - 1, 0, -1 do
+					for _, line in pairs(data_registry[selected_type .. "_" .. inheritsFrom[i]] or {}) do
+						local restiction = line:GetValue()
+
+						local usergroup = (j >= 0) and inheritsFrom[j] or selected_usergroups[1]
+
+						local group_key = selected_type .. "_" .. usergroup
+						local item_key = usergroup.. "_" .. selected_type  .. "_" .. restiction:GetItem()
+						if not overriden_items[line] and data_registry[group_key] and data_registry[group_key][item_key] then
+							overriden_items[line] = usergroup
+						end
+					end
+				end
+			end
+		end
+
+		for line, overiddenBy in pairs(overriden_items) do
+			local icon = {"icon16/cancel.png", "This restriction has been overridden by " .. (self:GetUsergroupDisplay(overiddenBy) or overiddenBy)}
+			line:SetIcon(icon)
+		end
+	end
+end
+
 --luacheck: push no unused args
 function PANEL:GetUsergroupDisplay(usergroup)
 	--For use in user-restrictions
@@ -170,26 +211,26 @@ end
 function PANEL:ReloadSuggestions(type)
 	local items = WUMA.RestrictionTypes[type]:GetItems()
 
-	if table.IsEmpty(items) then
+	self.list_suggestions:SetDisabled(false)
+	self.button_add:SetDisabled(false)
+
+	self.list_suggestions:Clear()
+	if (self.textbox_search:GetValue() ~= "") then
+		self.list_suggestions:AddLine(self.textbox_search:GetValue())
+	elseif table.IsEmpty(items) then
 		self.list_suggestions:SetDisabled(true)
-		self.list_suggestions:Clear()
-	else
-		self.list_suggestions:SetDisabled(false)
+		self.button_add:SetDisabled(true)
+	end
 
-		self.list_suggestions:Clear()
-
-		if (self.textbox_search:GetValue() ~= "") then
-			self.list_suggestions:AddLine(self.textbox_search:GetValue())
-		end
-
+	if not table.IsEmpty(items) then
 		for k, v in pairs(items) do
 			if (v ~= self.textbox_search:GetValue()) then
 				self.list_suggestions:AddLine(v)
 			end
 		end
-
-		self.list_suggestions:SelectFirstItem()
 	end
+
+	self.list_suggestions:SelectFirstItem()
 end
 
 function PANEL:GetSelectedType()
@@ -242,15 +283,19 @@ function PANEL:NotifySettingsChanged(parent, new_settings)
 end
 
 function PANEL:NotifyInheritanceChanged(inheritance)
-	inheritance = inheritance["restrictions"] or {}
+	local inheritance = inheritance["restrictions"] or {}
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
 
 		local current = inheritsFrom
 		while current do
-			table.insert(self.Inheritance[usergroup], current)
+			table.insert(self.InheritsFrom[usergroup], current)
+
+			self.InheritsTo[current] = self.InheritsTo[current] or {}
+			table.insert(self.InheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
@@ -285,19 +330,10 @@ function PANEL:OnTypeChange(lineid, _)
 	self.textbox_search:OnLoseFocus()
 
 	self.list_suggestions.VBar:SetScroll(0)
-	self.list_suggestions:SelectFirstItem()
 
 	self:ShowUsergroups(self:GetSelectedUsergroups())
 
 	self.list_types.previous_line = lineid
-end
-
-function PANEL:OnViewChanged()
-	if (#self.list_items:GetSelectedItems() > 0) then
-		self.button_delete:SetDisabled(false)
-	else
-		self.button_delete:SetDisabled(true)
-	end
 end
 
 function PANEL:OnItemSelected()
@@ -312,13 +348,13 @@ end
 
 function PANEL:BuildSettings()
 	local raw_settings = self.RawSettings
-	local inheritance = self.Inheritance
+	local inheritsFrom = self.InheritsFrom
 	local settings = table.Copy(raw_settings)
 
-	for usergroup, _ in pairs(inheritance) do
+	for usergroup, _ in pairs(inheritsFrom) do
 		for name, type in pairs(WUMA.RestrictionTypes) do
-			for i = #inheritance[usergroup], 1, -1 do
-				local current = inheritance[usergroup][i]
+			for i = #inheritsFrom[usergroup], 1, -1 do
+				local current = inheritsFrom[usergroup][i]
 
 				local restrict_type = raw_settings[current] and raw_settings[current]["restrict_type_" ..name]
 				local is_whiteliest = raw_settings[current] and raw_settings[current]["iswhitelist_type_" ..name]
@@ -363,7 +399,7 @@ function PANEL:ShowUsergroups(usergroups)
 	if (#usergroups == 1) then
 		for _, selected in pairs(usergroups) do
 			to_show[selected] = selected
-			for _, group in ipairs(self.Inheritance[selected] or {}) do
+			for _, group in ipairs(self.InheritsFrom[selected] or {}) do
 				to_show[group] = group
 			end
 		end
@@ -371,6 +407,7 @@ function PANEL:ShowUsergroups(usergroups)
 		for i, selected in ipairs(usergroups) do
 			to_show[selected] = selected
 		end
+		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
 	end
 
 	if (#usergroups > 1) then
@@ -390,16 +427,11 @@ function PANEL:ShowUsergroups(usergroups)
 			local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. selected_type]
 			local inherited_restrict_type = settings[usergroup] and settings[usergroup]["inherited_restrict_type_" .. selected_type]
 
-			if (inherited_restrict_type) then
-				self.list_items:AddPanel(string.format("All %s are restricted from %s (Inherited from %s)", plural_type, usergroup, inherited_restrict_type), BOTTOM)
-				to_show[usergroup] = nil
-			elseif (restrict_type) then
-				self.list_items:AddPanel("All " .. plural_type .. " are restricted from " .. usergroup, BOTTOM)
+			if inherited_restrict_type or restrict_type then
+				self.list_items:AddPanel("All " .. plural_type .. " are restricted from " .. (self:GetUsergroupDisplay(usergroup) or usergroup), TOP)
 				to_show[usergroup] = nil
 			end
 		end
-
-		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
 	else
 		self.DisregardSettingsChange = true
 
@@ -465,11 +497,8 @@ function PANEL:ShowUsergroups(usergroups)
 			end
 		end
 
-		if (inherited_restrict_type) then
-			self.list_items:AddPanel(string.format("All %s are restricted from %s (Inherited from %s)", plural_type, usergroup, inherited_restrict_type), BOTTOM)
-			to_show = {}
-		elseif (restrict_type) then
-			self.list_items:AddPanel("All " .. plural_type .. " are restricted from " .. usergroup, BOTTOM)
+		if inherited_restrict_type or restrict_type then
+			self.list_items:AddPanel(string.format("All %s are restricted from %s", plural_type, self:GetUsergroupDisplay(usergroup) or usergroup), BOTTOM)
 			to_show = {}
 		end
 

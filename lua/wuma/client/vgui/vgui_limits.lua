@@ -3,7 +3,8 @@ local PANEL = {}
 
 function PANEL:Init()
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 
 	--Limit chooser
 	self.slider_limit = vgui.Create("WSlider", self)
@@ -101,26 +102,68 @@ function PANEL:SortGrouping(limit)
 	if (#selected_usergroups > 1) then
 		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Limits for " .. usergroup
 	else
-		for i, group in ipairs(self.Inheritance[self:GetSelectedUsergroups()[1]] or {}) do
+		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
 			if (group == limit:GetParent()) then
 				return i + 1, "Inherited limits from " .. usergroup_display, true
 			end
 		end
+
+		return 1, "Limits for " .. usergroup_display
+	end
+end
+
+function PANEL:OnViewChanged()
+	if (#self.list_items:GetSelectedItems() > 0) then
+		self.button_delete:SetDisabled(false)
+	else
+		self.button_delete:SetDisabled(true)
 	end
 
-	return 1, "Limits for " .. usergroup_display
+	local selected_usergroups = self:GetSelectedUsergroups()
+
+	for _, line in pairs(self.list_items:GetLines()) do
+		if line:GetValue():GetIsExclusive() then
+			local icon = {"icon16/ruby.png", "This limit is an exclusive limit"}
+			line:SetIcon(icon)
+		elseif line:GetIcon() then
+			line:SetIcon(nil)
+		end
+	end
+
+	if (#selected_usergroups == 1) then
+		local overriden_items = {}
+
+		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+		if inheritsFrom then
+			local data_registry = self.list_items:GetDataRegistry()
+			for i = #inheritsFrom, 1, -1 do
+				for j = i - 1, 0, -1 do
+					for _, line in pairs(data_registry[inheritsFrom[i]] or {}) do
+						local limit = line:GetValue()
+
+						local usergroup = (j >= 0) and inheritsFrom[j] or selected_usergroups[1]
+
+						local item_key = usergroup .. "_" .. limit:GetItem()
+						if not overriden_items[line] and data_registry[usergroup] and data_registry[usergroup][item_key] then
+							overriden_items[line] = usergroup
+						end
+					end
+				end
+			end
+		end
+
+		for line, overiddenBy in pairs(overriden_items) do
+			local icon = {"icon16/cancel.png", "This limit has been overridden by " .. (self:GetUsergroupDisplay(overiddenBy) or overiddenBy)}
+			line:SetIcon(icon)
+		end
+	end
 end
 
 function PANEL:ClassifyLimit(limit)
-	local icon
-	if limit:GetIsExclusive() then
-		icon = {"icon16/ruby.png", "This limit is an exclusive limit"}
-	end
-
 	local l = limit:GetLimit()
 	if ((tonumber(l) or 0) < 0) then l = "∞" end
 
-	return limit:GetParent(), {limit:GetParent(), limit:GetItem(), l}, nil, nil, icon
+	return limit:GetParent(), {limit:GetParent(), limit:GetItem(), l}, nil, nil
 end
 
 --luacheck: push no unused args
@@ -206,14 +249,6 @@ function PANEL:OnSearch(text)
 	end
 end
 
-function PANEL:OnViewChanged()
-	if (#self.list_items:GetSelectedItems() > 0) then
-		self.button_delete:SetDisabled(false)
-	else
-		self.button_delete:SetDisabled(true)
-	end
-end
-
 function PANEL:OnItemSelected(_)
 	self.button_delete:SetDisabled(false)
 end
@@ -229,17 +264,22 @@ end
 function PANEL:NotifyInheritanceChanged(inheritance)
 	inheritance = inheritance["limits"] or {}
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
 
 		local current = inheritsFrom
 		while current do
-			table.insert(self.Inheritance[usergroup], current)
+			table.insert(self.InheritsFrom[usergroup], current)
+
+			self.InheritsTo[current] = self.InheritsTo[current] or {}
+			table.insert(self.InheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
 	end
+
 
 	self:ShowUsergroups(self:GetSelectedUsergroups())
 end
@@ -274,7 +314,7 @@ function PANEL:ShowUsergroups(usergroups)
 	if (table.Count(usergroups) == 1) then
 		for i, selected in ipairs(usergroups) do
 			table.insert(to_show, selected)
-			for i, group in ipairs(self.Inheritance[selected] or {}) do
+			for i, group in ipairs(self.InheritsFrom[selected] or {}) do
 				table.insert(to_show, group)
 			end
 		end
@@ -283,7 +323,7 @@ function PANEL:ShowUsergroups(usergroups)
 			table.insert(to_show, selected)
 		end
 
-		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
+		self.list_items:AddPanel("Not showing inherited limits", BOTTOM)
 	end
 
 	self.list_items:GroupAll()

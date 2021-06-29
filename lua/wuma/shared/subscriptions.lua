@@ -245,14 +245,14 @@ WUMA.Subscribable.online = function(caller)
     WUMARPC(caller, "WUMA.OnOnlineUpdate", users, {})
 end
 
-function playerDisconnected(player)
+local function playerDisconnected(player)
     WUMADebug(player:SteamID())
     local subscribers = WUMA.Subscriptions["online"]
     WUMARPC(subscribers, "WUMA.OnOnlineUpdate", {}, {player:SteamID()})
 end
 hook.Add("PlayerDisconnected", "WUMA_ONLINE_PlayerDisconnected", playerDisconnected)
 
-function playerInitialSpawn(player)
+local function playerInitialSpawn(player)
     WUMADebug(player:SteamID())
     local subscribers = WUMA.Subscriptions["online"]
     WUMARPC(subscribers, "WUMA.OnOnlineUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}}, {})
@@ -262,8 +262,8 @@ hook.Add("PlayerInitialSpawn", "WUMA_ONLINE_PlayerInitialSpawn", playerInitialSp
 ------------------
 -- LOOKUP USERS --
 ------------------
-function playerDisconnected2(player)
+local function playerDisconnected2(player)
     local subscribers = WUMA.Subscriptions["lookup"]
     WUMARPC(subscribers, "WUMA.OnLookupUpdate", {[player:SteamID()] = {steamid = player:SteamID(), nick = player:Nick(), usergroup = player:GetUserGroup(), t = os.time()}} , {})
 end
-hook.Add("PlayerDisconnected", "WUMA_LOOKUP_PlayerDisconnected", playerDisconnected)
+hook.Add("PlayerDisconnected", "WUMA_LOOKUP_PlayerDisconnected", playerDisconnected2)

@@ -300,28 +300,6 @@ WUMA.RPC.SetUserEnforceLoadout = WUMARPCFunction:New{
 	end
 }
 
-WUMA.RPC.SetLoadoutIgnoreRestrictions = WUMARPCFunction:New{
-	name = "setloadoutignorerestrictions",
-	privilage = "wuma setloadoutignorerestrictions",
-	description = "Set whether or not a usergroup's loadout should ignore restrictions or not",
-	func = WUMA.SetLoadoutIgnoreRestrictions,
-	validator = function(usergroup, ignore_restrictions)
-		assert(CAMI.GetUsergroups()[usergroup])
-		assert(isbool(ignore_restrictions))
-	end
-}
-
-WUMA.RPC.SetUserLoadoutIgnoreRestrictions = WUMARPCFunction:New{
-	name = "setuserloadoutignorerestrictions",
-	privilage = "wuma setuserloadoutignorerestrictions",
-	description = "Set whether or not a usergroup's loadout should ignore restrictions or not",
-	func = WUMA.SetLoadoutIgnoreRestrictions,
-	validator = function(steamid, ignore_restrictions)
-		assert(WUMA.IsSteamID(steamid))
-		assert(isbool(ignore_restrictions))
-	end
-}
-
 WUMA.RPC.CopyPlayerLoadout = WUMARPCFunction:New{
 	name = "copyplayerloadout",
 	privilage = "wuma copyplayerloadout",
@@ -382,7 +360,7 @@ WUMA.RPC.ChangeInheritance = WUMARPCFunction:New{
 		end
 	end,
 	validator = function(type, usergroup, inheritFrom)
-		assert(type == "restrictions" or type == "limits")
+		assert(type == "restrictions" or type == "limits" or type == "loadout")
 
 		assert(CAMI.GetUsergroups()[usergroup])
 		assert(not inheritFrom or CAMI.GetUsergroups()[inheritFrom])

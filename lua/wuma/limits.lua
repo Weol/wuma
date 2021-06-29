@@ -85,18 +85,10 @@ end
 
 local function userDisconnected(user)
 	WUMA.Limits[user:SteamID()] = nil
-
-	if not WUMA.IsUsergroupConnected(user:GetUserGroup()) then
-		WUMA.Limits[user:GetUserGroup()] = nil
-	end
 end
 hook.Add("PlayerDisconnected", "WUMA_LIMITS_PlayerDisconnected", userDisconnected)
 
 local function playerInitialSpawn(player)
-	if not WUMA.Limits[player:GetUserGroup()] then
-		WUMA.Limits[player:GetUserGroup()] = WUMA.ReadLimits(player:GetUserGroup()) or {}
-	end
-
 	if not WUMA.Limits[player:SteamID()] then
 		WUMA.Limits[player:SteamID()] = WUMA.ReadLimits(player:SteamID())
 	end

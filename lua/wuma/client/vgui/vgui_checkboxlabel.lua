@@ -102,6 +102,7 @@ end
 function PANEL:OnCursorMoved(x, y)
 	if self:GetHoverMessage() then
 		self.hover_label:SetText(self:GetHoverMessage())
+		self.hover_label:SizeToContents()
 
 		local g_x, g_y = self:LocalToScreen(x, y)
 		local a_x, a_y = self.hover_panel:GetParent():ScreenToLocal(g_x - self.hover_panel:GetWide() / 2, g_y - self.hover_panel:GetTall() - 2)

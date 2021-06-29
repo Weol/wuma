@@ -29,8 +29,8 @@ function WUMA.Subscribe(args)
 	if callback then
 		local asd = callback
 		callback = function(...)
-			--WUMADebug("Subscription of \"%s\":", key)
-			--WUMADebug({...})
+			WUMADebug("Subscription of \"%s\":", key)
+			WUMADebug({...})
 			asd(...)
 		end
 	end

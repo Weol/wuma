@@ -9,8 +9,6 @@ object:AddProperty("is_anti", "IsAnti")
 object:AddMetaData("exceptions", "Exceptions", {})
 
 function object:Check(player)
-	if self:GetIsDisabled() then return end
-
 	local exceptions = self:GetExceptions()
 	if exceptions[player:SteamID()] then
 		exceptions[player:SteamID()] = nil
@@ -18,13 +16,6 @@ function object:Check(player)
 	end
 
 	if not self:GetIsAnti() then
-		local type = self:GetType()
-
-		if (type ~= "pickup") then
-			self:GetParent():SendLua(string.format([[WUMA.NotifyRestriction("%s", "%s")]], self:GetType(), self:GetItem()))
-			self:GetParent():SendLua([[surface.PlaySound("buttons/button10.wav")]])
-		end
-
 		return false
 	end
 end

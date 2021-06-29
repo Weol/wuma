@@ -3,6 +3,7 @@ local PANEL = {}
 
 AccessorFunc(PANEL, "ClassifyFunction", "ClassifyFunction")
 AccessorFunc(PANEL, "SortGroupingFunction", "SortGroupingFunction")
+AccessorFunc(PANEL, "DuplicateKeyFunction", "DuplicateKeyFunction")
 AccessorFunc(PANEL, "FilterFunction", "FilterFunction")
 AccessorFunc(PANEL, "Panels", "Panels")
 AccessorFunc(PANEL, "Headers", "Headers")
@@ -79,6 +80,10 @@ function PANEL:AddViewLine(key)
 
 	if self.Keys[key] and self:Filter(item.value) then
 		local line = self:AddLine(unpack(item.display))
+
+		AccessorFunc(line, "icon", "Icon")
+		AccessorFunc(line, "value", "Value")
+
 		line.key = key
 		line.group = item.group
 		line.value = item.value
@@ -98,7 +103,8 @@ function PANEL:AddViewLine(key)
 				w = w - 16
 			end
 
-			local icon = self.Keys[key].icon
+
+			local icon = line:GetIcon()
 			if icon then
 				if not material_cache[icon[1]] then
 					material_cache[icon[1]] = Material(icon[1], "noclamp smooth" )
@@ -116,7 +122,7 @@ function PANEL:AddViewLine(key)
 		line.old_PerformLayout = line.old_PerformLayout or line.PerformLayout or function() end
 		line.PerformLayout = function(_, w, h)
 			line:old_PerformLayout(w, h)
-			if self.Keys[key].icon then
+			if line:GetIcon() then
 				local col = line.Columns[#line.Columns]
 
 				local size = h - 3
@@ -135,7 +141,7 @@ function PANEL:AddViewLine(key)
 			line:old_OnCursorMoved(x, y)
 
 			local size = line:GetTall() - 3
-			local icon = self.Keys[key].icon
+			local icon = line:GetIcon()
 
 			local line_width = line:GetWide()
 
@@ -145,6 +151,7 @@ function PANEL:AddViewLine(key)
 
 			if icon and (x > line_width - size - 3) then
 				self.hover_label:SetText(icon[2])
+				self.hover_label:SizeToContents()
 
 				local g_x, g_y = line:LocalToScreen(x, y)
 				local a_x, a_y = self.hover_panel:GetParent():ScreenToLocal(g_x - self.hover_panel:GetWide() / 2, g_y - self.hover_panel:GetTall() - 2)
@@ -193,8 +200,6 @@ function PANEL:AddViewLine(key)
 		self.DataRegistry[item.group][key] = line
 
 		if item.post_process then item.post_process(line) end
-
-		self:OnViewChanged()
 	end
 end
 
@@ -208,6 +213,7 @@ function PANEL:SetFilterFunction(f)
 			end
 		end
 	end
+	self:OnViewChanged()
 end
 
 function PANEL:Filter(item)
@@ -227,8 +233,6 @@ function PANEL:RemoveViewLine(key)
 	if line then
 		self:RemoveLine(line:GetID())
 		self.DataRegistry[group][key] = nil
-
-		self:OnViewChanged()
 	end
 end
 
@@ -392,7 +396,7 @@ function PANEL:DataLayout()
 		end
 
 		line:SetPos(1, y)
-		line:DataLayout( self )
+		line:DataLayout(self)
 
 		line:SetAltLine(k % 2 == 1)
 
@@ -416,6 +420,9 @@ function PANEL:DataLayout()
 	end
 
 	return y
+end
+function PANEL:GetDataRegistry()
+	return self.DataRegistry
 end
 
 function PANEL:GetSelectedItems()
@@ -479,10 +486,11 @@ function PANEL:Show(key)
 	end
 
 	self:DataLayout()
+	self:OnViewChanged()
 end
 
 function PANEL:Sort(key, value)
-	local group, display, sort, highlight, icon = self.ClassifyFunction(value)
+	local group, display, sort, highlight = self.ClassifyFunction(value)
 
 	self.Groups[group] = self.Groups[group] or {}
 	self.Groups[group][key] = true
@@ -493,7 +501,6 @@ function PANEL:Sort(key, value)
 		display = display,
 		sort = sort,
 		highlight = highlight,
-		icon = icon,
 		key = key
 	}
 
@@ -545,12 +552,9 @@ function PANEL:Group(item)
 end
 
 function PANEL:GroupAll()
-	for group, lines in pairs(self.DataRegistry) do
-		for key, line in pairs(lines) do
-			local item = self.Keys[key]
-			if item then
-				self:Group(item)
-			end
+	for _, item in pairs(self.Keys) do
+		if item then
+			self:Group(item)
 		end
 	end
 end
@@ -611,6 +615,7 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 	end
 
 	self:InvalidateLayout()
+	self:OnViewChanged()
 	self:OnDataUpdate()
 end
 

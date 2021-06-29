@@ -51,6 +51,14 @@ WUMA.RestrictionTypes.pickup = RestrictionType:New{
 	items = function() return table.GetKeys(list.Get("Weapon")) end
 }
 
+WUMA.RestrictionTypes.loadut = RestrictionType:New{
+	name = "loadut",
+    print = "Loadout",
+	print2 = "Loadout weapons",
+	search = "Search..",
+	items = function() return table.GetKeys(list.Get("Weapon")) end
+}
+
 WUMA.RestrictionTypes.effect = RestrictionType:New{
 	name = "effect",
     print = "Effect",

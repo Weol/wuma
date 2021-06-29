@@ -252,6 +252,13 @@ function PANEL:PerformLayout(w, h)
 	self.list_items:SetPos(5, self.textbox_search.y+self.textbox_search:GetTall()+5)
 end
 
+function PANEL:GetSelectedUserUsergroup()
+	local selected_items = self.list_items:GetSelectedItems()
+	if table.IsEmpty(selected_items) then return end
+
+	return selected_items[1].usergroup
+end
+
 function PANEL:GetSelectedUserSteamId()
 	local selected_items = self.list_items:GetSelectedItems()
 	if table.IsEmpty(selected_items) then return end
@@ -314,7 +321,7 @@ function PANEL:OnRestrictionsClick()
 	self.button_back:SetVisible(true)
 	self.label_user:SetVisible(true)
 
-	self:OnRestrictionsDisplayed(self.restrictions, self:GetSelectedUserSteamId())
+	self:OnRestrictionsDisplayed(self.restrictions, self:GetSelectedUserSteamId(), self:GetSelectedUserUsergroup())
 
 	self.restrictions:OnUsergroupsChanged()
 end
@@ -335,7 +342,7 @@ function PANEL:OnLimitsClick()
 	self.button_back:SetVisible(true)
 	self.label_user:SetVisible(true)
 
-	self:OnLimitsDisplayed(self.limits,  self:GetSelectedUserSteamId())
+	self:OnLimitsDisplayed(self.limits,  self:GetSelectedUserSteamId(), self:GetSelectedUserUsergroup())
 
 	self.limits:OnUsergroupsChanged()
 end
@@ -355,7 +362,7 @@ function PANEL:OnLoadoutsClick()
 	self.button_back:SetVisible(true)
 	self.label_user:SetVisible(true)
 
-	self:OnLoadoutsDisplayed(self.loadouts, self:GetSelectedUserSteamId())
+	self:OnLoadoutsDisplayed(self.loadouts, self:GetSelectedUserSteamId(), self:GetSelectedUserUsergroup())
 
 	self.loadouts:OnUsergroupsChanged()
 end

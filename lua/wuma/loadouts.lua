@@ -8,10 +8,10 @@ cvars.AddChangeCallback("wuma_personal_loadout_chatcommand", function(convar, ol
 	end
 end)
 
---Second argument is a WUMA LoadoutWeapon, not an actual gmod swep
+--Third argument is a WUMA LoadoutWeapon, not an actual gmod swep
 function WUMA.GiveWeapon(player, givenBy, weapon)
 	local swep = player:Give(weapon:GetClass())
-		if IsValid(swep) then
+	if IsValid(swep) then
 		swep.SpawnedByWUMA = givenBy
 
 		if not swep then error("cannot get the given weapon") end
@@ -53,7 +53,7 @@ end
 local function stripWeapon(player, givenBy, class)
 	local swep = player:GetWeapon(class)
 	if IsValid(swep) and (swep.SpawnedByWUMA == givenBy) then
-		local primary_weapon = WUMA.GetSetting(player:GetUserGroup(), "loadout_primary_weapon")
+		local primary_weapon = WUMA.Settings[player:GetUserGroup()] and WUMA.Settings[player:GetUserGroup()]["loadout_primary_weapon"]
 		if (class == player:GetActiveWeapon()) and primary_weapon then
 			player:SelectWeapon(primary_weapon)
 		else
@@ -93,7 +93,7 @@ local function clearLoadout(parent)
 end
 
 function WUMA.SetLoadoutPrimaryWeapon(caller, parent, class)
-	local current_primary = WUMA.GetSetting(parent, "loadout_primary_weapon")
+	local current_primary = WUMA.Settings[parent] and WUMA.Settings[parent]["loadout_primary_weapon"]
 
 	if (current_primary == class) then
 		class = nil
@@ -107,13 +107,7 @@ end
 function WUMA.SetEnforceLoadout(caller, parent, enforce)
 	WUMA.SetSetting(parent, "loadout_enforce", enforce)
 
-	hook.Call("WUMAOnLoadoutEnforceChanged", nil, caller, parent, enforce)
-end
-
-function WUMA.SetLoadoutIgnoreRestrictions(caller, parent, ignore)
-	WUMA.SetSetting(parent, "loadout_ignore_restrictions", ignore)
-
-	hook.Call("WUMAOnLoadoutIgnoreRestrictionsChanged", nil, caller, parent, ignore)
+	hook.Call("WUMAOnLoadoutExtendChanged", nil, caller, parent, enforce)
 end
 
 function WUMA.AddLoadoutWeapon(caller, parent, class, primary_ammo, secondary_ammo)
@@ -189,20 +183,62 @@ function WUMA.ReadLoadouts(parent)
 	end
 end
 
+local function playerLoadout(player)
+	local steamid = player:SteamID()
+	local usergroup = player:GetUserGroup()
+
+	local user_extend = WUMA.Settings[steamid] and WUMA.Settings[steamid]["loadout_enforce"]
+	local group_extend = WUMA.Settings[usergroup] and WUMA.Settings[usergroup]["loadout_enforce"]
+
+	local user_primary_weapon = WUMA.Settings[steamid] and WUMA.Settings[steamid]["loadout_primary_weapon"]
+	local group_primary_weapon = WUMA.Settings[usergroup] and WUMA.Settings[usergroup]["loadout_primary_weapon"]
+
+	local default_weapon = user_primary_weapon or group_primary_weapon
+
+	player:StripWeapons()
+	player:RemoveAllAmmo()
+
+	if WUMA.Loadouts[steamid] then
+		for class, weapon in pairs(WUMA.Loadouts[steamid]) do
+			default_weapon = default_weapon or weapon:GetClass()
+			WUMA.GiveWeapon(player, steamid, weapon)
+		end
+
+		if not user_extend then
+			player:ConCommand("cl_defaultweapon " .. default_weapon)
+			player:SwitchToDefaultWeapon()
+
+			return true
+		end
+	end
+
+	if WUMA.Loadouts[usergroup] then
+		for class, weapon in pairs(WUMA.Loadouts[usergroup]) do
+			default_weapon = default_weapon or weapon:GetClass()
+			WUMA.GiveWeapon(player, usergroup, weapon)
+		end
+
+		if not group_extend then
+			player:ConCommand("cl_defaultweapon " .. default_weapon)
+			player:SwitchToDefaultWeapon()
+
+			return true
+		end
+	end
+
+	if user_primary_weapon or group_primary_weapon then
+		player:ConCommand("cl_defaultweapon " .. default_weapon)
+	end
+	player:SwitchToDefaultWeapon()
+end
+hook.Add("PlayerLoadout", "WUMA_LOADOUTS_PlayerLoadout", playerLoadout)
+
 local function userDisconnected(user)
 	WUMA.Loadouts[user:SteamID()] = nil
-
-	if not WUMA.IsUsergroupConnected(user:GetUserGroup()) then
-		WUMA.Loadouts[user:GetUserGroup()] = nil
-	end
 end
 hook.Add("PlayerDisconnected", "WUMA_LOADOUTS_PlayerDisconnected", userDisconnected)
 
 local function playerInitialSpawn(player)
-	if not WUMA.Loadouts[player:GetUserGroup()] then
-		WUMA.Loadouts[player:GetUserGroup()] = WUMA.ReadLoadouts(player:GetUserGroup())
-	end
-
 	if not WUMA.Loadouts[player:SteamID()] then
 		WUMA.Loadouts[player:SteamID()] = WUMA.ReadLoadouts(player:SteamID())
 	end

@@ -58,7 +58,7 @@ end
 function object:Purge()
 	for id, entry in pairs(self:GetEntities()) do
 		local _, entity = unpack(entry)
-		entity:RemoveWUMAParent(entity)
+		entity:RemoveWUMAParent(self)
 	end
 
 	self:SetCounts({})

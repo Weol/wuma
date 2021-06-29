@@ -142,6 +142,14 @@ function WUMA.Initialize()
 	--Load inheritance from database
 	WUMA.LoadInheritance()
 
+	--Read usergroup settings
+	for usergroup, _ in pairs(CAMI.GetUsergroups()) do
+		WUMA.Settings[usergroup] = WUMA.Settings[usergroup] or WUMA.ReadSettings(usergroup) or {}
+		WUMA.Restrictions[usergroup] = WUMA.Restrictions[usergroup] or WUMA.ReadRestrictions(usergroup) or {}
+		WUMA.Limits[usergroup] = WUMA.Limits[usergroup] or WUMA.ReadLimits(usergroup) or {}
+		WUMA.Loadouts[usergroup] = WUMA.Loadouts[usergroup] or WUMA.ReadLoadouts(usergroup) or {}
+	end
+
 	--Load client files
 	WUMALog("Loading client files")
 	WUMA.LoadCLFolder("wuma/client/")
@@ -150,12 +158,12 @@ function WUMA.Initialize()
 	--Scope:StartThink()
 
 	--Add hook so playerextention loads when the first player joins
-	hook.Add("PlayerAuthed", "WUMA_INIT_PlayerAuthed", function(ply)
+	hook.Add("PlayerInitialSpawn", "WUMA_INIT_LOAD_PLAYEREXTENTION_PlayerInitialSpawn", function(ply)
 		include("wuma/extentions/playerextention.lua")
 		ply:SendLua([[include("wuma/extentions/playerextention.lua")]])
 
 		if E2Lib then include("wuma/expression2.lua") end
-		hook.Remove("PlayerAuthed", "WUMA_INIT_PlayerAuthed")
+		hook.Remove("PlayerInitialSpawn", "WUMA_INIT_LOAD_PLAYEREXTENTION_PlayerInitialSpawn")
 	end)
 
 	--All overides should be loaded after WUMA
@@ -164,7 +172,11 @@ end
 
 function WUMA.SetSetting(parent, key, value)
 	if WUMA.Settings[parent] then
-		WUMA.Settings[parent][key] = value
+		if not value then
+			WUMA.Settings[parent][key] = nil
+		else
+			WUMA.Settings[parent][key] = value
+		end
 	end
 
 	if value then
@@ -194,6 +206,10 @@ local function convertSettingValue(value)
 end
 
 function WUMA.GetSetting(parent, key)
+	if WUMA.Settings[parent] then
+		return WUMA.Settings[parent][key]
+	end
+
 	local settings = WUMASQL([[SELECT * FROM `WUMASettings` WHERE `parent` == "%s" AND `key` == "%s"]], parent, key)
 
 	if not settings then return nil end

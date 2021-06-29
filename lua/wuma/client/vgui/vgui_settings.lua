@@ -98,6 +98,15 @@ function PANEL:Init()
 	self.inheritance_target.combobox:SetSortItems(false)
 	self.inheritance_target.combobox.OnSelect = function() self:PopulateInheritance() end
 
+
+	--Loadout
+	self.inheritance_loadout = vgui.Create("DPanel", self.inheritance_settings)
+	self.inheritance_loadout.Paint = function(_, _, h) draw.DrawText("Inherit loadout from ", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
+	self.inheritance_loadout.combobox = vgui.Create("DComboBox", self.inheritance_loadout)
+	self.inheritance_loadout.combobox.OnSelect = function()
+		self:OnInheritanceComboboxChanged("loadout",  self.inheritance_target.combobox:GetSelected(), self.inheritance_loadout.combobox:GetSelected())
+	end
+
 	--Restrictions
 	self.inheritance_restriction = vgui.Create("DPanel", self.inheritance_settings)
 	self.inheritance_restriction.Paint = function(_, _, h) draw.DrawText("Inherit restrictions from ", "DermaDefault", 0, h/2-7, Color(0, 0, 0), TEXT_ALIGN_LEFT) end
@@ -160,6 +169,12 @@ function PANEL:PerformLayout(w, h)
 	self.inheritance_target:Dock(TOP)
 	self.inheritance_target.combobox:SetWide(self.inheritance_target:GetWide()/5*2)
 	self.inheritance_target.combobox:SetPos(self.inheritance_target:GetWide()-self.inheritance_target.combobox:GetWide(), 0)
+
+	self.inheritance_loadout:SetTall(22)
+	self.inheritance_loadout:DockMargin(5, 0, 5, 5)
+	self.inheritance_loadout:Dock(BOTTOM)
+	self.inheritance_loadout.combobox:SetWide(self.inheritance_loadout:GetWide()/5*2)
+	self.inheritance_loadout.combobox:SetPos(self.inheritance_loadout:GetWide()-self.inheritance_loadout.combobox:GetWide(), 0)
 
 	self.inheritance_restriction:SetTall(22)
 	self.inheritance_restriction:DockMargin(5, 0, 5, 5)
@@ -331,9 +346,14 @@ function PANEL:PopulateInheritance()
 
 	self.inheritance_restriction.combobox:Clear()
 	self.inheritance_limit.combobox:Clear()
+	self.inheritance_loadout.combobox:Clear()
 
 	for _, usergroup in pairs(self:GetUsergroups()) do
 		if (text ~= usergroup) then
+			if not table.HasValue(self:GetInheritanceTree("loadout", text), usergroup) then
+				self.inheritance_loadout.combobox:AddChoice(usergroup, usergroup)
+			end
+
 			if not table.HasValue(self:GetInheritanceTree("restrictions", text), usergroup) then
 				self.inheritance_restriction.combobox:AddChoice(usergroup, usergroup)
 			end
@@ -346,6 +366,7 @@ function PANEL:PopulateInheritance()
 
 	self.inheritance_restriction.combobox:AddChoice("Nobody", nil, true)
 	self.inheritance_limit.combobox:AddChoice("Nobody", nil, true)
+	self.inheritance_loadout.combobox:AddChoice("Nobody", nil, true)
 
 	local selected = self.inheritance_target.combobox:GetSelected()
 
@@ -362,6 +383,12 @@ function PANEL:PopulateInheritance()
 					for k, v in pairs(self.inheritance_limit.combobox.Choices) do
 						if (v == inheritFrom) then
 							self.inheritance_limit.combobox:ChooseOptionID(k)
+						end
+					end
+				elseif (type == "loadout") then
+					for k, v in pairs(self.inheritance_loadout.combobox.Choices) do
+						if (v == inheritFrom) then
+							self.inheritance_loadout.combobox:ChooseOptionID(k)
 						end
 					end
 				end

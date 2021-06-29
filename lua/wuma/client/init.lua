@@ -102,11 +102,13 @@ function WUMA.GetServerTime()
 end
 
 function WUMA.NotifyTypeRestriction(type) --RPC from server
-	notification.AddLegacy(string.format("%s are restricted!", type), NOTIFY_ERROR, 3)
+	notification.AddLegacy(string.format("%s are restricted!", WUMA.RestrictionTypes[type]:GetPrint2()), NOTIFY_ERROR, 3)
+	surface.PlaySound("buttons/button10.wav")
 end
 
 function WUMA.NotifyRestriction(type, str) --RPC from server
 	notification.AddLegacy(string.format("This %s (%s) is restricted!", type, str), NOTIFY_ERROR, 3)
+	surface.PlaySound("buttons/button10.wav")
 end
 
 function WUMA.NotifyLimitHit(str) --RPC from server

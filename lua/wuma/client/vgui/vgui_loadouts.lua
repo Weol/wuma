@@ -5,7 +5,8 @@ AccessorFunc(PANEL, "settings", "Settings")
 
 function PANEL:Init()
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 	self.Settings = {}
 
 	--Primary ammo chooser
@@ -72,16 +73,9 @@ function PANEL:Init()
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyWeapon(...) end)
 	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
-	--Allow checkbox
-	self.checkbox_ignore = vgui.Create("WCheckBoxLabel", self)
-	self.checkbox_ignore:SetText("Ignore restrictions")
-	self.checkbox_ignore:SetValue(-1)
-	self.checkbox_ignore:SetTextColor(Color(0, 0, 0))
-	self.checkbox_ignore.OnChange = function(_, val) self:OnIgnoreRestrictionsCheckboxChanged(val) end
-
 	--Enforce checkbox
 	self.checkbox_enforce = vgui.Create("WCheckBoxLabel", self)
-	self.checkbox_enforce:SetText("Extend existing loadout")
+	self.checkbox_enforce:SetText("Keep gamemode loadout")
 	self.checkbox_enforce:SetValue(-1)
 	self.checkbox_enforce:SetTextColor(Color(0, 0, 0))
 	self.checkbox_enforce.OnChange = function(_, val) self:OnEnforceCheckboxChanged(val) end
@@ -119,28 +113,19 @@ function PANEL:PerformLayout(w, h)
 	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y - self.list_suggestions.y - 5)
 
 	self.list_items:SetPos(self.slider_primary.x + self.slider_primary:GetWide() + 5, 5)
-	self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, h - self.checkbox_ignore:GetTall() - 20)
+	self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, h - self.checkbox_enforce:GetTall() - 20)
 
-	self.checkbox_ignore:SetPos(self.list_items.x + 5, self.list_items.y + self.list_items:GetTall() + 5)
-
-	self.checkbox_enforce:SetPos(self.checkbox_ignore.x + self.checkbox_ignore:GetWide() + 10, self.checkbox_ignore.y)
+	self.checkbox_enforce:SetPos(self.list_items.x + 5, self.list_items.y + self.list_items:GetTall() + 5)
 end
 
 function PANEL:ClassifyWeapon(weapon)
-	local icon
-
-	local settings = self.Settings
-	if settings[weapon:GetParent()] and settings[weapon:GetParent()]["loadout_primary_weapon"] == weapon:GetClass() then
-		icon = {"icon16/star.png", "This is the primary weapon"}
-	end
-
 	local primary_ammo = weapon:GetPrimaryAmmo()
 	if (primary_ammo < 0) then primary_ammo = "default" end
 
 	local secondary_ammo = weapon:GetSecondaryAmmo()
 	if (secondary_ammo < 0) then secondary_ammo = "default" end
 
-	return weapon:GetParent(), {weapon:GetParent(), weapon:GetClass(), primary_ammo, secondary_ammo}, nil, nil, icon
+	return weapon:GetParent(), {weapon:GetParent(), weapon:GetClass(), primary_ammo, secondary_ammo}, nil, nil
 end
 
 function PANEL:SortGrouping(weapon)
@@ -149,28 +134,106 @@ function PANEL:SortGrouping(weapon)
 	local usergroup_display = self:GetUsergroupDisplay(usergroup) or usergroup --So that we can set usergroup_display on user-loadouts tab
 
 	if (#selected_usergroups > 1) then
-		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Loadout for " .. usergroup
+		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Loadout for " .. usergroup, nil
 	else
-		for i, group in ipairs(self.Inheritance[self:GetSelectedUsergroups()[1]] or {}) do
+		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
 			if (group == weapon:GetParent()) then
 				return i + 1, "Loadout inherited from " .. usergroup_display, true
 			end
 		end
 	end
 
-	return 1, "Loadout for " .. usergroup_display
+	return 1, "Loadout for " .. usergroup_display, nil
+end
+
+function PANEL:OnViewChanged()
+	if (#self.list_items:GetSelectedItems() > 0) then
+		self.button_primary:SetDisabled(false)
+		self.button_delete:SetDisabled(false)
+	else
+		self.button_primary:SetDisabled(true)
+		self.button_delete:SetDisabled(true)
+	end
+
+	local selected_usergroups = self:GetSelectedUsergroups()
+
+	for _, line in pairs(self.list_items:GetLines()) do
+		line:SetIcon(nil)
+	end
+
+	if (#selected_usergroups == 1) then
+		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+
+		local primary_weapon = self.Settings[selected_usergroups[1]] and self.Settings[selected_usergroups[1]]["loadout_primary_weapon"]
+		local primary_from = primary_weapon and selected_usergroups[1]
+
+		if inheritsFrom and not primary_weapon then
+			for _, usergroup in ipairs(inheritsFrom) do
+				if primary_weapon then break end
+				primary_weapon = self.Settings[usergroup] and self.Settings[usergroup]["loadout_primary_weapon"]
+				primary_from = primary_weapon and usergroup
+			end
+		end
+
+		WUMADebug((primary_weapon or "nil") .. " from " .. (primary_from or "nil"))
+
+		local data_registry = self.list_items:GetDataRegistry()
+
+		local primary_weapon_line = data_registry[primary_from] and data_registry[primary_from][primary_from .. "_" .. primary_weapon]
+		if primary_weapon_line then
+			primary_weapon_line:SetIcon({"icon16/star.png", "This is the primary weapon of " .. (self:GetUsergroupDisplay(selected_usergroups[1]) or selected_usergroups[1])})
+		end
+
+		local overriden_items = {}
+		if inheritsFrom then
+			for i = #inheritsFrom, 1, -1 do
+				for j = i - 1, 0, -1 do
+					for _, line in pairs(data_registry[inheritsFrom[i]] or {}) do
+						local weapon = line:GetValue()
+
+						local usergroup = (j >= 0) and inheritsFrom[j] or selected_usergroups[1]
+
+						local group_key = usergroup
+						local item_key = usergroup.. "_" .. weapon:GetClass()
+						if not overriden_items[line] and data_registry[group_key] and data_registry[group_key][item_key] then
+							overriden_items[line] = usergroup
+						end
+					end
+				end
+			end
+		end
+
+		for line, overiddenBy in pairs(overriden_items) do
+			local icon = {"icon16/cancel.png", "This weapon has been overridden by " .. (self:GetUsergroupDisplay(overiddenBy) or overiddenBy)}
+			line:SetIcon(icon)
+		end
+	else
+		for _, line in ipairs(self.list_items:GetLines()) do
+			local weapon = line:GetValue()
+
+			local primary_weapon = self.Settings[weapon:GetParent()] and self.Settings[weapon:GetParent()]["loadout_primary_weapon"]
+			if primary_weapon and weapon:GetClass() == primary_weapon then
+				local icon = {"icon16/star.png", "This is the primary weapon of " .. (self:GetUsergroupDisplay(weapon:GetParent()) or weapon:GetParent())}
+				line:SetIcon(icon)
+			end
+		end
+	end
 end
 
 function PANEL:NotifyInheritanceChanged(inheritance)
 	inheritance = inheritance["loadout"] or {}
 
-	self.Inheritance = {}
+	self.InheritsFrom = {}
+	self.InheritsTo = {}
 	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.Inheritance[usergroup] = self.Inheritance[usergroup] or {}
+		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
 
 		local current = inheritsFrom
 		while current do
-			table.insert(self.Inheritance[usergroup], current)
+			table.insert(self.InheritsFrom[usergroup], current)
+
+			self.InheritsTo[current] = self.InheritsTo[current] or {}
+			table.insert(self.InheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
@@ -273,82 +336,49 @@ function PANEL:ShowUsergroups(usergroups)
 
 	self.list_items:ClearPanels()
 
-	local inherit_gamemode = false
+	for i, selected in ipairs(usergroups) do
+		table.insert(to_show, selected)
+		for i, group in ipairs(self.InheritsFrom[selected] or {}) do
+			table.insert(to_show, group)
+		end
+	end
 
-	if (table.Count(usergroups) == 1) then
-		for i, selected in ipairs(usergroups) do
-			table.insert(to_show, selected)
-			if settings[usergroups[1]] and settings[usergroups[1]]["loadout_enforce"] then
-				inherit_gamemode = true
-				for i, group in ipairs(self.Inheritance[selected] or {}) do
-					table.insert(to_show, group)
-					inherit_gamemode = settings[group] and settings[group]["loadout_enforce"]
+	if (table.Count(usergroups) > 1) then
+		self.checkbox_enforce:SetValue(0)
+		self.checkbox_enforce:SetDisabled(true)
+
+		local message = "Disabled when multiple usergroups are selected"
+		self.checkbox_enforce:SetHoverMessage(message)
+	else
+		self.DisregardSettingsChange = true
+
+		self.checkbox_enforce:SetDisabled(false)
+		self.checkbox_enforce:SetValue(-1)
+
+		local usergroup = self:GetSelectedUsergroups()[1]
+
+		self.checkbox_enforce:SetValue(settings[usergroup] and settings[usergroup]["loadout_enforce"] and 1 or -1)
+
+		if self.InheritsFrom[usergroup] then
+			for i, inheritsFrom in ipairs(self.InheritsFrom[usergroup]) do
+				if (settings[inheritsFrom] and settings[inheritsFrom]["loadout_enforce"]) then
+					self.checkbox_enforce:SetValue(1)
+					self.checkbox_enforce:SetDisabled(true)
+					self.checkbox_enforce:SetHoverMessage("Cannot change inherited setting")
+					break
 				end
 			end
 		end
-	else
-		for i, selected in ipairs(usergroups) do
-			table.insert(to_show, selected)
-		end
-	end
 
-	if inherit_gamemode then
-		self.list_items:AddPanel("This loadout will not replace existing loadout, weapons spawned by default will still be present", BOTTOM)
-	end
-
-	self.DisregardSettingsChange = true
-
-	self.checkbox_enforce:SetValue(-1)
-	self.checkbox_ignore:SetValue(-1)
-
-	local prev_loadout_enforce
-	local prev_loadout_ignore_restrictions
-
-	local first = true
-
-	local lock_enforce = false
-	local lock_ignore_restrictions = false
-	for _, usergroup in pairs(self:GetSelectedUsergroups()) do
-		local loadout_enforce = settings[usergroup] and settings[usergroup]["loadout_enforce"]
-		local loadout_ignore_restrictions = settings[usergroup] and settings[usergroup]["loadout_ignore_restrictions"]
-
-		if not first and not lock_enforce and loadout_enforce ~= prev_loadout_enforce then
-			self.checkbox_enforce:SetValue(0)
-			lock_enforce = true
-		elseif not lock_enforce and loadout_enforce then
-			self.checkbox_enforce:SetValue(1)
+		if (self.checkbox_enforce:GetValue() == 1) then
+			self.list_items:AddPanel("This loadout will not replace the gamemode loadout, weapons spawned by the gamemode will still be present", BOTTOM)
 		end
 
-		if not first and not lock_ignore_restrictions and loadout_ignore_restrictions ~= prev_loadout_ignore_restrictions then
-			self.checkbox_ignore:SetValue(0)
-			lock_ignore_restrictions = true
-		elseif not lock_ignore_restrictions and loadout_ignore_restrictions then
-			self.checkbox_ignore:SetValue(1)
-		end
-
-		prev_loadout_ignore_restrictions = loadout_ignore_restrictions
-		prev_loadout_enforce = loadout_enforce
-		first = false
+		self.DisregardSettingsChange = false
 	end
-
-	for _, weapon in pairs(self.list_items:GetSelectedItems()) do
-		self:OnItemSelected(weapon)
-	end
-
-	self.DisregardSettingsChange = false
 
 	self.list_items:GroupAll()
 	self.list_items:Show(to_show)
-end
-
-function PANEL:OnViewChanged()
-	if (#self.list_items:GetSelectedItems() > 0) then
-		self.button_primary:SetDisabled(false)
-		self.button_delete:SetDisabled(false)
-	else
-		self.button_primary:SetDisabled(true)
-		self.button_delete:SetDisabled(true)
-	end
 end
 
 function PANEL:OnItemSelected(weapon)
@@ -403,24 +433,6 @@ end
 
 --luacheck: push no unused args
 function PANEL:OnEnforceLoadoutChanged(usergroups, enforce)
-	--For override
-end
---luacheck: pop
-
-function PANEL:OnIgnoreRestrictionsCheckboxChanged(checked)
-	if (checked == 0) or self.DisregardSettingsChange then
-		return
-	else
-		checked = (checked == 1)
-	end
-
-	local usergroups = self:GetSelectedUsergroups()
-
-	self:OnIgnoreRestrictionsChanged(usergroups, checked)
-end
-
---luacheck: push no unused args
-function PANEL:OnIgnoreRestrictionsChanged(usergroups, ignore_restrictions)
 	--For override
 end
 --luacheck: pop

@@ -108,57 +108,77 @@ function ENT:LimitHit(string)
 	self:SendLua(string.format([[WUMA.NotifyLimitHit("%s")]], string))
 end
 
+function ENT:RestrictionHit(type, item)
+	if (type ~= "pickup") then
+		if item then
+			self:SendLua(string.format([[WUMA.NotifyRestriction("%s", "%s")]], type, item))
+		else
+			self:SendLua(string.format([[WUMA.NotifyTypeRestriction("%s")]], type))
+		end
+	end
+end
+
+local function isTypeRestricted(steamid, usergroup, type)
+	local type_restricted = WUMA.Settings[steamid] and WUMA.Settings[steamid]["restrict_type_" .. type] and steamid
+	local is_whitelist = WUMA.Settings[steamid] and WUMA.Settings[steamid]["iswhitelist_type_" .. type] and steamid
+
+	local current = usergroup
+	while current and (not type_restricted and not is_whitelist) do
+		type_restricted = type_restricted or (WUMA.Settings[current] and WUMA.Settings[current]["restrict_type_" .. type] and current)
+		is_whitelist = is_whitelist or (WUMA.Settings[current] and WUMA.Settings[current]["iswhitelist_type_" .. type] and current)
+
+		current = WUMA.Inheritance["restrictions"] and WUMA.Inheritance["restrictions"][current]
+	end
+
+	return type_restricted, is_whitelist
+end
+
 function ENT:CheckRestriction(type, item)
+	WUMADebug("CheckRestriction(%s, %s)", type, item)
 	local usergroup = self:GetUserGroup()
 	local steamid = self:SteamID()
 
 	local key = type .. "_" .. item
 
-	local user_type_restricted = WUMA.Settings[steamid]["restrict_type_" .. type]
+	local type_restricted, is_whitelist = isTypeRestricted(steamid, usergroup, type)
 
+	if type_restricted then
+		return false, self:RestrictionHit(type)
+	end
 
-	local restriction = WUMA.Restrictions[steamid][key]
+	local restriction = WUMA.Restrictions[steamid] and WUMA.Restrictions[steamid][key]
 
 	local current = usergroup
-	while not restriction do
-		restriction = WUMA.Restrictions[current][key]
-		current = WUMA.Inheritance["restrictions"][current]
+	while not restriction and current do
+		restriction = WUMA.Restrictions[current] and WUMA.Restrictions[current][key]
+		current = WUMA.Inheritance["restrictions"] and WUMA.Inheritance["restrictions"][current]
+	end
+
+	if is_whitelist then
+		if restriction then
+			return true
+		else
+			return false, self:RestrictionHit(type, item)
+		end
+	elseif restriction then
+		return restriction:Check(self), self:RestrictionHit(type, item)
 	end
 end
 
 local old_Loadout = ENT.Loudout
 function ENT:Loadout()
-	local steamid = self:SteamID()
-	local usergroup = self:GetUserGroup()
-
-	local user_enforce = WUMA.Settings[steamid]["loadout_enforce"]
-	local group_enforce = WUMA.Settings[usergroup]["loadout_enforce"]
-
-	local user_primary_weapon = WUMA.Settings[steamid]["loadout_primary_weapon"]
-	local group_primary_weapon = WUMA.Settings[usergroup]["loadout_primary_weapon"]
-
-	self:ConCommand("cl_defaultweapon " .. user_primary_weapon or group_primary_weapon)
-
-	self:StripWeaopns()
-	self:RemoveAllAmmo()
-
-	if not user_enforce and not group_enforce then
-		old_Loadout(self)
+	local weapons = {}
+	for _, weapon in pairs(self:GetWeapons()) do
+		weapons[weapon:GetClass()] = 1
 	end
 
-	if WUMA.Loadouts[steamid] then
-		for class, weapon in pairs(WUMA.Loadouts[usergroup]) do
-			WUMA.GiveWeapon(player, weapon)
+	local result = old_Loadout(self)
+
+	for _, weapon in pairs(self:GetWeapons()) do
+		if not weapons[weapon:GetClass()] then
+			weapon.SpawnedByDefault = true
 		end
-		if user_enforce then return end
 	end
 
-	if WUMA.Loadouts[usergroup] then
-		for class, weapon in pairs(WUMA.Loadouts[usergroup]) do
-			WUMA.GiveWeapon(player, weapon)
-		end
-		if group_enforce then return end
-	end
-
-	self:SwitchToDefaultWeapon()
+	return result
 end

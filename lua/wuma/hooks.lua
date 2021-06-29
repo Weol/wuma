@@ -19,7 +19,7 @@ local function checkLimit(player, str, id)
 end
 
 local function checkRestriction(player, type, item)
-	return player:CheckLimit(type, item)
+	return player:CheckRestriction(type, item)
 end
 
 local function playerSpawnSENT(player, sent)
@@ -187,27 +187,31 @@ local function playerCanProperty(player, property, ent)
 end
 hook.Add("CanProperty", "WUMA_HOOKS_CanProperty", playerCanProperty, -1)
 
-local physgun_last_return = {}
-local physgun_last_time = {}
 local function playerPhysgunPickup(player, ent)
 	if not player or not ent then return end
 
-	if (physgun_last_time[player:SteamID()] and os.time() < physgun_last_time[player:SteamID()]) then
-		if (physgun_last_return[player:SteamID()] == false) then return false end
-	else
-		local class = ent:GetClass()
-		if (class == "prop_ragdoll" or class == "prop_physics") then
-			class = ent:GetModel()
-		elseif (class == "prop_effect") then
-			class = ent.WUMAModel
-		elseif (ent:GetTable().VehicleName) then
-			class = ent:GetTable().VehicleName
+	local class = ent:GetClass()
+	if (class == "prop_ragdoll" or class == "prop_physics") then
+		class = ent:GetModel()
+	elseif (class == "prop_effect") then
+		class = ent.WUMAModel
+	elseif (ent:GetTable().VehicleName) then
+		class = ent:GetTable().VehicleName
+	end
+
+	WUMADebug(class)
+
+	if (player.physgun_last_pickup_time and player.physgun_last_pickup_class == class and os.time() < player.physgun_last_pickup_time) then
+		if (player.physgun_last_return == false) then
+			player.physgun_last_pickup_time = os.time() + 2
+			return false
 		end
+	else
+		player.physgun_last_return = checkRestriction(player, "physgrab", class)
+		player.physgun_last_pickup_time = os.time() + 2
+		player.physgun_last_pickup_class = class
 
-		physgun_last_return[player:SteamID()] = checkRestriction(player, "physgrab", class)
-		physgun_last_time[player:SteamID()] = os.time() + 2
-
-		if (physgun_last_return[player:SteamID()] == false) then return false end
+		if (player.physgun_last_return == false) then return false end
 	end
 end
 hook.Add("PhysgunPickup", "WUMA_HOOKS_PhysgunPickup", playerPhysgunPickup, -1)

@@ -10,7 +10,7 @@ for name, tbl in pairs(wire_expression_types) do
     local iterator = string.gmatch(tbl[1], ".")
     local c = iterator()
     while c do
-        next = iterator()
+        local next = iterator()
         if next then
             head[c] = head[c] or {}
         else

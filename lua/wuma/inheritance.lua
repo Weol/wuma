@@ -15,6 +15,13 @@ function WUMA.GetInheritsRestrictionsFrom(parent)
 	end
 end
 
+function WUMA.GetInheritsLoadoutFrom(parent)
+	local inheritsFrom = WUMA.Inheritance["loadout"] and  WUMA.Inheritance["loadout"][parent]
+	if inheritsFrom then
+		return inheritsFrom
+	end
+end
+
 function WUMA.LoadInheritance()
 	local inheritances = WUMASQL([[SELECT * FROM `WUMAInheritance`]])
 	if inheritances then
