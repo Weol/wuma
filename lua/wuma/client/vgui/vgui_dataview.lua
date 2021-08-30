@@ -3,7 +3,6 @@ local PANEL = {}
 
 AccessorFunc(PANEL, "ClassifyFunction", "ClassifyFunction")
 AccessorFunc(PANEL, "SortGroupingFunction", "SortGroupingFunction")
-AccessorFunc(PANEL, "DuplicateKeyFunction", "DuplicateKeyFunction")
 AccessorFunc(PANEL, "FilterFunction", "FilterFunction")
 AccessorFunc(PANEL, "Panels", "Panels")
 AccessorFunc(PANEL, "Headers", "Headers")
@@ -87,8 +86,6 @@ function PANEL:AddViewLine(key)
 		line.key = key
 		line.group = item.group
 		line.value = item.value
-		line.sort_index = item.sort_index
-		line.sort_title = item.sort_title
 		line.disallow_select = item.disallow_select
 
 		line.old_Paint = line.old_Paint or line.Paint or function() end
@@ -199,7 +196,7 @@ function PANEL:AddViewLine(key)
 		self.DataRegistry[item.group] = self.DataRegistry[item.group] or {}
 		self.DataRegistry[item.group][key] = line
 
-		if item.post_process then item.post_process(line) end
+		return line
 	end
 end
 
@@ -237,10 +234,6 @@ function PANEL:RemoveViewLine(key)
 end
 
 local function sort_function(column_id, desc, a, b)
-	if a.sort_index and b.sort_index and (a.sort_index ~= b.sort_index) then
-		return a.sort_index < b.sort_index
-	end
-
 	local a_val = a:GetSortValue(column_id) or a:GetColumnText(column_id)
 	local b_val = b:GetSortValue(column_id) or b:GetColumnText(column_id)
 
@@ -267,6 +260,12 @@ function PANEL:SortByColumn(column_id, desc)
 	table.Copy(self.Sorted, self.Lines)
 
 	table.sort(self.Sorted, function(a, b)
+		local a_index = self.GroupOrder[a.group]
+		local b_index = self.GroupOrder[b.group]
+		if a_index and b_index and (a_index ~= b_index) then
+			return a_index < b_index
+		end
+
 		return sort_function(column_id, desc, a, b)
 	end)
 
@@ -385,14 +384,29 @@ function PANEL:DataLayout()
 
 	table.Empty(self.Headers)
 
-	local last_index
+	local last_index = 0
 	for k, line in ipairs(self.Sorted) do
 		line:SetSize(self:GetWide() - 2, h)
 
-		if (line.sort_index ~= last_index) and line.sort_title then
-			table.insert(self.Headers, {y, y + line:GetTall() + 4, line.sort_title})
+		local index = self.GroupOrder[line.group]
 
-			y = y + line:GetTall() + 4
+		WUMADebug(line.group)
+
+		if (index ~= last_index) then
+			for i = 0, index - last_index do
+				if (index + i > #self.ShowGroups) then break end
+
+				local header_function = self.ShowGroups[index + i][2]
+
+				if header_function then
+					local header = header_function(self.Groups[line.group])
+					table.insert(self.Headers, {y, y + line:GetTall() + 4, header})
+
+					y = y + line:GetTall() + 4
+				end
+
+				last_index = last_index + 1
+			end
 		end
 
 		line:SetPos(1, y)
@@ -401,8 +415,6 @@ function PANEL:DataLayout()
 		line:SetAltLine(k % 2 == 1)
 
 		y = y + line:GetTall()
-
-		last_index = line.sort_index
 	end
 
 	for _, panel in ipairs(self.Panels[BOTTOM]) do
@@ -457,24 +469,26 @@ function PANEL:OnDataUpdate()
 end
 
 function PANEL:Show(key)
-	if not istable(key) then key = {key} end
-
 	self:ClearSelection()
+	self:Clear()
 
-	for group, lines in pairs(self.DataRegistry) do
-		if not table.HasValue(key, group) then
-			for key, _ in pairs(lines) do
-				self:RemoveViewLine(key)
-			end
-			self.DataRegistry[group]  = nil
-		end
+	self.DataRegistry = {}
+
+	self.ShowGroups = key
+
+	self.GroupOrder = {}
+	for i, group in ipairs(key) do
+		self.GroupOrder[group[1]] = i
 	end
 
 	for _, group in pairs(key) do
-		if not self.DataRegistry[group] then
-			self.DataRegistry[group] = {}
-			for key, _ in pairs(self.Groups[group] or {}) do
-				self:AddViewLine(key)
+		if self.Groups[group[1]] then
+			self.DataRegistry[group[1]] = {}
+			for key, _ in pairs(self.Groups[group[1]]) do
+				local line = self:AddViewLine(key)
+				if line then
+					line.disallow_select = group[3]
+				end
 			end
 		end
 	end
@@ -504,8 +518,6 @@ function PANEL:Sort(key, value)
 		key = key
 	}
 
-	self:Group(self.Keys[key])
-
 	return group, display, sort, highlight
 end
 
@@ -532,33 +544,6 @@ function PANEL:SortAll()
 	end
 end
 
-function PANEL:Group(item)
-	local grouper = self:GetSortGroupingFunction()
-	if grouper then
-		local index, title, disallow_select = grouper(item.value)
-
-		item.sort_index = index
-		item.sort_title = title
-		item.disallow_select = disallow_select
-	end
-
-	local line = self.DataRegistry[item.group] and self.DataRegistry[item.group][item.key]
-	if line then
-		line.item = item
-		line.sort_index = item.sort_index
-		line.sort_title = item.sort_title
-		line.disallow_select = item.disallow_select
-	end
-end
-
-function PANEL:GroupAll()
-	for _, item in pairs(self.Keys) do
-		if item then
-			self:Group(item)
-		end
-	end
-end
-
 function PANEL:AddDataSource(id, source)
 	if self.DataSources[id] ~= source then
 		self.DataSources[id] = source
@@ -572,6 +557,7 @@ function PANEL:GetDataSources()
 end
 
 function PANEL:UpdateDataSource(id, updated, deleted)
+	WUMADebug(updated)
 	for key, value in pairs(updated) do
 		key = id .. "_" .. key
 

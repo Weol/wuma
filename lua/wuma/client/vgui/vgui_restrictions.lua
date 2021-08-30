@@ -1,12 +1,15 @@
 
 local PANEL = {}
 
+AccessorFunc(PANEL, "inheritance", "Inheritance")
+AccessorFunc(PANEL, "usergroups", "Usergroups")
+AccessorFunc(PANEL, "settings", "Settings")
+AccessorFunc(PANEL, "inherits_from", "InheritsFrom")
+AccessorFunc(PANEL, "inherits_to", "InheritsTo")
+
 function PANEL:Init()
 
-	self.InheritsFrom = {}
-	self.InheritsTo = {}
-	self.Settings = {}
-	self.RawSettings = {}
+	self.settings = {}
 
 	--Restriction types list
 	self.list_types = vgui.Create("DListView", self)
@@ -18,8 +21,9 @@ function PANEL:Init()
 	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView", self)
 	self.list_usergroups:SetMultiSelect(true)
+
 	self.list_usergroups:AddColumn("Usergroups")
-	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupsChanged(lineid, line) end
+	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupsSelected(lineid, line) end
 
 	--Search bar
 	self.textbox_search = vgui.Create("WTextbox", self)
@@ -59,7 +63,6 @@ function PANEL:Init()
 	self.list_items.OnItemDeselected = function(_, item) return self:OnItemDeselected(item) end
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyRestriction(...) end)
-	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
 	--Whitelist checkbox
 	self.checkbox_whitelist = vgui.Create("WCheckBoxLabel", self)
@@ -109,49 +112,78 @@ function PANEL:PerformLayout()
 	self.checkbox_restrictall:SetPos(self.checkbox_whitelist.x + self.checkbox_whitelist:GetWide() + 10, self.checkbox_whitelist.y)
 end
 
+--[[
+	Should return 4 values:
+		group_id - the id of the group the restriction belongs to, can be a table to be a composite key, is converted to table with single value otherwise
+		display - a table that specifies which values should be displayed for each column
+		sort - a table that specifies which value the restriction should be sorted by for each column, can be null to have natural sorting
+		highlight - specifies which color the restriction should be highlighted with (use Color(r, g, b, a)), can be null for no highlighting
+]]
 function PANEL:ClassifyRestriction(restriction)
-	local group = restriction:GetType() .. "_" .. restriction:GetParent()
+	local group = restriction:GetParent() .. "_" .. restriction:GetType()
 
 	return group, {restriction:GetParent(), restriction:GetItem()}, nil, nil
 end
 
-function PANEL:SortGrouping(restriction)
-	local selected_usergroups = self:GetSelectedUsergroups()
-	local settings = self.Settings
-	local usergroup = restriction:GetParent()
-	local selected_type = self:GetSelectedType()
-	local usergroup_display = self:GetUsergroupDisplay(usergroup) or usergroup --So that we can set usergroup_display on user-restrictions tab
+function PANEL:BuildSettings()
+	local raw_settings = self.RawSettings
+	local inheritsFrom = self:GetInheritsFrom()
+	local settings = table.Copy(raw_settings)
 
-	if (#selected_usergroups > 1) then
-		local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. selected_type]
+	if not raw_settings then return end
 
-		if is_whiteliest then
-			return #(self.InheritsFrom[usergroup] or {}) + 1, "Whitelist for " .. usergroup_display
-		else
-			return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Restrictions for " .. usergroup
-		end
-	else
-		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
-			if (group == restriction:GetParent()) then
-				local is_whiteliest = settings[group] and settings[group]["iswhitelist_type_" .. selected_type]
+	if inheritsFrom then
+		for usergroup, _ in pairs(inheritsFrom) do
+			if inheritsFrom[usergroup] then
+				for name, type in pairs(WUMA.RestrictionTypes) do
+					for i = #inheritsFrom[usergroup], 1, -1 do
+						local current = inheritsFrom[usergroup][i]
 
-				if is_whiteliest then
-					return i + 1, "Inherited whitelist from " .. usergroup_display, true
-				else
-					return i + 1, "Inherited restrictions from " .. usergroup_display, true
+						local restrict_type = raw_settings[current] and raw_settings[current]["restrict_type_" ..name]
+						local is_whiteliest = raw_settings[current] and raw_settings[current]["iswhitelist_type_" ..name]
+
+						if restrict_type or (settings[usergroup] and settings[usergroup]["inherited_restrict_type_" ..name]) then
+							settings[usergroup] = settings[usergroup] or {}
+							settings[usergroup]["inherited_restrict_type_" ..name] = current
+						end
+
+						if is_whiteliest or (settings[usergroup] and settings[usergroup]["inherited_iswhitelist_type_" ..name]) then
+							settings[usergroup] = settings[usergroup] or {}
+							settings[usergroup]["inherited_iswhitelist_type_" ..name] = current
+						end
+					end
 				end
 			end
 		end
 	end
-	local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. selected_type]
 
-	if is_whiteliest then
-		return 1, "Whitelist for " .. usergroup_display
-	else
-		return 1, "Restrictions for " .. usergroup_display
-	end
+	self:SetSettings(settings)
 end
 
+--Returns whether or not a usergroups type is a whitelist or not (includes if it is inherited)
+function PANEL:IsTypeWhitelist(type, usergroup)
+	return self:GetSetting(usergroup, "iswhitelist_type_" .. type) or self:IsTypeWhitelistInherited(type, usergroup)
+end
+
+--Returns from whom the usergroup inherits type whitelist from, or null if it does not inherit a whitelist (can be false when PANEL:IsTypeWhitelist() is true)
+function PANEL:IsTypeWhitelistInherited(type, usergroup)
+	return self:GetSetting(usergroup, "inherited_iswhitelist_type_" .. type)
+end
+
+--Returns whether or not a usergroups type is restricted or not (includes if it is inherited)
+function PANEL:IsTypeRestricted(type, usergroup)
+	return self:GetSetting(usergroup, "restrict_type_" .. type) or self:GetSetting(usergroup, "inherited_restrict_type_" .. type)
+end
+
+--Returns from whom the usergroup inherits type restriction from, or null if it does not inherit a type restriction (can be false when PANEL:IsTypeRestricted() is true)
+function PANEL:IsTypeRestrictedInherited(type, usergroup)
+	return self:GetSetting(usergroup, "inherited_restrict_type_" .. type)
+end
+
+function PANEL:GetSetting(usergroup, key)
+	local settings = self:GetSettings()
+	return settings and settings[usergroup] and settings[usergroup][key]
+end
 
 function PANEL:OnViewChanged()
 	if (#self.list_items:GetSelectedItems() > 0) then
@@ -175,7 +207,7 @@ function PANEL:OnViewChanged()
 	if (#selected_usergroups == 1) then
 		local overriden_items = {}
 
-		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+		local inheritsFrom = self:GetInheritsFrom() and self:GetInheritsFrom()[selected_usergroups[1]]
 		if inheritsFrom then
 			local data_registry = self.list_items:GetDataRegistry()
 			for i = #inheritsFrom, 1, -1 do
@@ -196,17 +228,16 @@ function PANEL:OnViewChanged()
 		end
 
 		for line, overiddenBy in pairs(overriden_items) do
-			local icon = {"icon16/cancel.png", "This restriction has been overridden by " .. (self:GetUsergroupDisplay(overiddenBy) or overiddenBy)}
+			local icon = {"icon16/cancel.png", "This restriction has been overridden by " .. (self:GetUsergroupDisplay(overiddenBy))}
 			line:SetIcon(icon)
 		end
 	end
 end
 
---luacheck: push no unused args
+--For use in user-restrictions
 function PANEL:GetUsergroupDisplay(usergroup)
-	--For use in user-restrictions
+	return usergroup
 end
---luacheck: pop
 
 function PANEL:ReloadSuggestions(type)
 	local items = WUMA.RestrictionTypes[type]:GetItems()
@@ -264,45 +295,65 @@ function PANEL:NotifyRestrictionsChanged(restrictions, parent, updated, deleted)
 end
 
 function PANEL:NotifyUsergroupsChanged(usergroups)
-	self.usergroups = usergroups
-	self.list_usergroups:Clear()
-	for _, usergroup in pairs(usergroups) do
-		self.list_usergroups:AddLine(usergroup)
+	local inheritance = self:GetInheritance()
+	if inheritance then
+		usergroups = WUMA.TopologicalSort(inheritance, usergroups)
 	end
+
+	self:SetUsergroups(usergroups)
+
+	self.list_usergroups:Clear()
+	for i, usergroup in ipairs(usergroups) do
+		local line = self.list_usergroups:AddLine(self:GetUsergroupDisplay(usergroup))
+		line.usergroup = usergroup
+		line:SetSortValue(1, i)
+	end
+
 	self.list_usergroups:SelectFirstItem()
 end
 
 function PANEL:NotifySettingsChanged(parent, new_settings)
+	local settings = self:GetSettings()
 	if table.IsEmpty(new_settings) then
-		self.RawSettings[parent] = nil
+		settings[parent] = nil
 	else
-		self.RawSettings[parent] = new_settings
+		settings[parent] = new_settings
 	end
+
 	self:BuildSettings()
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+
+	self:ShowSelectedUsergroups()
 end
 
 function PANEL:NotifyInheritanceChanged(inheritance)
 	local inheritance = inheritance["restrictions"] or {}
 
-	self.InheritsFrom = {}
-	self.InheritsTo = {}
-	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
+	local inheritsFrom = {}
+	local inheritsTo = {}
 
-		local current = inheritsFrom
+	for usergroup, from in pairs(inheritance) do
+		inheritsFrom[usergroup] = inheritsFrom[usergroup] or {}
+
+		local current = from
 		while current do
-			table.insert(self.InheritsFrom[usergroup], current)
+			table.insert(inheritsFrom[usergroup], current)
 
-			self.InheritsTo[current] = self.InheritsTo[current] or {}
-			table.insert(self.InheritsTo[current], 1, usergroup)
+			inheritsTo[current] = inheritsTo[current] or {}
+			table.insert(inheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
 	end
 
-	self:BuildSettings()
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	self:SetInheritsFrom(inheritsFrom)
+	self:SetInheritsTo(inheritsTo)
+	self:SetInheritance(inheritance)
+
+	if self:GetUsergroups() then
+		self:NotifyUsergroupsChanged(self:GetUsergroups())
+	end
+
+	self:ShowSelectedUsergroups()
 end
 
 function PANEL:OnSearch(text)
@@ -320,7 +371,7 @@ function PANEL:OnSearch(text)
 	end
 end
 
-function PANEL:OnTypeChange(lineid, _)
+function PANEL:OnTypeChange(lineid)
 	if (self.list_types.previous_line == lineid) or not self:GetSelectedType() then return end
 
 	self:ReloadSuggestions(self:GetSelectedType())
@@ -331,7 +382,10 @@ function PANEL:OnTypeChange(lineid, _)
 
 	self.list_suggestions.VBar:SetScroll(0)
 
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	local plural_type = WUMA.RestrictionTypes[self:GetSelectedType()]:GetPrint2()
+	self.checkbox_restrictall:SetText("Restrict all " .. string.lower(plural_type))
+
+	self:ShowSelectedUsergroups()
 
 	self.list_types.previous_line = lineid
 end
@@ -346,125 +400,60 @@ function PANEL:OnItemDeselected()
 	end
 end
 
-function PANEL:BuildSettings()
-	local raw_settings = self.RawSettings
-	local inheritsFrom = self.InheritsFrom
-	local settings = table.Copy(raw_settings)
-
-	for usergroup, _ in pairs(inheritsFrom) do
-		for name, type in pairs(WUMA.RestrictionTypes) do
-			for i = #inheritsFrom[usergroup], 1, -1 do
-				local current = inheritsFrom[usergroup][i]
-
-				local restrict_type = raw_settings[current] and raw_settings[current]["restrict_type_" ..name]
-				local is_whiteliest = raw_settings[current] and raw_settings[current]["iswhitelist_type_" ..name]
-
-				if restrict_type or (settings[usergroup] and settings[usergroup]["inherited_restrict_type_" ..name]) then
-					settings[usergroup] = settings[usergroup] or {}
-					settings[usergroup]["restrict_type_" ..name] = true
-					settings[usergroup]["inherited_restrict_type_" ..name] = current
-				end
-
-				if is_whiteliest or (settings[usergroup] and settings[usergroup]["inherited_iswhitelist_type_" ..name]) then
-					settings[usergroup] = settings[usergroup] or {}
-					settings[usergroup]["iswhitelist_type_" ..name] = true
-					settings[usergroup]["inherited_iswhitelist_type_" ..name] = current
-				end
-			end
-		end
-	end
-
-	self.Settings = settings
-end
-
-function PANEL:OnUsergroupsChanged()
-	local usergroups = self:GetSelectedUsergroups()
-	for _, group in pairs(usergroups) do
+function PANEL:OnUsergroupsSelected()
+	for _, group in pairs(self:GetSelectedUsergroups()) do
 		self:OnUsergroupSelected(group)
 	end
 
-	self:ShowUsergroups(usergroups)
+	self:ShowSelectedUsergroups()
 end
 
-function PANEL:ShowUsergroups(usergroups)
+function PANEL:ShowSelectedUsergroups()
+	local usergroups = self:GetSelectedUsergroups()
+	if (#usergroups == 0) then
+		return self.list_items:Show({})
+	end
+
 	self.list_items:ClearPanels()
 
-	local to_show = {}
+	--[[
+		Sequential array of arrays:
+			1 - the group_id to show
+			2 - title of the header for the group (or null to not show a header)
+			3 - boolean that decides whether or not items in this group should be selectable or not (true: unselectable, nil or false: selectable)
+	]]
+	local groups = {}
 
 	local selected_type = self:GetSelectedType()
 	local plural_type = string.lower(WUMA.RestrictionTypes[self:GetSelectedType()]:GetPrint2())
 
-	local settings = self.Settings
-
 	if (#usergroups == 1) then
-		for _, selected in pairs(usergroups) do
-			to_show[selected] = selected
-			for _, group in ipairs(self.InheritsFrom[selected] or {}) do
-				to_show[group] = group
-			end
-		end
-	else
-		for i, selected in ipairs(usergroups) do
-			to_show[selected] = selected
-		end
-		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
-	end
-
-	if (#usergroups > 1) then
-		self.checkbox_restrictall:SetValue(0)
-		self.checkbox_whitelist:SetValue(0)
-
-		self.checkbox_restrictall:SetText("Restrict all " .. plural_type)
-
-		self.checkbox_restrictall:SetDisabled(true)
-		self.checkbox_whitelist:SetDisabled(true)
-
-		local message = "Disabled when multiple usergroups are selected"
-		self.checkbox_restrictall:SetHoverMessage(message)
-		self.checkbox_whitelist:SetHoverMessage(message)
-
-		for _, usergroup in ipairs(usergroups) do
-			local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. selected_type]
-			local inherited_restrict_type = settings[usergroup] and settings[usergroup]["inherited_restrict_type_" .. selected_type]
-
-			if inherited_restrict_type or restrict_type then
-				self.list_items:AddPanel("All " .. plural_type .. " are restricted from " .. (self:GetUsergroupDisplay(usergroup) or usergroup), TOP)
-				to_show[usergroup] = nil
-			end
-		end
-	else
 		self.DisregardSettingsChange = true
 
-		local usergroup = usergroups[1]
-
-		local restrict_type = settings[usergroup] and settings[usergroup]["restrict_type_" .. selected_type]
-		local is_whiteliest = settings[usergroup] and settings[usergroup]["iswhitelist_type_" .. selected_type]
-
-		local inherited_restrict_type = settings[usergroup] and settings[usergroup]["inherited_restrict_type_" .. selected_type]
-		local inherited_is_whiteliest = settings[usergroup] and settings[usergroup]["inherited_iswhitelist_type_" .. selected_type]
+		local selected = usergroups[1]
 
 		--SetDisabled to false before setting their values, otherwise the set values will be ignored
 		self.checkbox_restrictall:SetDisabled(false)
 		self.checkbox_whitelist:SetDisabled(false)
 
-		self.checkbox_restrictall:SetValue(restrict_type and 1 or -1)
-		self.checkbox_whitelist:SetValue(is_whiteliest and 1 or -1)
+		self.checkbox_restrictall:SetValue(self:IsTypeRestricted(selected_type, selected) and 1 or -1)
+		self.checkbox_whitelist:SetValue(self:IsTypeWhitelist(selected_type, selected) and 1 or -1)
 
 		self.checkbox_restrictall:SetHoverMessage(nil)
 		self.checkbox_whitelist:SetHoverMessage(nil)
 
-		if inherited_restrict_type then
+		if self:IsTypeRestrictedInherited(selected_type, selected) then
 			self.checkbox_whitelist:SetValue(-1)
 
 			self.checkbox_restrictall:SetDisabled(true)
-			self.checkbox_restrictall:SetHoverMessage("Cannot change inherited restrictions")
+			self.checkbox_restrictall:SetHoverMessage("Cannot change inherited type restriction")
 
 			self.checkbox_whitelist:SetDisabled(true)
 			self.checkbox_whitelist:SetHoverMessage("Cannot make whitelist when all " .. plural_type .. " are restricted")
 
 			self.button_derestrict:SetDisabled(true)
 			self.button_add:SetDisabled(true)
-		elseif restrict_type then
+		elseif self:IsTypeRestricted(selected_type, selected) then
 			self.checkbox_whitelist:SetValue(-1)
 
 			self.checkbox_whitelist:SetDisabled(true)
@@ -477,45 +466,89 @@ function PANEL:ShowUsergroups(usergroups)
 			self.button_add:SetDisabled(false)
 		end
 
-		if usergroup then
-			if inherited_is_whiteliest then
-				self.checkbox_whitelist:SetDisabled(true)
-				self.checkbox_whitelist:SetHoverMessage("Cannot change inherited whitelist")
+		self.DisregardSettingsChange = false
 
-				to_show = {}
-				to_show[usergroup] = usergroup
-
-				local current = inherited_is_whiteliest
-				while current do
-					to_show[current] = current
-
-					current = settings[current] and settings[current]["inherited_iswhitelist_type_" .. selected_type]
+		local header_function = function(restrictions)
+			if self:IsTypeWhitelist(selected_type, selected) then
+				if (table.Count(restrictions) == 0) then
+					return "No " .. string.lower(plural_type) .. " are whitlisted for " .. self:GetUsergroupDisplay(selected)
+				else
+					return "Whitelist for " .. self:GetUsergroupDisplay(selected)
 				end
-			elseif is_whiteliest then
-				to_show = {}
-				to_show[usergroup] = usergroup
+			elseif self:IsTypeRestricted(selected_type, selected) then
+				return "All " .. plural_type .. " are restricted from " .. self:GetUsergroupDisplay(selected)
+			else
+				if (table.Count(restrictions) == 0) then
+					return "No restrictions for " .. self:GetUsergroupDisplay(selected)
+				else
+					return "Restrictions from " .. self:GetUsergroupDisplay(selected)
+				end
 			end
 		end
 
-		if inherited_restrict_type or restrict_type then
-			self.list_items:AddPanel(string.format("All %s are restricted from %s", plural_type, self:GetUsergroupDisplay(usergroup) or usergroup), BOTTOM)
-			to_show = {}
-		end
+		table.insert(groups, {selected .. "_" .. selected_type, header_function})
 
-		self.DisregardSettingsChange = false
+		if self:GetInheritsFrom() and self:GetInheritsFrom()[selected] then
+			for _, usergroup in ipairs(self:GetInheritsFrom()[selected]) do
+				local header_function = function(restrictions)
+					if self:IsTypeWhitelist(selected_type, usergroup) then
+						if (table.Count(restrictions) == 0) then
+							return "No whitelisted " .. string.lower(plural_type) .. " inherited from " .. self:GetUsergroupDisplay(usergroup)
+						else
+							return "Whitelist inherited from " .. self:GetUsergroupDisplay(usergroup)
+						end
+					elseif self:IsTypeRestricted(selected_type, usergroup) then
+						return "All " .. plural_type .. " are restricted from " .. self:GetUsergroupDisplay(usergroup)
+					else
+						if (table.Count(restrictions) == 0) then
+							return "No restrictions inherited from " .. self:GetUsergroupDisplay(usergroup)
+						else
+							return "Restrictions inherited from " .. self:GetUsergroupDisplay(usergroup)
+						end
+					end
+				end
+
+				table.insert(groups, {usergroup .. "_" .. selected_type, header_function, true})
+			end
+		end
+	else
+		self.checkbox_restrictall:SetValue(0)
+		self.checkbox_whitelist:SetValue(0)
 
 		self.checkbox_restrictall:SetText("Restrict all " .. plural_type)
+
+		self.checkbox_restrictall:SetDisabled(true)
+		self.checkbox_whitelist:SetDisabled(true)
+
+		local message = "Disabled when multiple usergroups are selected"
+		self.checkbox_restrictall:SetHoverMessage(message)
+		self.checkbox_whitelist:SetHoverMessage(message)
+
+		for i, selected in ipairs(usergroups) do
+			local header_function = function(restrictions)
+				if self:IsTypeWhitelist(selected_type, selected) then
+					if (table.Count(restrictions) == 0) then
+						return "No " .. string.lower(plural_type) .. " are whitlisted for " .. self:GetUsergroupDisplay(selected)
+					else
+						return "Whitelist for " .. self:GetUsergroupDisplay(selected)
+					end
+				elseif self:IsTypeRestricted(selected_type, selected) then
+					return "All " .. plural_type .. " are restricted from " .. self:GetUsergroupDisplay(selected)
+				else
+					if (table.Count(restrictions) == 0) then
+						return "No restrictions for " .. self:GetUsergroupDisplay(selected)
+					else
+						return "Restrictions from " .. self:GetUsergroupDisplay(selected)
+					end
+				end
+			end
+
+			table.insert(groups, {selected .. "_" .. selected_type, header_function})
+		end
+		self.list_items:AddPanel("Not showing inherited restrictions", BOTTOM)
 	end
 
-	self.list_items:GroupAll()
-
-	local tbl = {}
-	for _, v in pairs(to_show) do
-		table.insert(tbl, selected_type .. "_" .. v)
-	end
-	self.list_items:Show(tbl)
-
-	self.list_items.VBar:SetScroll(0)
+	self.list_items:Show(groups)
 end
 
 --luacheck: push no unused args
@@ -568,7 +601,7 @@ function PANEL:OnRestrictClick()
 
 	local usergroups = {}
 	for _, usergroup in ipairs(self:GetSelectedUsergroups()) do
-		local restrict_type = self.Settings[usergroup] and self.Settings[usergroup]["restrict_type_" .. selected_type]
+		local restrict_type = self:GetSetting(usergroup, "restrict_type_" .. selected_type)
 		if not restrict_type then
 			table.insert(usergroups, usergroup)
 		end
@@ -587,7 +620,7 @@ function PANEL:OnDerestrictClick()
 
 	local usergroups = {}
 	for _, usergroup in ipairs(self:GetSelectedUsergroups()) do
-		local restrict_type = self.Settings[usergroup] and self.Settings[usergroup]["restrict_type_" .. selected_type]
+		local restrict_type = self:GetSetting(usergroup, "restrict_type_" .. selected_type)
 		if not restrict_type then
 			table.insert(usergroups, usergroup)
 		end

@@ -20,8 +20,10 @@ stds.wuma = {
         "LoadoutWeapon",
         "Restriction",
         "Limit",
+        "TableAccessorFunc",
         WUMA = {
             fields = {
+                "TopologicalSort",
                 "Usergroups",
                 "Initialize",
                 "IncludeFolder",

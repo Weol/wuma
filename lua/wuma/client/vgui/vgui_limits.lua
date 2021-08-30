@@ -20,6 +20,7 @@ function PANEL:Init()
 	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView", self)
 	self.list_usergroups:SetMultiSelect(true)
+	self.list_usergroups:SetSortable(false)
 	self.list_usergroups:AddColumn("Usergroups")
 	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupsChanged(lineid, line) end
 

@@ -116,4 +116,56 @@ function WUMA.NotifyLimitHit(str) --RPC from server
 	surface.PlaySound("buttons/button10.wav")
 end
 
+--Kahn's algorithm from psuedo-code on the Wikipedia article about topological sorting
+--Graph must not contain any circles
+function WUMA.TopologicalSort(graph, usergroups)
+	local sorted = {}
+	local no_incoming = {}
+
+	local incoming = {}
+	local outgoing = {}
+	for to, from in pairs(graph) do
+		incoming[to] = from
+
+		outgoing[from] = outgoing[from] or {}
+		outgoing[from][to] = true
+	end
+
+	for _, usergroup in pairs(usergroups) do
+		if not incoming[usergroup] then
+			table.insert(no_incoming, usergroup)
+		end
+	end
+
+	while not table.IsEmpty(no_incoming) do
+		local usergroup = table.remove(no_incoming)
+		table.insert(sorted, usergroup)
+
+		if outgoing[usergroup] then
+			for to, _ in pairs(outgoing[usergroup] or {}) do
+				incoming[to] = nil
+				table.insert(no_incoming, to)
+			end
+		end
+	end
+
+	return sorted
+end
+
+function TableAccessorFunc(tab, varname, name)
+	tab["Get" .. name] = function(self, key) return self[varname] and self[varname][key] end
+
+	tab["Set" .. name] = function(self, k, v)
+		if not v and istable(k) then
+			self[varname] = k
+		elseif k and v then
+			if not self[varname] then self[varname] = {} end
+
+			self[varname][k] = v
+		else
+			error("key and value must be supplied to setter, or key must be a table")
+		end
+	end
+end
+
 WUMA.Initialize()

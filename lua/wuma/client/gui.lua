@@ -198,7 +198,7 @@ function WUMA.GUI.InitializeRestrictionsTab()
 	end
 
 	function WUMA.GUI.RestrictionsTab:OnUsergroupSelected(usergroup)
-		local inheritsFrom = self.InheritsFrom[usergroup]
+		local inheritsFrom = self.InheritsFrom and self.InheritsFrom[usergroup]
 		local i = 1
 		local current = usergroup
 		while current do
@@ -233,7 +233,7 @@ function WUMA.GUI.InitializeRestrictionsTab()
 	end}
 
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
-		WUMA.GUI.RestrictionsTab:NotifyUsergroupsChanged(usergroups)
+		WUMA.GUI.RestrictionsTab:NotifyUsergroupsChanged(table.ClearKeys(usergroups))
 	end}
 end
 
@@ -272,7 +272,7 @@ function WUMA.GUI.InitializeLimitsTab()
 	end}
 
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
-		WUMA.GUI.LimitsTab:NotifyUsergroupsChanged(usergroups)
+		WUMA.GUI.LimitsTab:NotifyUsergroupsChanged(table.ClearKeys(usergroups))
 	end}
 end
 
@@ -335,7 +335,7 @@ function WUMA.GUI.InitializeLoadoutTab()
 	end}
 
 	WUMA.Subscribe{args = {"usergroups"}, callback = function(usergroups)
-		WUMA.GUI.LoadoutsTab:NotifyUsergroupsChanged(usergroups)
+		WUMA.GUI.LoadoutsTab:NotifyUsergroupsChanged(table.ClearKeys(usergroups))
 	end}
 end
 

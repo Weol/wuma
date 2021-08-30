@@ -31,6 +31,7 @@ function PANEL:Init()
 	--Usergroups list
 	self.list_usergroups = vgui.Create("DListView", self)
 	self.list_usergroups:SetMultiSelect(true)
+	self.list_usergroups:SetSortable(false)
 	self.list_usergroups:AddColumn("Usergroups")
 	self.list_usergroups.OnRowSelected = function(_, lineid, line) self:OnUsergroupsChanged(lineid, line) end
 
@@ -174,8 +175,6 @@ function PANEL:OnViewChanged()
 				primary_from = primary_weapon and usergroup
 			end
 		end
-
-		WUMADebug((primary_weapon or "nil") .. " from " .. (primary_from or "nil"))
 
 		local data_registry = self.list_items:GetDataRegistry()
 
