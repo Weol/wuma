@@ -384,28 +384,29 @@ function PANEL:DataLayout()
 
 	table.Empty(self.Headers)
 
+	local line_height
 	local last_index = 0
 	for k, line in ipairs(self.Sorted) do
 		line:SetSize(self:GetWide() - 2, h)
 
 		local index = self.GroupOrder[line.group]
 
-		WUMADebug(line.group)
-
 		if (index ~= last_index) then
-			for i = 0, index - last_index do
-				if (index + i > #self.ShowGroups) then break end
+			while (last_index ~= index) do
+				last_index = last_index + 1
 
-				local header_function = self.ShowGroups[index + i][2]
+				local header_function = self.ShowGroups[last_index][2]
 
 				if header_function then
-					local header = header_function(self.Groups[line.group])
-					table.insert(self.Headers, {y, y + line:GetTall() + 4, header})
+					local header = isfunction(header_function) and header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {}) or header_function
+					if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
+						table.insert(self.Headers, {y - 1, y + line:GetTall() + 5, header})
+					else
+						table.insert(self.Headers, {y, y + line:GetTall() + 4, header})
+					end
 
 					y = y + line:GetTall() + 4
 				end
-
-				last_index = last_index + 1
 			end
 		end
 
@@ -414,11 +415,36 @@ function PANEL:DataLayout()
 
 		line:SetAltLine(k % 2 == 1)
 
+		line_height = line:GetTall()
+
 		y = y + line:GetTall()
 	end
 
+	line_height = line_height or 17
+	if (self.ReverseGroupOrder and last_index ~= #self.ReverseGroupOrder) then
+		for i = last_index, #self.ReverseGroupOrder - 1 do
+			last_index = last_index + 1
+			local header_function = self.ShowGroups[last_index][2]
+
+			if header_function then
+				local header = isfunction(header_function) and header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {}) or header_function
+				if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
+					table.insert(self.Headers, {y - 1, y + line_height + 4, header})
+				else
+					table.insert(self.Headers, {y, y + line_height + 4, header})
+				end
+
+				y = y + line_height + 4
+			end
+		end
+	end
+
 	for _, panel in ipairs(self.Panels[BOTTOM]) do
-		panel:SetPos(1, y)
+		local minus = 0
+		if (self.Headers[#self.Headers] and self.Headers[#self.Headers][2] == y) then
+			minus = 1
+		end
+		panel:SetPos(1, y - minus)
 		panel:SetSize(self.pnlCanvas:GetWide() - 2)
 		panel:SizeToContentsY()
 
@@ -477,8 +503,10 @@ function PANEL:Show(key)
 	self.ShowGroups = key
 
 	self.GroupOrder = {}
+	self.ReverseGroupOrder = {}
 	for i, group in ipairs(key) do
 		self.GroupOrder[group[1]] = i
+		self.ReverseGroupOrder[i] = group[1]
 	end
 
 	for _, group in pairs(key) do
@@ -557,7 +585,6 @@ function PANEL:GetDataSources()
 end
 
 function PANEL:UpdateDataSource(id, updated, deleted)
-	WUMADebug(updated)
 	for key, value in pairs(updated) do
 		key = id .. "_" .. key
 
@@ -600,7 +627,7 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 		self:SortByColumn(1, false)
 	end
 
-	self:InvalidateLayout()
+	self:Show(self.ShowGroups or {})
 	self:OnViewChanged()
 	self:OnDataUpdate()
 end

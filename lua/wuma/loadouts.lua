@@ -218,7 +218,7 @@ local function playerLoadout(player)
 			WUMA.GiveWeapon(player, usergroup, weapon)
 		end
 
-		if not group_extend then
+		if not group_extend and default_weapon then
 			player:ConCommand("cl_defaultweapon " .. default_weapon)
 			player:SwitchToDefaultWeapon()
 

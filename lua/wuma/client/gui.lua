@@ -26,7 +26,7 @@ function WUMA.GUI.Initialize()
 
 	--Create EditablePanel
 	WUMA.GUI.Base = vgui.Create("EditablePanel")
-	WUMA.GUI.Base:SetSize(ScrW()*0.40, ScrH()*0.44)
+	WUMA.GUI.Base:SetSize(ScrW()*0.90, ScrH()*0.84)
 	WUMA.GUI.Base:SetPos(ScrW()/2-WUMA.GUI.Base:GetWide()/2, ScrH()/2-WUMA.GUI.Base:GetTall()/2)
 	WUMA.GUI.Base:SetVisible(false)
 
@@ -198,7 +198,7 @@ function WUMA.GUI.InitializeRestrictionsTab()
 	end
 
 	function WUMA.GUI.RestrictionsTab:OnUsergroupSelected(usergroup)
-		local inheritsFrom = self.InheritsFrom and self.InheritsFrom[usergroup]
+		local inheritsFrom = self:GetInheritsFrom() and self:GetInheritsFrom()[usergroup]
 		local i = 1
 		local current = usergroup
 		while current do
