@@ -212,12 +212,12 @@ function PANEL:OnViewChanged()
 			local data_registry = self.list_items:GetDataRegistry()
 			for i = #inheritsFrom, 1, -1 do
 				for j = i - 1, 0, -1 do
-					for _, line in pairs(data_registry[selected_type .. "_" .. inheritsFrom[i]] or {}) do
+					for _, line in pairs(data_registry[inheritsFrom[i] .. "_" .. selected_type] or {}) do
 						local restiction = line:GetValue()
 
 						local usergroup = (j >= 0) and inheritsFrom[j] or selected_usergroups[1]
 
-						local group_key = selected_type .. "_" .. usergroup
+						local group_key = usergroup .. "_" .. selected_type
 						local item_key = usergroup.. "_" .. selected_type  .. "_" .. restiction:GetItem()
 						if not overriden_items[line] and data_registry[group_key] and data_registry[group_key][item_key] then
 							overriden_items[line] = usergroup
@@ -492,7 +492,7 @@ function PANEL:ShowSelectedUsergroups()
 					if (table.Count(restrictions) == 0) then
 						return "No restrictions for " .. self:GetUsergroupDisplay(selected)
 					else
-						return "Restrictions from " .. self:GetUsergroupDisplay(selected)
+						return "Restrictions for " .. self:GetUsergroupDisplay(selected)
 					end
 				end
 			end
@@ -554,7 +554,7 @@ function PANEL:ShowSelectedUsergroups()
 					if (table.Count(restrictions) == 0) then
 						return "No restrictions for " .. self:GetUsergroupDisplay(selected)
 					else
-						return "Restrictions from " .. self:GetUsergroupDisplay(selected)
+						return "Restrictions for " .. self:GetUsergroupDisplay(selected)
 					end
 				end
 			end

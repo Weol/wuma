@@ -19,6 +19,15 @@ if not WUMA.HasCreatedFonts then
 		scanlines = 0,
 		antialias = true
 	})
+	
+	surface.CreateFont("WUMATextBold", {
+		font = "Arial",
+		size = 15,
+		weight = 700,
+		blursize = 0,
+		scanlines = 0,
+		antialias = true
+	})
 end
 WUMA.HasCreatedFonts = true
 
@@ -247,7 +256,7 @@ function WUMA.GUI.InitializeLimitsTab()
 	end
 
 	function WUMA.GUI.LimitsTab:OnUsergroupSelected(usergroup)
-		local inheritsFrom = self.InheritsFrom[usergroup]
+		local inheritsFrom = self:GetInheritsFrom() and self:GetInheritsFrom()[usergroup]
 		local i = 1
 		local current = usergroup
 		while current do
@@ -299,7 +308,7 @@ function WUMA.GUI.InitializeLoadoutTab()
 	end
 
 	function WUMA.GUI.LoadoutsTab:OnUsergroupSelected(usergroup)
-		local inheritsFrom = self.InheritsFrom[usergroup]
+		local inheritsFrom = self:GetInheritsFrom() and self:GetInheritsFrom()[usergroup]
 		local i = 1
 		local current = usergroup
 		while current do

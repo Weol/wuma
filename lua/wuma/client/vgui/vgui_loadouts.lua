@@ -2,6 +2,10 @@
 local PANEL = {}
 
 AccessorFunc(PANEL, "settings", "Settings")
+AccessorFunc(PANEL, "inheritance", "Inheritance")
+AccessorFunc(PANEL, "usergroups", "Usergroups")
+AccessorFunc(PANEL, "inherits_from", "InheritsFrom")
+AccessorFunc(PANEL, "inherits_to", "InheritsTo")
 
 function PANEL:Init()
 
@@ -129,24 +133,6 @@ function PANEL:ClassifyWeapon(weapon)
 	return weapon:GetParent(), {weapon:GetParent(), weapon:GetClass(), primary_ammo, secondary_ammo}, nil, nil
 end
 
-function PANEL:SortGrouping(weapon)
-	local selected_usergroups = self:GetSelectedUsergroups()
-	local usergroup = weapon:GetParent()
-	local usergroup_display = self:GetUsergroupDisplay(usergroup) or usergroup --So that we can set usergroup_display on user-loadouts tab
-
-	if (#selected_usergroups > 1) then
-		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Loadout for " .. usergroup, nil
-	else
-		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
-			if (group == weapon:GetParent()) then
-				return i + 1, "Loadout inherited from " .. usergroup_display, true
-			end
-		end
-	end
-
-	return 1, "Loadout for " .. usergroup_display, nil
-end
-
 function PANEL:OnViewChanged()
 	if (#self.list_items:GetSelectedItems() > 0) then
 		self.button_primary:SetDisabled(false)
@@ -163,7 +149,7 @@ function PANEL:OnViewChanged()
 	end
 
 	if (#selected_usergroups == 1) then
-		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+		local inheritsFrom = self:GetInheritsFrom()[selected_usergroups[1]]
 
 		local primary_weapon = self.Settings[selected_usergroups[1]] and self.Settings[selected_usergroups[1]]["loadout_primary_weapon"]
 		local primary_from = primary_weapon and selected_usergroups[1]
@@ -220,32 +206,40 @@ function PANEL:OnViewChanged()
 end
 
 function PANEL:NotifyInheritanceChanged(inheritance)
-	inheritance = inheritance["loadout"] or {}
+	local inheritance = inheritance["restrictions"] or {}
 
-	self.InheritsFrom = {}
-	self.InheritsTo = {}
-	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
+	local inheritsFrom = {}
+	local inheritsTo = {}
 
-		local current = inheritsFrom
+	for usergroup, from in pairs(inheritance) do
+		inheritsFrom[usergroup] = inheritsFrom[usergroup] or {}
+
+		local current = from
 		while current do
-			table.insert(self.InheritsFrom[usergroup], current)
+			table.insert(inheritsFrom[usergroup], current)
 
-			self.InheritsTo[current] = self.InheritsTo[current] or {}
-			table.insert(self.InheritsTo[current], 1, usergroup)
+			inheritsTo[current] = inheritsTo[current] or {}
+			table.insert(inheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
 	end
 
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	self:SetInheritsFrom(inheritsFrom)
+	self:SetInheritsTo(inheritsTo)
+	self:SetInheritance(inheritance)
+
+	if self:GetUsergroups() then
+		self:NotifyUsergroupsChanged(self:GetUsergroups())
+	end
+
+	self:ShowSelectedUsergroups()
 end
 
---luacheck: push no unused args
 function PANEL:GetUsergroupDisplay(usergroup)
 	--For use in user-restrictions
+	return usergroup
 end
---luacheck: pop
 
 function PANEL:ReloadSuggestions()
 	self.list_suggestions:Clear()
@@ -292,10 +286,20 @@ function PANEL:NotifyWeaponsChanged(weapons, parent, updated, deleted)
 end
 
 function PANEL:NotifyUsergroupsChanged(usergroups)
-	self.list_usergroups:Clear()
-	for _, usergroup in pairs(usergroups) do
-		self.list_usergroups:AddLine(usergroup)
+	local inheritance = self:GetInheritance()
+	if inheritance then
+		usergroups = WUMA.TopologicalSort(inheritance, usergroups)
 	end
+
+	self:SetUsergroups(usergroups)
+
+	self.list_usergroups:Clear()
+	for i, usergroup in ipairs(usergroups) do
+		local line = self.list_usergroups:AddLine(self:GetUsergroupDisplay(usergroup))
+		line.usergroup = usergroup
+		line:SetSortValue(1, i)
+	end
+
 	self.list_usergroups:SelectFirstItem()
 end
 
@@ -325,21 +329,64 @@ function PANEL:NotifySettingsChanged(parent, new_settings, updated, deleted)
 		self.list_items:ReSort(parent, class)
 	end
 
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	self:ShowSelectedUsergroups(self:GetSelectedUsergroups())
 end
 
-function PANEL:ShowUsergroups(usergroups)
-	local to_show = {}
+function PANEL:ShowSelectedUsergroups()
+	local usergroups = self:GetSelectedUsergroups()
+	if (#usergroups == 0) then
+		return self.list_items:Show({})
+	end
 
-	local settings = self.Settings
+	--[[
+		Sequential array of arrays:
+			1 - the group_id to show
+			2 - title of the header for the group (or null to not show a header)
+			3 - boolean that decides whether or not items in this group should be selectable or not (true: unselectable, nil or false: selectable)
+	]]
+	local groups = {}
 
 	self.list_items:ClearPanels()
 
-	for i, selected in ipairs(usergroups) do
-		table.insert(to_show, selected)
-		for i, group in ipairs(self.InheritsFrom[selected] or {}) do
-			table.insert(to_show, group)
+	local settings = self.Settings
+
+	if (#usergroups == 1) then
+		local selected = usergroups[1]
+
+		local header_function = function(weapons)
+			if (table.Count(weapons) == 0) then
+				return "No loadout for " .. self:GetUsergroupDisplay(selected)
+			else
+				return "Loadout for " .. self:GetUsergroupDisplay(selected)
+			end
 		end
+		table.insert(groups, {selected, header_function})
+
+		if self:GetInheritsFrom() and self:GetInheritsFrom()[selected] then
+			for _, usergroup in ipairs(self:GetInheritsFrom()[selected]) do
+				local header_function = function(weapons)
+					if (table.Count(weapons) == 0) then
+						return "No loadout inherited from " .. self:GetUsergroupDisplay(usergroup)
+					else
+						return "Loadout inherited from " .. self:GetUsergroupDisplay(usergroup)
+					end
+				end
+				table.insert(groups, {usergroup, header_function, true})
+			end
+		end
+	else
+		for i, selected in ipairs(usergroups) do
+			local header_function = function(weapons)
+				if (table.Count(weapons) == 0) then
+					return "No loadout for " .. self:GetUsergroupDisplay(selected)
+				else
+					return "Loadout for " .. self:GetUsergroupDisplay(selected)
+				end
+			end
+			table.insert(groups, {selected, header_function})
+		end
+
+		self.list_items:AddPanel("Not showing inherited loadouts", BOTTOM)
 	end
 
 	if (table.Count(usergroups) > 1) then
@@ -353,13 +400,14 @@ function PANEL:ShowUsergroups(usergroups)
 
 		self.checkbox_enforce:SetDisabled(false)
 		self.checkbox_enforce:SetValue(-1)
+		self.checkbox_enforce:SetHoverMessage(nil)
 
 		local usergroup = self:GetSelectedUsergroups()[1]
 
 		self.checkbox_enforce:SetValue(settings[usergroup] and settings[usergroup]["loadout_enforce"] and 1 or -1)
 
-		if self.InheritsFrom[usergroup] then
-			for i, inheritsFrom in ipairs(self.InheritsFrom[usergroup]) do
+		if self:GetInheritsFrom()[usergroup] then
+			for i, inheritsFrom in ipairs(self:GetInheritsFrom()[usergroup]) do
 				if (settings[inheritsFrom] and settings[inheritsFrom]["loadout_enforce"]) then
 					self.checkbox_enforce:SetValue(1)
 					self.checkbox_enforce:SetDisabled(true)
@@ -376,20 +424,25 @@ function PANEL:ShowUsergroups(usergroups)
 		self.DisregardSettingsChange = false
 	end
 
-	self.list_items:GroupAll()
-	self.list_items:Show(to_show)
+	self.list_items:Show(groups)
 end
 
 function PANEL:OnItemSelected(weapon)
 	self.button_primary:SetText("Set primary")
 
-	self.button_primary:SetDisabled(false)
-	self.button_delete:SetDisabled(false)
+	if (#self.list_items:GetSelected() > 1) then
+		self.button_primary:SetDisabled(true)
+	else
+		self.button_primary:SetDisabled(false)
 
-	local settings = self.Settings
-	if settings[weapon:GetParent()] and settings[weapon:GetParent()]["loadout_primary_weapon"] == weapon:GetClass() then
-		self.button_primary:SetText("Unset primary")
+		local settings = self.Settings
+		if settings[weapon:GetParent()] and settings[weapon:GetParent()]["loadout_primary_weapon"] == weapon:GetClass() then
+			self.button_primary:SetText("Unset primary")
+		end
 	end
+
+	self.button_delete:SetDisabled(false)
+	self.button_add:SetDisabled(false)
 end
 
 function PANEL:OnSearch(text)
@@ -409,7 +462,7 @@ function PANEL:OnUsergroupsChanged()
 	for _, group in pairs(self:GetSelectedUsergroups()) do
 		self:OnUsergroupSelected(group)
 	end
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	self:ShowSelectedUsergroups(self:GetSelectedUsergroups())
 end
 
 --luacheck: push no unused args

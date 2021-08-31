@@ -70,7 +70,7 @@ function PANEL:SetValue(val)
 end
 
 function PANEL:GetValue()
-	self.Button:GetValue()
+	return self.Button:GetValue()
 end
 
 function PANEL:PerformLayout()

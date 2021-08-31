@@ -179,15 +179,16 @@ function PANEL:AddViewLine(key)
 		local dataview = self
 		line.old_SetSelected = line.old_SetSelected or line.SetSelected
 		function line:SetSelected(selected)
-			if self.disallow_select then
+			if dataview.DisallowedSelects[line.group] then
 				return line:old_SetSelected(false)
 			else
+				local toReturn = line:old_SetSelected(selected)
 				if selected then
 					dataview:OnItemSelected(self.value)
 				else
 					dataview:OnItemDeselected(self.value)
 				end
-				return line:old_SetSelected(selected)
+				return toReturn
 			end
 		end
 
@@ -398,14 +399,22 @@ function PANEL:DataLayout()
 				local header_function = self.ShowGroups[last_index][2]
 
 				if header_function then
-					local header = isfunction(header_function) and header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {}) or header_function
-					if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
-						table.insert(self.Headers, {y - 1, y + line:GetTall() + 5, header})
+					local header
+					if isfunction(header_function) then
+						header = header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {})
 					else
-						table.insert(self.Headers, {y, y + line:GetTall() + 4, header})
+						header = header_function
 					end
 
-					y = y + line:GetTall() + 4
+					if header then
+						if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
+							table.insert(self.Headers, {y - 1, y + line:GetTall() + 5, header})
+						else
+							table.insert(self.Headers, {y, y + line:GetTall() + 4, header})
+						end
+
+						y = y + line:GetTall() + 4
+					end
 				end
 			end
 		end
@@ -427,15 +436,23 @@ function PANEL:DataLayout()
 			local header_function = self.ShowGroups[last_index][2]
 
 			if header_function then
-				local header = isfunction(header_function) and header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {}) or header_function
-				if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
-					table.insert(self.Headers, {y - 1, y + line_height + 4, header})
-				else
-					table.insert(self.Headers, {y, y + line_height + 4, header})
-				end
+					local header
+					if isfunction(header_function) then
+						header = header_function(self.Groups[self.ReverseGroupOrder[last_index]] or {})
+					else
+						header = header_function
+					end
 
-				y = y + line_height + 4
-			end
+					if header then
+						if (#self.Headers > 0) and (self.Headers[#self.Headers][2] == y) then
+							table.insert(self.Headers, {y - 1, y + line_height + 4, header})
+						else
+							table.insert(self.Headers, {y, y + line_height + 4, header})
+						end
+
+						y = y + line_height + 4
+					end
+				end
 		end
 	end
 
@@ -495,12 +512,9 @@ function PANEL:OnDataUpdate()
 end
 
 function PANEL:Show(key)
-	self:ClearSelection()
-	self:Clear()
-
-	self.DataRegistry = {}
-
 	self.ShowGroups = key
+	self.DisallowedSelects = {}
+	self.ShouldBeShown = {}
 
 	self.GroupOrder = {}
 	self.ReverseGroupOrder = {}
@@ -509,13 +523,37 @@ function PANEL:Show(key)
 		self.ReverseGroupOrder[i] = group[1]
 	end
 
+	local remove = {}
+	for group, lines in pairs(self.DataRegistry) do
+		remove[group] = true
+	end
+
+	for _, group in pairs(key) do
+		self.ShouldBeShown[group[1]] = true
+		if group[3] then
+			self.DisallowedSelects[group[1]] = true
+		end
+		remove[group[1]] = nil
+	end
+
+	for group, _ in pairs(remove) do
+		for key, line in pairs(self.DataRegistry[group]) do
+			self:RemoveViewLine(key)
+		end
+		self.DataRegistry[group] = nil
+	end
+
 	for _, group in pairs(key) do
 		if self.Groups[group[1]] then
-			self.DataRegistry[group[1]] = {}
-			for key, _ in pairs(self.Groups[group[1]]) do
-				local line = self:AddViewLine(key)
-				if line then
-					line.disallow_select = group[3]
+			if not self.DataRegistry[group[1]] then
+				for key, _ in pairs(self.Groups[group[1]]) do
+					self:AddViewLine(key)
+				end
+			else
+				for key, line in pairs(self.DataRegistry[group[1]]) do
+					if group[3] then
+						line:SetSelected(false)
+					end
 				end
 			end
 		end
@@ -603,7 +641,7 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 
 				line:InvalidateLayout()
 			end
-		elseif self.DataRegistry[group] then
+		elseif self.ShouldBeShown[group] then
 			self:AddViewLine(key)
 		end
 	end
@@ -627,7 +665,7 @@ function PANEL:UpdateDataSource(id, updated, deleted)
 		self:SortByColumn(1, false)
 	end
 
-	self:Show(self.ShowGroups or {})
+	self:InvalidateLayout()
 	self:OnViewChanged()
 	self:OnDataUpdate()
 end

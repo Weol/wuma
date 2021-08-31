@@ -1,10 +1,12 @@
 
 local PANEL = {}
 
-function PANEL:Init()
+AccessorFunc(PANEL, "inheritance", "Inheritance")
+AccessorFunc(PANEL, "usergroups", "Usergroups")
+AccessorFunc(PANEL, "inherits_from", "InheritsFrom")
+AccessorFunc(PANEL, "inherits_to", "InheritsTo")
 
-	self.InheritsFrom = {}
-	self.InheritsTo = {}
+function PANEL:Init()
 
 	--Limit chooser
 	self.slider_limit = vgui.Create("WSlider", self)
@@ -62,7 +64,6 @@ function PANEL:Init()
 	self.list_items.OnItemSelected = function(_, item) return self:OnItemSelected(item) end
 	self.list_items.OnViewChanged = function() return self:OnViewChanged() end
 	self.list_items:SetClassifyFunction(function(...) return self:ClassifyLimit(...) end)
-	self.list_items:SetSortGroupingFunction(function(...) return self:SortGrouping(...) end)
 
 	self:ReloadSuggestions()
 
@@ -95,6 +96,20 @@ function PANEL:PerformLayout(w, h)
 	self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, self:GetTall() - 10)
 end
 
+--[[
+	Should return 4 values:
+		group_id - the id of the group the limit belongs to, can be a table to be a composite key, is converted to table with single value otherwise
+		display - a table that specifies which values should be displayed for each column
+		sort - a table that specifies which value the limit should be sorted by for each column, can be null to have natural sorting
+		highlight - specifies which color the limit should be highlighted with (use Color(r, g, b, a)), can be null for no highlighting
+]]
+function PANEL:ClassifyLimit(limit)
+	local l = limit:GetLimit()
+	if ((tonumber(l) or 0) < 0) then l = "∞" end
+
+	return limit:GetParent(), {limit:GetParent(), limit:GetItem(), l}, nil, nil
+end
+
 function PANEL:SortGrouping(limit)
 	local selected_usergroups = self:GetSelectedUsergroups()
 	local usergroup = limit:GetParent()
@@ -103,7 +118,7 @@ function PANEL:SortGrouping(limit)
 	if (#selected_usergroups > 1) then
 		return table.KeyFromValue(self:GetSelectedUsergroups(), usergroup), "Limits for " .. usergroup
 	else
-		for i, group in ipairs(self.InheritsFrom[self:GetSelectedUsergroups()[1]] or {}) do
+		for i, group in ipairs(self:GetInheritsFrom()[self:GetSelectedUsergroups()[1]] or {}) do
 			if (group == limit:GetParent()) then
 				return i + 1, "Inherited limits from " .. usergroup_display, true
 			end
@@ -134,7 +149,7 @@ function PANEL:OnViewChanged()
 	if (#selected_usergroups == 1) then
 		local overriden_items = {}
 
-		local inheritsFrom = self.InheritsFrom[selected_usergroups[1]]
+		local inheritsFrom = self:GetInheritsFrom()[selected_usergroups[1]]
 		if inheritsFrom then
 			local data_registry = self.list_items:GetDataRegistry()
 			for i = #inheritsFrom, 1, -1 do
@@ -160,18 +175,10 @@ function PANEL:OnViewChanged()
 	end
 end
 
-function PANEL:ClassifyLimit(limit)
-	local l = limit:GetLimit()
-	if ((tonumber(l) or 0) < 0) then l = "∞" end
-
-	return limit:GetParent(), {limit:GetParent(), limit:GetItem(), l}, nil, nil
-end
-
---luacheck: push no unused args
 function PANEL:GetUsergroupDisplay(usergroup)
 	--For use in user-restrictions
+	return usergroup
 end
---luacheck: pop
 
 function PANEL:ReloadSuggestions()
 	self.list_suggestions:Clear()
@@ -262,35 +269,53 @@ function PANEL:NotifyLimitsChanged(limits, parent, updated, deleted)
 	end
 end
 
+function PANEL:NotifyUsergroupsChanged(usergroups)
+	local inheritance = self:GetInheritance()
+	if inheritance then
+		usergroups = WUMA.TopologicalSort(inheritance, usergroups)
+	end
+
+	self:SetUsergroups(usergroups)
+
+	self.list_usergroups:Clear()
+	for i, usergroup in ipairs(usergroups) do
+		local line = self.list_usergroups:AddLine(self:GetUsergroupDisplay(usergroup))
+		line.usergroup = usergroup
+		line:SetSortValue(1, i)
+	end
+
+	self.list_usergroups:SelectFirstItem()
+end
+
 function PANEL:NotifyInheritanceChanged(inheritance)
-	inheritance = inheritance["limits"] or {}
+	local inheritance = inheritance["restrictions"] or {}
 
-	self.InheritsFrom = {}
-	self.InheritsTo = {}
-	for usergroup, inheritsFrom in pairs(inheritance) do
-		self.InheritsFrom[usergroup] = self.InheritsFrom[usergroup] or {}
+	local inheritsFrom = {}
+	local inheritsTo = {}
 
-		local current = inheritsFrom
+	for usergroup, from in pairs(inheritance) do
+		inheritsFrom[usergroup] = inheritsFrom[usergroup] or {}
+
+		local current = from
 		while current do
-			table.insert(self.InheritsFrom[usergroup], current)
+			table.insert(inheritsFrom[usergroup], current)
 
-			self.InheritsTo[current] = self.InheritsTo[current] or {}
-			table.insert(self.InheritsTo[current], 1, usergroup)
+			inheritsTo[current] = inheritsTo[current] or {}
+			table.insert(inheritsTo[current], 1, usergroup)
 
 			current = inheritance[current]
 		end
 	end
 
+	self:SetInheritsFrom(inheritsFrom)
+	self:SetInheritsTo(inheritsTo)
+	self:SetInheritance(inheritance)
 
-	self:ShowUsergroups(self:GetSelectedUsergroups())
-end
-
-function PANEL:NotifyUsergroupsChanged(usergroups)
-	self.list_usergroups:Clear()
-	for _, usergroup in pairs(usergroups) do
-		self.list_usergroups:AddLine(usergroup)
+	if self:GetUsergroups() then
+		self:NotifyUsergroupsChanged(self:GetUsergroups())
 	end
-	self.list_usergroups:SelectFirstItem()
+
+	self:ShowSelectedUsergroups()
 end
 
 --luacheck: push no unused args
@@ -304,31 +329,65 @@ function PANEL:OnUsergroupsChanged()
 		self:OnUsergroupSelected(group)
 	end
 
-	self:ShowUsergroups(self:GetSelectedUsergroups())
+	self:ShowSelectedUsergroups()
 end
 
-function PANEL:ShowUsergroups(usergroups)
-	local to_show = {}
+function PANEL:ShowSelectedUsergroups()
+	local usergroups = self:GetSelectedUsergroups()
+	if (#usergroups == 0) then
+		return self.list_items:Show({})
+	end
+	
+	--[[
+		Sequential array of arrays:
+			1 - the group_id to show
+			2 - title of the header for the group (or null to not show a header)
+			3 - boolean that decides whether or not items in this group should be selectable or not (true: unselectable, nil or false: selectable)
+	]]
+	local groups = {}
 
 	self.list_items:ClearPanels()
 
-	if (table.Count(usergroups) == 1) then
-		for i, selected in ipairs(usergroups) do
-			table.insert(to_show, selected)
-			for i, group in ipairs(self.InheritsFrom[selected] or {}) do
-				table.insert(to_show, group)
+	if (#usergroups == 1) then
+		local selected = usergroups[1]
+
+		local header_function = function(limits)
+			if (table.Count(limits) == 0) then
+				return "No limits for " .. self:GetUsergroupDisplay(selected)
+			else
+				return "Limits for " .. self:GetUsergroupDisplay(selected)
+			end
+		end
+		table.insert(groups, {selected, header_function})
+
+		if self:GetInheritsFrom() and self:GetInheritsFrom()[selected] then
+			for _, usergroup in ipairs(self:GetInheritsFrom()[selected]) do
+				local header_function = function(limits)
+					if (table.Count(limits) == 0) then
+						return "No limits inherited from " .. self:GetUsergroupDisplay(usergroup)
+					else
+						return "Limits inherited from " .. self:GetUsergroupDisplay(usergroup)
+					end
+				end
+				table.insert(groups, {usergroup, header_function, true})
 			end
 		end
 	else
 		for i, selected in ipairs(usergroups) do
-			table.insert(to_show, selected)
+			local header_function = function(limits)
+				if (table.Count(limits) == 0) then
+					return "No limits for " .. self:GetUsergroupDisplay(selected)
+				else
+					return "Limits for " .. self:GetUsergroupDisplay(selected)
+				end
+			end
+			table.insert(groups, {selected, header_function})
 		end
 
 		self.list_items:AddPanel("Not showing inherited limits", BOTTOM)
 	end
 
-	self.list_items:GroupAll()
-	self.list_items:Show(to_show)
+	self.list_items:Show(groups)
 end
 
 --luacheck: push no unused args
