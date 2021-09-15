@@ -19,7 +19,7 @@ if not WUMA.HasCreatedFonts then
 		scanlines = 0,
 		antialias = true
 	})
-	
+
 	surface.CreateFont("WUMATextBold", {
 		font = "Arial",
 		size = 15,

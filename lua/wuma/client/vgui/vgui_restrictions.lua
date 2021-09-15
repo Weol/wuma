@@ -320,7 +320,7 @@ function PANEL:NotifySettingsChanged(parent, new_settings)
 		settings[parent] = new_settings
 	end
 
-	self.RawSettings = settings 
+	self.RawSettings = settings
 	self:BuildSettings()
 
 	self:ShowSelectedUsergroups()
