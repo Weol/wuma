@@ -124,6 +124,10 @@ function WUMA.GetVehicles()
 		vehicles[k] = k
 	end
 
+	for k, v in pairs(list.Get("simfphys_vehicles")) do
+		vehicles[k] = k
+	end
+
 	vehicles_cache = vehicles
 
 	return vehicles
