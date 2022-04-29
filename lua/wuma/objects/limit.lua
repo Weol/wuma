@@ -1,4 +1,3 @@
-
 Limit = {}
 
 local object = {}
@@ -31,10 +30,10 @@ function Limit:new(tbl)
 	obj.m.callonempty = tbl.callonempty or {}
 
 	--No numeric adv. limits
-	if (tonumber(obj.string) ~= nil) then obj.string = ":"..obj.string..":" end
+	if (tonumber(obj.string) ~= nil) then obj.string = ":" .. obj.string .. ":" end
 
 	--Make sure limit and string cannot be the same
-	if (obj.limit == obj.string) then obj.limit = obj.limit..":" end
+	if (obj.limit == obj.string) then obj.limit = obj.limit .. ":" end
 
 	--Parse limit
 	if (tonumber(obj.limit) ~= nil) then obj.limit = tonumber(obj.limit) end
@@ -73,7 +72,7 @@ end
 function object:__eq(that)
 	if istable(that) and that._id and that._id == self._id then
 		return (self:Get() == that:Get())
-	elseif not(tonumber(that) == nil) then
+	elseif not (tonumber(that) == nil) then
 		return (self:Get() == that)
 	end
 	return false
@@ -82,7 +81,7 @@ end
 function object:__lt(that)
 	if istable(that) and that._id and that._id == self._id then
 		return (self:Get() < that:Get())
-	elseif not(tonumber(that) == nil) then
+	elseif not (tonumber(that) == nil) then
 		return (self:Get() < that)
 	end
 	return false
@@ -91,7 +90,7 @@ end
 function object:__le(that)
 	if istable(that) and that._id and that._id == self._id then
 		return (self:Get() <= that:Get())
-	elseif not(tonumber(that) == nil) then
+	elseif not (tonumber(that) == nil) then
 		return (self:Get() <= that)
 	end
 	return false
@@ -130,9 +129,9 @@ end
 
 function object:Shred()
 	if self:IsPersonal() then
-		WUMA.RemoveUserLimit(_, self:GetParentID(), self:GetString())
+		WUMA.RemoveUserLimit(nil, self:GetParentID(), self:GetString())
 	else
-		WUMA.RemoveLimit(_, self:GetUserGroup(), self:GetString())
+		WUMA.RemoveLimit(nil, self:GetUserGroup(), self:GetString())
 	end
 end
 

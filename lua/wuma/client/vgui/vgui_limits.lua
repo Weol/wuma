@@ -1,4 +1,3 @@
-
 local PANEL = {}
 
 PANEL.TabName = "Limits"
@@ -87,7 +86,7 @@ function PANEL:Init()
 		self.progress:SetText(msg or "")
 	end)
 	self.list_items.OnDataUpdate = function()
-		hook.Call(WUMA.PROGRESSUPDATE, _, self.Command.DataID, nil)
+		hook.Call(WUMA.PROGRESSUPDATE, nil, self.Command.DataID, nil)
 
 		self:GetDataView():Show(self:GetSelectedUsergroups())
 	end
@@ -95,7 +94,7 @@ function PANEL:Init()
 	local highlight = function(line, data, datav)
 		if (tonumber(datav[3]) == nil) then
 			local id = Limit.GenerateID(Limit, datav.usergroup, datav.string)
-			local id_p = Limit.GenerateID(Limit, _, datav.string)
+			local id_p = Limit.GenerateID(Limit, nil, datav.string)
 			if not self:GetDataView():GetDataTable()[id] and not self:GetDataView():GetDataTable()[id_p] then return Color(255, 0, 0, 120); else return nil end
 		end
 	end
@@ -109,16 +108,16 @@ function PANEL:Init()
 	self.list_scopes.OnRowSelected = self.OnScopeChange
 
 	--date_chooser list
-		self.date_chooser = vgui.Create("WDatePicker", self)
-		self.date_chooser:SetVisible(false)
+	self.date_chooser = vgui.Create("WDatePicker", self)
+	self.date_chooser:SetVisible(false)
 
-		--time_chooser list
-		self.time_chooser = vgui.Create("WDurationSlider", self)
-		self.time_chooser:SetVisible(false)
+	--time_chooser list
+	self.time_chooser = vgui.Create("WDurationSlider", self)
+	self.time_chooser:SetVisible(false)
 
-		--map_chooser
-		self.map_chooser = vgui.Create("WMapPicker", self)
-		self.map_chooser:SetVisible(false)
+	--map_chooser
+	self.map_chooser = vgui.Create("WMapPicker", self)
+	self.map_chooser:SetVisible(false)
 
 	--Allow checkbox
 	self.checkbox_exclusive = vgui.Create("DCheckBoxLabel", self)
@@ -138,7 +137,7 @@ function PANEL:Init()
 		local limit = data.limit
 		if ((tonumber(limit) or 0) < 0) then limit = "∞" end
 
-		return {data.usergroup, data.print or data.string, limit, scope}, {table.KeyFromValue(WUMA.ServerGroups, data.usergroup), _, limit_sort, 0}
+		return { data.usergroup, data.print or data.string, limit, scope }, { table.KeyFromValue(WUMA.ServerGroups, data.usergroup), nil, limit_sort, 0 }
 	end
 	self:GetDataView():SetDisplayFunction(display)
 
@@ -149,18 +148,18 @@ function PANEL:Init()
 
 	local right_click = function(item)
 		local tbl = {}
-		tbl[1] = {"Item", item:GetString()}
-		tbl[2] = {"Usergroup", item:GetUserGroup()}
-		tbl[3] = {"Limit", item:Get()}
-		tbl[5] = {"Scope", item:GetScope() or "Permanent"}
-		if item:IsExclusive() then tbl[5] = {"Exlusive"} else tbl[5] = {"Inclusive"} end
+		tbl[1] = { "Item", item:GetString() }
+		tbl[2] = { "Usergroup", item:GetUserGroup() }
+		tbl[3] = { "Limit", item:Get() }
+		tbl[5] = { "Scope", item:GetScope() or "Permanent" }
+		if item:IsExclusive() then tbl[5] = { "Exlusive" } else tbl[5] = { "Inclusive" } end
 
 		return tbl
 	end
 	self:GetDataView():SetRightClickFunction(right_click)
 
 	self:PopulateList("list_usergroups", WUMA.ServerGroups, true, true)
-	self:PopulateList("list_scopes", table.Add({"Permanent"}, Scope:GetTypes("print")), true)
+	self:PopulateList("list_scopes", table.Add({ "Permanent" }, Scope:GetTypes("print")), true)
 	WUMA.GUI.AddHook(WUMA.USERGROUPSUPDATE, "WUMARestrictionsGUIUsergroupUpdateHook2", function()
 		self:PopulateList("list_usergroups", WUMA.ServerGroups, true, true)
 	end)
@@ -184,32 +183,32 @@ function PANEL:PerformLayout()
 	self.slider_limit:SetDecimals(0)
 	self.slider_limit:SetSize(100, 40)
 
-	self.textbox_advlimit:SetPos(5, self.slider_limit.y+self.slider_limit:GetTall()+5)
+	self.textbox_advlimit:SetPos(5, self.slider_limit.y + self.slider_limit:GetTall() + 5)
 	self.textbox_advlimit:SetSize(self.slider_limit:GetWide(), 20)
 
-	self.list_usergroups:SetPos(5, self.textbox_advlimit.y+self.textbox_advlimit:GetTall()+5)
-	self.list_usergroups:SetSize(self.slider_limit:GetWide(), self:GetTall()-self.list_usergroups.y-5)
+	self.list_usergroups:SetPos(5, self.textbox_advlimit.y + self.textbox_advlimit:GetTall() + 5)
+	self.list_usergroups:SetSize(self.slider_limit:GetWide(), self:GetTall() - self.list_usergroups.y - 5)
 
 	self.textbox_search:SetSize(130, 20)
-	self.textbox_search:SetPos((self:GetWide()-5)-self.textbox_search:GetWide(), 5)
+	self.textbox_search:SetPos((self:GetWide() - 5) - self.textbox_search:GetWide(), 5)
 
 	self.button_settings:SetSize(25, 25)
-	self.button_settings:SetPos((self:GetWide()-5)-self.button_settings:GetWide(), (self:GetTall()-5)-self.button_settings:GetTall())
+	self.button_settings:SetPos((self:GetWide() - 5) - self.button_settings:GetWide(), (self:GetTall() - 5) - self.button_settings:GetTall())
 
-	self.button_edit:SetSize(self.textbox_search:GetWide()-(self.button_settings:GetWide()+5), 25)
-	self.button_edit:SetPos((self.button_settings.x-10)-self.button_edit:GetWide()+5, self.button_settings.y)
+	self.button_edit:SetSize(self.textbox_search:GetWide() - (self.button_settings:GetWide() + 5), 25)
+	self.button_edit:SetPos((self.button_settings.x - 10) - self.button_edit:GetWide() + 5, self.button_settings.y)
 
 	self.button_delete:SetSize(self.textbox_search:GetWide(), 25)
-	self.button_delete:SetPos(self.button_edit.x, (self.button_edit.y-5)-self.button_delete:GetTall())
+	self.button_delete:SetPos(self.button_edit.x, (self.button_edit.y - 5) - self.button_delete:GetTall())
 
 	self.button_add:SetSize(self.textbox_search:GetWide(), 25)
-	self.button_add:SetPos(self.button_delete.x, (self.button_delete.y-5)-self.button_delete:GetTall())
+	self.button_add:SetPos(self.button_delete.x, (self.button_delete.y - 5) - self.button_delete:GetTall())
 
-	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y+self.textbox_search:GetTall()+5)
-	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y-self.list_suggestions.y-5)
+	self.list_suggestions:SetPos(self.textbox_search.x, self.textbox_search.y + self.textbox_search:GetTall() + 5)
+	self.list_suggestions:SetSize(self.textbox_search:GetWide(), self.button_add.y - self.list_suggestions.y - 5)
 
-	self.progress:SetPos(self.slider_limit.x+5+self.slider_limit:GetWide(), 5)
-	self.progress:SetWide(self.textbox_search.x-self.list_items.x-5)
+	self.progress:SetPos(self.slider_limit.x + 5 + self.slider_limit:GetWide(), 5)
+	self.progress:SetWide(self.textbox_search.x - self.list_items.x - 5)
 	if (self.progress:IsVisible()) then
 		self.progress:SetTall(16)
 	else
@@ -217,26 +216,26 @@ function PANEL:PerformLayout()
 		self.progress.y = 0
 	end
 
-	self.list_items:SetPos(self.slider_limit.x+5+self.slider_limit:GetWide(), self.progress.y + self.progress:GetTall() + 5)
+	self.list_items:SetPos(self.slider_limit.x + 5 + self.slider_limit:GetWide(), self.progress.y + self.progress:GetTall() + 5)
 
 	if self:GetAdditonalOptionsVisibility() then
-		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5, self:GetTall()-10 - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25)
+		self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, self:GetTall() - 10 - (#(self.list_scopes:GetLines() or {}) * 17 + self.list_scopes:GetHeaderHeight() + 1) - 25)
 	else
-		self.list_items:SetSize(self.textbox_search.x-self.list_items.x-5, self:GetTall()-10)
+		self.list_items:SetSize(self.textbox_search.x - self.list_items.x - 5, self:GetTall() - 10)
 	end
 
-	self.checkbox_exclusive:SetPos(self.list_scopes.x, self.list_items.y+self.list_items:GetTall()+5)
+	self.checkbox_exclusive:SetPos(self.list_scopes.x, self.list_items.y + self.list_items:GetTall() + 5)
 
-	self.list_scopes:SetPos(self.list_items.x, self.checkbox_exclusive.y+self.checkbox_exclusive:GetTall()+5)
+	self.list_scopes:SetPos(self.list_items.x, self.checkbox_exclusive.y + self.checkbox_exclusive:GetTall() + 5)
 	self.list_scopes:SizeToContents()
 	self.list_scopes:SetWide(120)
 
-		self.date_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(), self.list_scopes.y)
+	self.date_chooser:SetPos(self.list_scopes.x + 5 + self.list_scopes:GetWide(), self.list_scopes.y)
 
-		self.time_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(), self.list_scopes.y)
-		self.time_chooser:SetSize(120, 40)
+	self.time_chooser:SetPos(self.list_scopes.x + 5 + self.list_scopes:GetWide(), self.list_scopes.y)
+	self.time_chooser:SetSize(120, 40)
 
-		self.map_chooser:SetPos(self.list_scopes.x+5+self.list_scopes:GetWide(), self.list_scopes.y)
+	self.map_chooser:SetPos(self.list_scopes.x + 5 + self.list_scopes:GetWide(), self.list_scopes.y)
 
 end
 
@@ -278,10 +277,10 @@ function PANEL:ReloadSuggestions()
 			elseif (string.sub(item, 1, 5) == "gmod_") then
 				local str = string.sub(item, 6)
 
-				if table.HasValue(tbl, str.."s") then
+				if table.HasValue(tbl, str .. "s") then
 					tbl[key] = nil
 				end
-			elseif table.HasValue(tbl, item.."s") then
+			elseif table.HasValue(tbl, item .. "s") then
 				tbl[key] = nil
 			end
 
@@ -311,7 +310,7 @@ end
 function PANEL:GetSelectedSuggestions()
 	if not self.list_suggestions:GetSelected() or (table.Count(self.list_suggestions:GetSelected()) < 1) then
 		if (self.textbox_search:GetValue() ~= "" and self.textbox_search:GetValue() ~= self.textbox_search:GetDefault()) then
-			return {self.textbox_search:GetValue()}
+			return { self.textbox_search:GetValue() }
 		end
 	else
 		local tbl = {}
@@ -320,7 +319,7 @@ function PANEL:GetSelectedSuggestions()
 		end
 		return tbl
 	end
-	return {false}
+	return { false }
 end
 
 function PANEL:GetSelectedUsergroups()
@@ -353,7 +352,7 @@ function PANEL:GetSelectedScope()
 				if v.processdata then data = v.processdata(data) end
 			end
 
-			scope = {type=k, data=data}
+			scope = { type = k, data = data }
 			break
 		end
 	end
@@ -379,6 +378,7 @@ function PANEL:GetLimit()
 
 	return limit
 end
+
 function PANEL:GetAdditonalOptionsVisibility()
 	return self.additionaloptionsvisibility
 end
@@ -489,7 +489,7 @@ function PANEL:OnAddClick()
 	local suggestions = self:GetSelectedSuggestions()
 
 	local access = self.Command.Add
-	local data = {usergroups, suggestions, self:GetLimit(), self:GetIsExclusive(), self:GetSelectedScope()}
+	local data = { usergroups, suggestions, self:GetLimit(), self:GetIsExclusive(), self:GetSelectedScope() }
 
 	WUMA.SetProgress(self.Command.DataID, "Adding data", 0.2)
 
@@ -505,7 +505,7 @@ function PANEL:OnDeleteClick()
 	WUMA.SetProgress(self.Command.DataID, "Deleting data", 0.2)
 
 	for _, v in pairs(items) do
-		WUMA.SendCommand(self.Command.Delete, {v:GetUserGroup(), v:GetString()})
+		WUMA.SendCommand(self.Command.Delete, { v:GetUserGroup(), v:GetString() })
 	end
 end
 
@@ -515,15 +515,15 @@ function PANEL:OnEditClick()
 	local items = self:GetDataView():GetSelectedItems()
 	if (table.Count(items) ~= 1) then return end
 
-	local usergroup = {items[1]:GetUserGroup()}
-	local string = {items[1]:GetString()}
+	local usergroup = { items[1]:GetUserGroup() }
+	local string = { items[1]:GetString() }
 
 	if (string == self:GetLimit()) then
 		return
 	end
 
 	local access = self.Command.Edit
-	local data = {usergroup, string, self:GetLimit(), self:GetIsExclusive(), self:GetSelectedScope()}
+	local data = { usergroup, string, self:GetLimit(), self:GetIsExclusive(), self:GetSelectedScope() }
 
 	WUMA.SetProgress(self.Command.DataID, "Editing data", 0.2)
 

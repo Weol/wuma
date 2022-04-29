@@ -1,4 +1,3 @@
-
 Loadout_Weapon = {}
 
 local object = {}
@@ -11,11 +10,11 @@ function Loadout_Weapon:new(tbl)
 	tbl = tbl or {}
 	local mt = table.Copy(object)
 	mt.m = {}
-	
+
 	local obj = setmetatable({}, mt)
-	
+
 	obj.m._uniqueid = WUMA.GenerateUniqueID()
-	
+
 	obj.m.origin = tbl.origin or nil
 	obj.m.parent = tbl.parent or nil
 	obj.m.isprimary = tbl.isprimary or nil
@@ -23,13 +22,13 @@ function Loadout_Weapon:new(tbl)
 	obj.primary = tbl.primary or -1
 	obj.secondary = tbl.secondary or -1
 	obj.respect_restrictions = tbl.respect_restrictions or nil
-	
+
 	obj.m._id = Loadout_Weapon._id
-	
+
 	if tbl.scope then obj:SetScope(tbl.scope) else obj.m.scope = "Permenant" end
 
 	return obj
-end 
+end
 
 function static:GetID()
 	return Loadout_Weapon._id
@@ -47,13 +46,13 @@ end
 function object:Clone()
 	local copy = table.Copy(self)
 	local origin
-	
+
 	if self.origin then
 		origin = self.origin
 	else
 		origin = self
 	end
-	
+
 	copy.origin = origin
 	local obj = Loadout_Weapon:new(copy)
 
@@ -124,13 +123,13 @@ function object:GetOrigin()
 	return self.origin
 end
 
-function object:SetScope(scope)	
+function object:SetScope(scope)
 	if not self:GetOrigin() then
 		self.scope = scope
 		if not scope.m then self.scope = Scope:new(scope) end
-	
+
 		self.scope:SetParent(self)
-		
+
 		self.scope:AllowThink()
 	end
 end
@@ -157,13 +156,13 @@ end
 
 function object:Shred()
 	if (self:IsPersonal()) then
-		WUMA.RemoveUserLoadoutWeapon(_, self:GetParent():GetParentID(), self:GetClass())
+		WUMA.RemoveUserLoadoutWeapon(nil, self:GetParent():GetParentID(), self:GetClass())
 	else
-		WUMA.RemoveLoadoutWeapon(_, self:GetParent():GetUserGroup(), self:GetClass())
+		WUMA.RemoveLoadoutWeapon(nil, self:GetParent():GetUserGroup(), self:GetClass())
 	end
 end
 
-function object:IsDisabled() 
+function object:IsDisabled()
 	if self.m and self.m.disabled then return true end
 	return false
 end
@@ -179,5 +178,4 @@ end
 object.__index = object
 static.__index = static
 
-setmetatable(Loadout_Weapon, static) 
-
+setmetatable(Loadout_Weapon, static)

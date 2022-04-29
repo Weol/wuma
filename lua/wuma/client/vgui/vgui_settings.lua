@@ -263,8 +263,8 @@ function PANEL:Init()
 			end
 		end
 
-		self.inheritance_restriction.combobox:AddChoice("Nobody", _, true)
-		self.inheritance_limit.combobox:AddChoice("Nobody", _, true)
+		self.inheritance_restriction.combobox:AddChoice("Nobody", nil, true)
+		self.inheritance_limit.combobox:AddChoice("Nobody", nil, true)
 		self.DisregardInheritanceChange = false
 
 		WUMA.UpdateInheritance(WUMA.Inheritance)
@@ -274,7 +274,7 @@ function PANEL:Init()
 	WUMA.GUI.AddHook(WUMA.USERGROUPSUPDATE, "WUMASettubsGUIUsergroupUpdateHook", function()
 		self.inheritance_target.combobox:Clear()
 		for _, usergroup in pairs (WUMA.ServerGroups) do
-			self.inheritance_target.combobox:AddChoice(usergroup, _, true)
+			self.inheritance_target.combobox:AddChoice(usergroup, nil, true)
 		end
 		populateUsergroups()
 	end)

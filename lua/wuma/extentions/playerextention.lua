@@ -1,8 +1,7 @@
-
 local ENT = FindMetaTable("Player")
 
 if CLIENT then
-	local exclude_limits = CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
+	local exclude_limits = CreateConVar("wuma_exclude_limits", "1", { FCVAR_ARCHIVE, FCVAR_REPLICATED }, "Exclude wuma limits from normal gamemode limits")
 
 	function ENT:GetCount(str)
 		if exclude_limits:GetBool() then
@@ -11,6 +10,7 @@ if CLIENT then
 			return self:GetNWInt("Count." .. str, 0)
 		end
 	end
+
 	return
 end
 
@@ -55,7 +55,7 @@ function ENT:CheckLimit(str, id)
 			end
 		end
 
-		local limithit =  self:GetLimit(id):Check()
+		local limithit = self:GetLimit(id):Check()
 		if (limithit ~= nil) then return limithit end
 	end
 
@@ -161,7 +161,7 @@ function ENT:AddRestriction(restriction)
 		self:GetRestrictions()[id] = new
 	end
 
-	hook.Call(WUMA.USERRESTRICTIONADDED, _, self, restriction)
+	hook.Call(WUMA.USERRESTRICTIONADDED, nil, self, restriction)
 end
 
 function ENT:AddRestrictions(tbl)
@@ -186,7 +186,7 @@ function ENT:RemoveRestriction(id, personal)
 
 	if (table.Count(self:GetRestrictions()) < 1) then self.Restrictions = nil end
 
-	hook.Call(WUMA.USERRESTRICTIONREMOVED, _, self, restriction)
+	hook.Call(WUMA.USERRESTRICTIONREMOVED, nil, self, restriction)
 end
 
 function ENT:GetRestrictions()
@@ -196,7 +196,7 @@ end
 function ENT:GetRestriction(type, str)
 	if not self:GetRestrictions() then return nil end
 	if str then
-		local key = Restriction:GenerateID(type, _, str)
+		local key = Restriction:GenerateID(type, nil, str)
 		if self:GetRestrictions()[key] then
 			return self:GetRestrictions()[key]
 		end
@@ -275,13 +275,13 @@ end
 
 function ENT:GetLimit(str)
 	if not self:GetLimits() then return false end
-	local id = Limit:GenerateID(_, str)
+	local id = Limit:GenerateID(nil, str)
 	return self:GetLimits()[id]
 end
 
 function ENT:HasLimit(str)
 	if not self:GetLimits() then return false end
-	local id = Limit:GenerateID(_, str)
+	local id = Limit:GenerateID(nil, str)
 	if self:GetLimits()[id] then return true end
 	return false
 end

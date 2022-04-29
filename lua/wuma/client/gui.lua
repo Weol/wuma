@@ -89,7 +89,7 @@ function WUMA.GUI.Initialize()
 
 	WGUI.Tabs.Users.OnExtraChange = WUMA.OnUserTabChange
 
-	hook.Call("OnWUMAInitialized", _, WGUI.PropertySheet)
+	hook.Call("OnWUMAInitialized", nil, WGUI.PropertySheet)
 
 end
 hook.Add("PostGamemodeLoaded", "WUMAGuiInitialize", function() timer.Simple(2, WUMA.GUI.Initialize) end)
@@ -126,7 +126,7 @@ end
 function WUMA.SetProgress(id, msg, timeout)
 	timer.Create("WUMARequestTimerBarStuff" .. id, timeout, 1, function()
 		hook.Remove(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id)
-		hook.Call(WUMA.PROGRESSUPDATE, _, id, msg)
+		hook.Call(WUMA.PROGRESSUPDATE, nil, id, msg)
 	end)
 	hook.Add(WUMA.PROGRESSUPDATE, "WUMAProgressUpdate"..id, function(incid)
 		timer.Remove("WUMARequestTimerBarStuff" .. incid)
