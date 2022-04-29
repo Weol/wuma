@@ -339,7 +339,7 @@ CAMI.PlayerHasAccess
 ]]
 -- Default access handler
 local defaultAccessHandler = {["CAMI.PlayerHasAccess"] =
-	function(_, actorPly, privilegeName, callback, _, extraInfoTbl)
+	function(_, actorPly, privilegeName, callback, nil, extraInfoTbl)
 		-- The server always has access in the fallback
 		if not IsValid(actorPly) then return callback(true, "Fallback.") end
 

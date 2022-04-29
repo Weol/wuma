@@ -1,4 +1,3 @@
-
 WUMA = WUMA or {}
 local WUMADebug = WUMADebug
 local WUMALog = WUMALog
@@ -7,7 +6,7 @@ WUMA.Limits = WUMA.Limits or {}
 WUMA.UserLimitStrings = WUMA.UserLimitStrings or {}
 WUMA.UsergroupLimits = WUMA.UsergroupLimits or {}
 
-WUMA.ExcludeLimits = WUMA.CreateConVar("wuma_exclude_limits", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exclude wuma limits from normal gamemode limits")
+WUMA.ExcludeLimits = WUMA.CreateConVar("wuma_exclude_limits", "1", { FCVAR_ARCHIVE, FCVAR_REPLICATED }, "Exclude wuma limits from normal gamemode limits")
 
 function WUMA.LoadLimits()
 	local saved, tbl = WUMA.GetSavedLimits() or {}, {}
@@ -28,7 +27,7 @@ function WUMA.GetSavedLimits(user)
 	if (user) then
 		tbl = WUMA.ReadUserLimits(user)
 	else
-		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory.."limits.txt")) or {}
+		local saved = util.JSONToTable(WUMA.Files.Read(WUMA.DataDirectory .. "limits.txt")) or {}
 
 		for key, obj in pairs(saved) do
 			if istable(obj) then
@@ -88,7 +87,7 @@ function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 		item = string.lower(item)
 	end
 
-	local limit = Limit:new({string=item, usergroup=usergroup, limit=limit, exclusive=exclusive, scope=scope})
+	local limit = Limit:new({ string = item, usergroup = usergroup, limit = limit, exclusive = exclusive, scope = scope })
 
 	WUMA.Limits[limit:GetID()] = limit
 
@@ -110,6 +109,7 @@ function WUMA.AddLimit(caller, usergroup, item, limit, exclusive, scope)
 			end
 		end
 	end
+
 	recursive(usergroup)
 
 	WUMA.AddClientUpdate(Limit, function(tbl)
@@ -178,6 +178,7 @@ function WUMA.RemoveLimit(caller, usergroup, item)
 			end
 		end
 	end
+
 	recursive(usergroup)
 
 	WUMA.AddClientUpdate(Limit, function(tbl)
@@ -207,14 +208,14 @@ function WUMA.AddUserLimit(caller, user, item, limit, exclusive, scope)
 		item = string.lower(item)
 	end
 
-	local limit = Limit:new{string=item, limit=limit, exclusive=exclusive, scope=scope}
+	local limit = Limit:new { string = item, limit = limit, exclusive = exclusive, scope = scope }
 
 	local affected = {}
 
 	if isentity(user) then
 		user:AddLimit(limit)
 
-		affected = {user}
+		affected = { user }
 		user = user:SteamID()
 	end
 
@@ -244,7 +245,7 @@ function WUMA.RemoveUserLimit(caller, user, item)
 		end
 	end
 
-	local id = Limit:GenerateID(_, item)
+	local id = Limit:GenerateID(nil, item)
 
 	local affected = {}
 
@@ -252,7 +253,7 @@ function WUMA.RemoveUserLimit(caller, user, item)
 	if isentity(user) then
 		user:RemoveLimit(id, true)
 
-		affected = {user}
+		affected = { user }
 		user = user:SteamID()
 	end
 

@@ -1,4 +1,3 @@
-
 local function checkPlayerSpawn(ply, ent, entTable)
 	if (istable(ent)) then
 		ent = ent.Class
@@ -11,7 +10,7 @@ local function checkPlayerSpawn(ply, ent, entTable)
 	--Check if ent is restricted in all the different types
 	if (WUMA.GetWeapons()[ent]) and (WUMA.PlayerSpawnSWEP(ply, ent, ent) == false) then ret = false end
 
-	if (WUMA.GetVehicles()[ent]) and (WUMA.PlayerSpawnVehicle(ply, _, ent) == false) then ret = false end
+	if (WUMA.GetVehicles()[ent]) and (WUMA.PlayerSpawnVehicle(ply, nil, ent) == false) then ret = false end
 
 	if (WUMA.GetEntities()[ent]) and (WUMA.PlayerSpawnSENT(ply, ent) == false) then ret = false end
 
@@ -51,10 +50,10 @@ if AdvDupe2 then
 					end
 
 					if user:HasLimit(str) then
-						if (user:CheckLimit(_, str) == false) then
+						if (user:CheckLimit(nil, str) == false) then
 							entity:Remove()
 						else
-							user:AddCount(_, entity, str)
+							user:AddCount(nil, entity, str)
 						end
 					end
 				end
@@ -76,7 +75,7 @@ local function checkDuplicatorSpawn(ply, entTable)
 	--Check if class is restricted in all the different types
 	if (WUMA.GetWeapons()[class]) and (WUMA.PlayerSpawnSWEP(ply, class) == false) then ret = false end
 
-	if (WUMA.GetVehicles()[class]) and (WUMA.PlayerSpawnVehicle(ply, _, class) == false) then ret = false end
+	if (WUMA.GetVehicles()[class]) and (WUMA.PlayerSpawnVehicle(ply, nil, class) == false) then ret = false end
 
 	if (WUMA.GetEntities()[class]) and (WUMA.PlayerSpawnSENT(ply, class) == false) then ret = false end
 

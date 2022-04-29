@@ -1,4 +1,3 @@
-
 Restriction = {}
 
 local object = {}
@@ -8,21 +7,21 @@ Restriction._id = "WUMA_Restriction"
 object._id = "WUMA_Restriction"
 
 Restriction.types = {
-	entity = {print="Entity", print2="Entities", search="Search..", items=function() return WUMA.GetEntities() end},
-	prop = {print="Prop", print2="Props", search="Model"},
-	npc = {print="NPC", print2="NPCs", search="Search..", items=function() return WUMA.GetNPCs() end},
-	vehicle = {print="Vehicle", print2="Vehicles", search="Search..", items=function() return WUMA.GetVehicles() end},
-	swep = {print="Weapon", print2="Weapons", search="Search..", items=function() return WUMA.GetWeapons() end},
-	pickup = {print="Pickup", print2="Pickups", search="Search..", items=function() return WUMA.GetWeapons() end},
-	effect = {print="Effect", print2="Effects", search="Model"},
-	tool = {print="Tool", print2="Tools", search="Search..", items=function() return WUMA.GetTools() end},
-	ragdoll = {print="Ragdoll", print2="Ragdolls", search="Model"},
-	property = {print="Property", print2="Properties", search="Property"},
-	use = {print="Use", print2="Uses", search="Search..", items=function()
+	entity = { print = "Entity", print2 = "Entities", search = "Search..", items = function() return WUMA.GetEntities() end },
+	prop = { print = "Prop", print2 = "Props", search = "Model" },
+	npc = { print = "NPC", print2 = "NPCs", search = "Search..", items = function() return WUMA.GetNPCs() end },
+	vehicle = { print = "Vehicle", print2 = "Vehicles", search = "Search..", items = function() return WUMA.GetVehicles() end },
+	swep = { print = "Weapon", print2 = "Weapons", search = "Search..", items = function() return WUMA.GetWeapons() end },
+	pickup = { print = "Pickup", print2 = "Pickups", search = "Search..", items = function() return WUMA.GetWeapons() end },
+	effect = { print = "Effect", print2 = "Effects", search = "Model" },
+	tool = { print = "Tool", print2 = "Tools", search = "Search..", items = function() return WUMA.GetTools() end },
+	ragdoll = { print = "Ragdoll", print2 = "Ragdolls", search = "Model" },
+	property = { print = "Property", print2 = "Properties", search = "Property" },
+	use = { print = "Use", print2 = "Uses", search = "Search..", items = function()
 		local tbl = {}
 		table.Add(table.Add(table.Add(tbl, WUMA.GetEntities()), WUMA.GetVehicles()), WUMA.GetNPCs())
 		return tbl
-	end}
+	end }
 }
 
 function Restriction:new(tbl)
@@ -55,13 +54,13 @@ end
 function Restriction:GenerateID(type, usergroup, str)
 	if usergroup then
 		if str then
-			return type.."_"..usergroup.."_"..str
+			return type .. "_" .. usergroup .. "_" .. str
 		else
-			return type.."_"..usergroup
+			return type .. "_" .. usergroup
 		end
 	else
 		if str then
-			return type.."_"..str
+			return type .. "_" .. str
 		else
 			return type
 		end
@@ -136,9 +135,9 @@ end
 
 function object:Shred()
 	if self:IsPersonal() then
-		WUMA.RemoveUserRestriction(_, self:GetParentID(), self:GetType(), self:GetString())
+		WUMA.RemoveUserRestriction(nil, self:GetParentID(), self:GetType(), self:GetString())
 	else
-		WUMA.RemoveRestriction(_, self:GetUserGroup(), self:GetType(), self:GetString())
+		WUMA.RemoveRestriction(nil, self:GetUserGroup(), self:GetType(), self:GetString())
 	end
 end
 
@@ -208,6 +207,7 @@ function object:Clone()
 
 	return obj
 end
+
 function object:GetBarebones()
 	local tbl = {}
 	for k, v in pairs(self) do
